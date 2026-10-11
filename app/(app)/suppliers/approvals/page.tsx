@@ -83,12 +83,51 @@ function RejectModal({
     );
 }
 
+function ConfirmModal({
+    title,
+    body,
+    confirmLabel,
+    onConfirm,
+    onCancel,
+}: {
+    title: string;
+    body: string;
+    confirmLabel: string;
+    onConfirm: () => void;
+    onCancel: () => void;
+}) {
+    return (
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-label={title}
+            onKeyDown={e => { if (e.key === 'Escape') onCancel(); }}
+        >
+            <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-6 shadow-xl">
+                <h3 className="text-base font-semibold text-gray-900">{title}</h3>
+                <p className="mt-2 text-sm text-gray-600">{body}</p>
+                <div className="mt-5 flex justify-end gap-3">
+                    <button type="button" onClick={onCancel} className="border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 transition hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button type="button" autoFocus onClick={onConfirm} className="bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700">
+                        {confirmLabel}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function ReorderRow({
     reorder,
     actions,
+    note,
 }: {
     reorder: SupplierReorder;
     actions?: React.ReactNode;
+    note?: string;
 }) {
     return (
         <div className="rounded-lg border border-gray-200 bg-gray-50 p-5">
@@ -98,6 +137,9 @@ function ReorderRow({
                         <span className="text-sm font-bold text-gray-900">{reorder.vendorName}</span>
                         <span className="text-sm font-semibold text-blue-700">{reorder.gasType}</span>
                         <span className="text-sm text-gray-600">{reorder.quantityKg} kg</span>
+                        <span className="inline-flex border border-gray-200 bg-white px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-gray-600">
+                            {reorder.reorderType === 'recovery' ? 'Return of recovered gas' : 'Purchase of new stock'}
+                        </span>
                         <Badge status={reorder.status} />
                     </div>
                     <p className="text-sm text-gray-600">{reorder.purpose}</p>
@@ -113,6 +155,9 @@ function ReorderRow({
                             <span>NOU reviewed {formatDate(reorder.nouReviewedAt)}</span>
                         )}
                     </div>
+                    {note && (
+                        <p className="mt-2 border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">{note}</p>
+                    )}
                     {reorder.status === 'rejected' && reorder.rejectionReason && (
                         <div className="mt-2 border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
                             <span className="font-semibold">Rejected by {reorder.rejectedBy === 'hevacraz' ? 'HEVACRAZ' : 'NOU'}:</span> {reorder.rejectionReason}
@@ -136,6 +181,8 @@ export default function ApprovalsPage() {
 
     const [rejectTarget, setRejectTarget] = useState<{ id: string; gas: string; role: 'hevacraz' | 'nou' } | null>(null);
     const [acting, setActing] = useState(false);
+    const [notice, setNotice] = useState<{ kind: 'error' | 'success'; text: string } | null>(null);
+    const [confirmTarget, setConfirmTarget] = useState<{ reorder: SupplierReorder; stage: 'hevacraz' | 'nou' } | null>(null);
 
     if (isLoading) {
         return (
@@ -164,37 +211,38 @@ export default function ApprovalsPage() {
     // Both workflow stages use the admin role, while the API enforces two distinct
     // human reviewers by comparing their account IDs between stages.
 
-    async function handleHevacrazApprove(id: string) {
+    async function run(action: () => Promise<unknown>, successText: string) {
         setActing(true);
+        setNotice(null);
         try {
-            await hevacrazApproveReorder(id);
+            await action();
+            setNotice({ kind: 'success', text: successText });
+        } catch (err) {
+            setNotice({ kind: 'error', text: err instanceof Error ? err.message : 'That action failed. Try again.' });
         } finally {
             setActing(false);
         }
     }
 
-    async function handleNouApprove(id: string) {
-        setActing(true);
-        try {
-            await nouApproveReorder(id);
-        } finally {
-            setActing(false);
+    async function handleConfirmApprove() {
+        if (!confirmTarget) return;
+        const { reorder, stage } = confirmTarget;
+        setConfirmTarget(null);
+        if (stage === 'hevacraz') {
+            await run(() => hevacrazApproveReorder(reorder.id), `Approved ${reorder.quantityKg} kg of ${reorder.gasType} and sent it to NOU for the second review.`);
+        } else {
+            await run(() => nouApproveReorder(reorder.id), `Gave final approval to ${reorder.quantityKg} kg of ${reorder.gasType}. ${reorder.vendorName} has been notified.`);
         }
     }
 
     async function handleRejectConfirm(reason: string) {
         if (!rejectTarget) return;
-        setActing(true);
-        try {
-            if (rejectTarget.role === 'hevacraz') {
-                await hevacrazRejectReorder(rejectTarget.id, reason);
-            } else {
-                await nouRejectReorder(rejectTarget.id, reason);
-            }
-        } finally {
-            setRejectTarget(null);
-            setActing(false);
-        }
+        const target = rejectTarget;
+        setRejectTarget(null);
+        await run(
+            () => (target.role === 'hevacraz' ? hevacrazRejectReorder(target.id, reason) : nouRejectReorder(target.id, reason)),
+            `Rejected the ${target.gas} reorder. The vendor has been notified with your reason.`,
+        );
     }
 
     const pendingHevacraz = reorders.filter(r => r.status === 'pending_hevacraz');
@@ -214,6 +262,16 @@ export default function ApprovalsPage() {
                     </p>
                 </div>
             </div>
+
+            {notice && (
+                <div
+                    role={notice.kind === 'error' ? 'alert' : 'status'}
+                    className={`flex items-start justify-between gap-4 border px-4 py-3 text-sm ${notice.kind === 'error' ? 'border-rose-300 bg-rose-50 text-rose-800' : 'border-emerald-300 bg-emerald-50 text-emerald-800'}`}
+                >
+                    <span>{notice.text}</span>
+                    <button type="button" onClick={() => setNotice(null)} className="shrink-0 text-xs font-semibold underline">Dismiss</button>
+                </div>
+            )}
 
             <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
                 <div className="flex items-center justify-between gap-4">
@@ -240,11 +298,11 @@ export default function ApprovalsPage() {
                                     <>
                                         <button
                                             type="button"
-                                            onClick={() => handleHevacrazApprove(reorder.id)}
+                                            onClick={() => setConfirmTarget({ reorder, stage: 'hevacraz' })}
                                             disabled={acting}
                                             className="rounded-lg inline-flex items-center gap-1.5 bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed"
                                         >
-                                            Approve send to NOU
+                                            Approve and send to NOU
                                         </button>
                                         <button
                                             type="button"
@@ -279,16 +337,19 @@ export default function ApprovalsPage() {
                     </div>
                 ) : (
                     <div className="mt-6 space-y-4">
-                        {pendingNou.map(reorder => (
+                        {pendingNou.map(reorder => {
+                            const sameReviewer = reorder.hevacrazReviewerId === session.id;
+                            return (
                             <ReorderRow
                                 key={reorder.id}
                                 reorder={reorder}
+                                note={sameReviewer ? 'You gave the first approval. A different administrator must complete the NOU review, so the buttons are disabled for you.' : undefined}
                                 actions={
                                     <>
                                         <button
                                             type="button"
-                                            onClick={() => handleNouApprove(reorder.id)}
-                                            disabled={acting}
+                                            onClick={() => setConfirmTarget({ reorder, stage: 'nou' })}
+                                            disabled={acting || sameReviewer}
                                             className="rounded-lg inline-flex items-center gap-1.5 bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed"
                                         >
                                             Approve
@@ -296,7 +357,7 @@ export default function ApprovalsPage() {
                                         <button
                                             type="button"
                                             onClick={() => setRejectTarget({ id: reorder.id, gas: reorder.gasType, role: 'nou' })}
-                                            disabled={acting}
+                                            disabled={acting || sameReviewer}
                                             className="rounded-lg inline-flex items-center gap-1.5 border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 disabled:opacity-60 disabled:cursor-not-allowed"
                                         >
                                             Reject
@@ -304,7 +365,8 @@ export default function ApprovalsPage() {
                                     </>
                                 }
                             />
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
             </div>
@@ -325,6 +387,20 @@ export default function ApprovalsPage() {
                     </div>
                 )}
             </div>
+
+            {confirmTarget && (
+                <ConfirmModal
+                    title={confirmTarget.stage === 'hevacraz' ? 'Approve and send to NOU?' : 'Give final approval?'}
+                    body={
+                        confirmTarget.stage === 'hevacraz'
+                            ? `${confirmTarget.reorder.vendorName} is asking for ${confirmTarget.reorder.quantityKg} kg of ${confirmTarget.reorder.gasType} (${confirmTarget.reorder.reorderType === 'recovery' ? 'return of recovered gas' : 'purchase of new stock'}). A different administrator must then give the NOU approval.`
+                            : `This is the final approval for ${confirmTarget.reorder.quantityKg} kg of ${confirmTarget.reorder.gasType}. It counts toward national reporting and the vendor is notified.`
+                    }
+                    confirmLabel={confirmTarget.stage === 'hevacraz' ? 'Approve and send' : 'Give final approval'}
+                    onConfirm={handleConfirmApprove}
+                    onCancel={() => setConfirmTarget(null)}
+                />
+            )}
 
             {rejectTarget && (
                 <RejectModal

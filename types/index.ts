@@ -98,7 +98,7 @@ export interface Job {
 export type PlannerJobStatus = 'scheduled' | 'in-progress' | 'completed' | 'follow-up' | 'cancelled';
 export type RefrigerantSafetyClass = 'A1' | 'A2L' | 'A2' | 'A3' | 'B1' | 'B2L' | 'B2' | 'B3';
 export type EquipmentStatus = 'normal' | 'due-soon' | 'overdue';
-export type SupplierQuotaStatus = 'within-quota' | 'near-limit' | 'exceeded';
+export type SupplierQuotaStatus = 'no-quota' | 'within-quota' | 'near-limit' | 'exceeded';
 
 export interface PlannerServiceRecord {
   id: string;
@@ -199,11 +199,13 @@ export interface ApprovedSupplier {
   name: string;
   refrigerants: string[];
   approvedRefrigerants?: string[];
-  totalSalesKg: number;
-  importQuotaKg: number;
+  /** Kilograms sold this calendar year. Only returned to administrators and the supplier itself. */
+  totalSalesKg?: number;
+  /** Annual import quota in kg, or null when none has been set. Same visibility as totalSalesKg. */
+  importQuotaKg?: number | null;
   importQuotas?: Record<string, number>;
-  usagePercent: number;
-  quotaStatus: SupplierQuotaStatus;
+  usagePercent?: number | null;
+  quotaStatus?: SupplierQuotaStatus;
   nouApproved: boolean;
   region: string;
 }

@@ -207,27 +207,33 @@ export default function VendorReportingPanel({
             pesepayTransactionId: saleForm.invoiceNumber.trim(),
         };
 
-        await createLedgerEntry({
-            supplierEmail: session.email,
-            supplierName,
-            direction: 'sale',
-            technicianId: technician.id,
-            technicianRegistrationNumber: technician.registrationNumber,
-            counterpartyName: technician.name,
-            counterpartyCompany: technician.employer ?? 'Independent technician',
-            counterpartyType: 'technician',
-            province: technician.province,
-            refrigerant: saleForm.refrigerant,
-            quantityKg,
-            unitPriceUsd,
-            totalValueUsd: quantityKg * unitPriceUsd,
-            invoiceNumber: saleForm.invoiceNumber.trim(),
-            transactionDate: transactionDateIso,
-            referenceMonth: saleForm.transactionDate.slice(0, 7),
-            reportedToNou: saleForm.reportedToNou,
-            clientReported: saleForm.clientReported,
-            notes: saleForm.notes.trim() || `Sold to registered technician ${technician.registrationNumber}.`,
-        });
+        try {
+            await createLedgerEntry({
+                supplierEmail: session.email,
+                supplierName,
+                direction: 'sale',
+                technicianId: technician.id,
+                technicianRegistrationNumber: technician.registrationNumber,
+                counterpartyName: technician.name,
+                counterpartyCompany: technician.employer ?? 'Independent technician',
+                counterpartyType: 'technician',
+                province: technician.province,
+                refrigerant: saleForm.refrigerant,
+                quantityKg,
+                unitPriceUsd,
+                totalValueUsd: quantityKg * unitPriceUsd,
+                invoiceNumber: saleForm.invoiceNumber.trim(),
+                transactionDate: transactionDateIso,
+                referenceMonth: saleForm.transactionDate.slice(0, 7),
+                reportedToNou: saleForm.reportedToNou,
+                clientReported: saleForm.clientReported,
+                notes: saleForm.notes.trim() || `Sold to registered technician ${technician.registrationNumber}.`,
+            });
+
+        } catch (err) {
+            setFormMessage(err instanceof Error ? err.message : 'The sale could not be saved. Check the details and try again.');
+            return;
+        }
 
         // Note: No longer mirrors sale entries into fieldToolkitLogs localStorage.
         // The canonical record is the ledger entry above (DB-backed).

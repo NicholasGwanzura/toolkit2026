@@ -21,8 +21,10 @@ import {
 import { useAuth } from '@/lib/auth';
 import { useSupplierApplications, approveSupplierApplication, markSupplierApplicationUnderReview, rejectSupplierApplication, useApprovedSuppliers } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
+import { NEAR_LIMIT_PERCENT } from '@/lib/supplier-quota';
 import VendorReportingPanel from '@/components/VendorReportingPanel';
 import type {
+    ApprovedSupplier,
     SupplierRegistrationStatus,
     SupplierSurveyData,
 } from '@/types/index';
@@ -177,11 +179,11 @@ export default function SupplierManagement() {
             detail: 'Approved supplier registry',
         },
         {
-            label: 'NOU flags',
-            value: approvedSupplierList.filter(supplier => supplier.usagePercent >= 95).length,
+            label: 'Quota alerts',
+            value: approvedSupplierList.filter(supplier => supplier.quotaStatus === 'near-limit' || supplier.quotaStatus === 'exceeded').length,
             icon: ShieldAlert,
             tone: 'rose',
-            detail: 'Suppliers approaching quota limits',
+            detail: `Suppliers at ${NEAR_LIMIT_PERCENT}% of their annual quota or over`,
         },
     ] as const;
 
@@ -639,12 +641,15 @@ export default function SupplierManagement() {
                                             <Badge className="border-emerald-200 bg-emerald-50 text-emerald-700">Approved</Badge>
                                         </div>
                                         <div className="mt-3 flex flex-wrap gap-2">
-                                            {supplier.refrigerants.map((refrigerant) => (
+                                            {supplier.refrigerants.length === 0 ? (
+                                                <span className="text-xs text-gray-400">No refrigerants listed</span>
+                                            ) : supplier.refrigerants.map((refrigerant) => (
                                                 <Badge key={refrigerant} className="border-gray-200 bg-white text-gray-600">
                                                     {refrigerant}
                                                 </Badge>
                                             ))}
                                         </div>
+                                        <QuotaMeter supplier={supplier} />
                                     </div>
                                 ))}
                             </div>
@@ -667,6 +672,41 @@ export default function SupplierManagement() {
                     </div>
                 </section>
             )}
+        </div>
+    );
+}
+
+function QuotaMeter({ supplier }: { supplier: ApprovedSupplier }) {
+    if (supplier.quotaStatus === undefined) return null;
+    const sold = (supplier.totalSalesKg ?? 0).toLocaleString(undefined, { maximumFractionDigits: 1 });
+    if (supplier.importQuotaKg == null) {
+        return (
+            <p className="mt-3 text-xs text-gray-500">
+                No annual quota set. Sold {sold} kg this year. Set one from the NOU Dashboard.
+            </p>
+        );
+    }
+    const percent = supplier.usagePercent ?? 0;
+    const tone =
+        supplier.quotaStatus === 'exceeded' ? { bar: 'bg-rose-500', text: 'text-rose-700', label: 'Quota exceeded' }
+        : supplier.quotaStatus === 'near-limit' ? { bar: 'bg-amber-500', text: 'text-amber-700', label: 'Near limit' }
+        : { bar: 'bg-emerald-500', text: 'text-emerald-700', label: 'Within quota' };
+    return (
+        <div className="mt-3">
+            <div className="flex items-baseline justify-between gap-2 text-xs">
+                <span className="text-gray-600">{sold} of {supplier.importQuotaKg.toLocaleString()} kg this year</span>
+                <span className={`font-semibold ${tone.text}`}>{percent}%, {tone.label}</span>
+            </div>
+            <div
+                className="mt-1 h-2 w-full bg-gray-200"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.min(percent, 100)}
+                aria-label={`${supplier.name} quota used`}
+            >
+                <div className={`h-2 ${tone.bar}`} style={{ width: `${Math.min(percent, 100)}%` }} />
+            </div>
         </div>
     );
 }
