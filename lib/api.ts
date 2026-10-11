@@ -48,6 +48,16 @@ import type {
 } from '@/types/index';
 import type { TechnicianRewardSummary } from '@/lib/server/rewards';
 
+/** An error from the API that keeps the HTTP status, so callers can tell "try again later" from "this was refused". */
+export class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
 async function fetcher<T>(url: string): Promise<T> {
   const res = await fetch(url, { credentials: 'include' });
   if (!res.ok) {
@@ -66,7 +76,7 @@ async function post<T>(url: string, body?: unknown): Promise<T> {
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({})) as { error?: string };
-    throw new Error(data.error ?? `Request failed: ${res.status}`);
+    throw new ApiError(data.error ?? `Request failed: ${res.status}`, res.status);
   }
   return res.json() as Promise<T>;
 }
