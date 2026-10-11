@@ -6,6 +6,7 @@ import { useAuth } from '../lib/auth';
 import { REFRIGERANT_REFERENCE } from '@/constants/refrigerants';
 import { calculateCoolingLoads } from '@/lib/sizing-calculations';
 import EquipmentSelectionPanel from './EquipmentSelectionPanel';
+import { SIZING_RESOURCES } from '@/lib/toolkit-resources';
 import { computeSelection, defaultEquipmentSettings, defaultEvaporatorTd, type EquipmentSettings } from '@/lib/equipment-selection';
 
 // HEVACRAZ brand palette (mirrors tailwind.config hevac-* colors) for PDF export
@@ -33,49 +34,8 @@ async function loadImageAsDataUrl(path: string): Promise<string | null> {
   }
 }
 
-// Technical references used to guide and cross-check the preliminary estimates.
-const SIZING_SOURCES = [
-  {
-    name: 'ASHRAE Handbook — Refrigerated-Facility Loads, Chapter 24 (2026)',
-    description: 'Load categories and calculation guidance for transmission, product, infiltration, internal and equipment loads.',
-    url: 'https://handbook.ashrae.org/Handbooks/R26/IP/R26_Ch24/r26_ch24_ip.aspx',
-  },
-  {
-    name: 'ASHRAE Handbook — Thermal Properties of Foods, Chapter 19 (2026)',
-    description: 'Food-specific thermal properties; values vary with composition and temperature.',
-    url: 'https://handbook.ashrae.org/Handbooks/R26/IP/R26_Ch19/R26_ch19_ip.aspx',
-  },
-  {
-    name: 'ASHRAE Handbook — Cooling and Freezing Times of Foods, Chapter 20 (2026)',
-    description: 'Cooling/freezing-time methods and their dependence on product geometry, properties and heat transfer.',
-    url: 'https://handbook.ashrae.org/Handbooks/R26/IP/R26_Ch20/r26_ch20_ip.aspx',
-  },
-  {
-    name: 'NIST REFPROP',
-    description: 'Reference thermodynamic and transport-property data for refrigerants and mixtures; software may require a license.',
-    url: 'https://www.nist.gov/programs-projects/reference-fluid-thermodynamic-and-transport-properties-database-refprop',
-  },
-  {
-    name: 'ASHRAE Refrigeration Resources — Standards 15 and 34',
-    description: 'Refrigeration-system safety and refrigerant designation/classification; check current editions and applicable local rules.',
-    url: 'https://www.ashrae.org/technical-resources/bookstore/ashrae-refrigeration-resources',
-  },
-  {
-    name: 'Danfoss Coolselector®2',
-    description: 'Manufacturer component-selection and operating-condition cross-check; not a substitute for a room-load calculation.',
-    url: 'https://www.danfoss.com/en/service-and-support/downloads/dcs/coolselector-2/',
-  },
-  {
-    name: 'Copeland Product Selection Software',
-    description: 'Manufacturer compressor/system performance and application-envelope cross-check.',
-    url: 'https://www.copeland.com/en-us/tools-resources/product-selection-software',
-  },
-  {
-    name: 'Zimbabwe S.I. 49 of 2023',
-    description: 'Local regulatory context for controlled substances and related equipment; not a refrigeration sizing standard.',
-    url: 'https://ozone.unep.org/sites/default/files/additional-reported-information/Licensing/Zimbabwe-S.I.%2049%20of%202023.pdf',
-  },
-];
+// Technical references used to guide and cross-check the preliminary estimates. Kept in one shared list.
+const SIZING_SOURCES = SIZING_RESOURCES;
 
 const SIZING_REFERENCE_NOTE = 'These references inform methods and cross-checks; they do not certify this preliminary estimate. Confirm product-specific properties, site conditions, equipment ratings and applicable Zimbabwean requirements before design or procurement.';
 

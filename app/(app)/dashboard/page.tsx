@@ -331,6 +331,13 @@ export default function DashboardPage() {
             icon: Award,
             iconClassName: 'bg-amber-100 text-amber-600',
         },
+        {
+            href: '/resources',
+            title: 'Resources',
+            detail: 'Standards and references behind the toolkit',
+            icon: BookOpen,
+            iconClassName: 'bg-indigo-100 text-indigo-600',
+        },
     ];
 
     const vendorQuickActions: QuickAction[] = [
@@ -399,6 +406,13 @@ export default function DashboardPage() {
             detail: 'Refrigerant reference for course content',
             icon: Droplets,
             iconClassName: 'bg-cyan-100 text-cyan-600',
+        },
+        {
+            href: '/resources',
+            title: 'Resources',
+            detail: 'Standards and references behind the toolkit',
+            icon: BookOpen,
+            iconClassName: 'bg-indigo-100 text-indigo-600',
         },
     ];
 
@@ -487,6 +501,12 @@ export default function DashboardPage() {
         .slice()
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
         .slice(0, 5);
+
+    const quickActions = isAdmin ? adminQuickActions
+        : isVendor ? vendorQuickActions
+        : isTrainerOrLecturer ? trainerQuickActions
+        : isStudent ? studentQuickActions
+        : technicianQuickActions;
 
     return (
         <div className="space-y-6">
@@ -579,13 +599,8 @@ export default function DashboardPage() {
                 <h2 className="text-lg font-semibold mb-4 text-[#1C1917]">
                     {isAdmin ? 'Admin Quick Actions' : 'Quick Actions'}
                 </h2>
-                <div className={`grid grid-cols-1 sm:grid-cols-2 gap-3 ${isAdmin ? 'lg:grid-cols-4' : 'lg:grid-cols-4'}`}>
-                    {(isAdmin ? adminQuickActions
-                        : isVendor ? vendorQuickActions
-                        : isTrainerOrLecturer ? trainerQuickActions
-                        : isStudent ? studentQuickActions
-                        : technicianQuickActions
-                    ).map((action) => {
+                <div className={`grid grid-cols-1 sm:grid-cols-2 gap-3 ${quickActions.length >= 5 ? 'lg:grid-cols-5' : 'lg:grid-cols-4'}`}>
+                    {quickActions.map((action) => {
                         const Icon = action.icon;
 
                         return (

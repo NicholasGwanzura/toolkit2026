@@ -6,6 +6,7 @@ import { ComponentType, SVGProps, useState } from 'react';
 import { cn } from '@/lib/utils';
 import {
     LayoutDashboard,
+    Library,
     BookOpen,
     Calculator,
     Factory,
@@ -64,6 +65,7 @@ const NAV_SECTIONS: NavSection[] = [
             { name: 'Learning Hub', href: '/learn', icon: BookOpen, roles: ['technician', 'contractor', 'trainer', 'lecturer', 'org_admin', 'student'] },
             { name: 'Manage Courses', href: '/learn/manage', icon: BookOpen, roles: ['trainer', 'lecturer'] },
             { name: 'Safety Center', href: '/safety-center', icon: ShieldCheck, roles: ['technician', 'contractor', 'trainer', 'lecturer', 'student'] },
+            { name: 'Resources', href: '/resources', icon: Library, roles: ['technician', 'contractor', 'trainer', 'lecturer'] },
             { name: 'Field Operations', href: '/field-operations', icon: Wrench, roles: ['technician', 'contractor', 'org_admin'] },
         ],
     },

@@ -1,6 +1,7 @@
 // Static checklist content for the Field Toolkit. Defined once, outside the components, so it
 // is not rebuilt on every render and can be tested or reviewed on its own.
 import type { JobType } from '@/types/index';
+import { TOOLKIT_RESOURCES } from '@/lib/toolkit-resources';
 
 export interface ChecklistItem {
   text: string;
@@ -15,8 +16,9 @@ export interface ChecklistCategory {
 
 export type ChecklistType = 'installation' | 'regassing';
 
-const SABS = 'https://www.sabs.co.za';
-const FGAS = 'https://unece.org/environment-policy/air/environment-management-gases-fluoro-greenhouse-gases';
+const resourceUrl = (id: string) => TOOLKIT_RESOURCES.find((r) => r.id === id)?.url ?? null;
+const SABS = resourceUrl('sans-sabs');
+const FGAS = resourceUrl('fgas');
 
 const item = (text: string, source: string | null = null, url: string | null = null): ChecklistItem => ({ text, source, url });
 
@@ -63,7 +65,7 @@ export const REGASSING_CHECKLIST: ChecklistCategory[] = [
   ] },
   { category: 'Recovery', items: [
     item('Old refrigerant recovered using certified equipment', 'F-Gas Regulation', FGAS),
-    item('Recovery cylinder labeled with refrigerant type and date', 'Environmental Act', 'https://www.dmr.gov.zw'),
+    item('Recovery cylinder labeled with refrigerant type and date', 'Environmental Act', resourceUrl('zim-environment')),
     item('Refrigerant recovered to 80% cylinder capacity', 'Best Practice'),
     item('Recovery log completed with weight recovered', 'Compliance Record'),
   ] },

@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import {
   SELECTABLE_REFRIGERANTS,
   defaultEvaporatorTd,
@@ -118,7 +119,7 @@ const EquipmentSelectionPanel: React.FC<Props> = ({ loadKw, roomTempC, ambientTe
           )}
           <p className="text-xs leading-5 text-emerald-900">
             These are first-pass sizes from estimated refrigerant properties. Lines are sized on velocity only (suction 12 m/s, discharge 15 m/s, liquid 1.2 m/s maximum), so check pressure drop for the real route and length, and oil return in risers.
-            Confirm every item against the manufacturer&apos;s selection software at the design conditions before ordering. Charge limits, safety class and local codes still apply.
+            Confirm every item against the manufacturer&apos;s selection software at the design conditions before ordering. Charge limits, safety class and local codes still apply. The references are listed on the <Link href="/resources" className="font-semibold underline">Resources page</Link>.
           </p>
         </>
       )}
