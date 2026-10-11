@@ -14,7 +14,6 @@ import {
     Search,
     ShieldAlert,
     ShieldCheck,
-    Sparkles,
     Truck,
     Users,
 } from 'lucide-react';
@@ -156,14 +155,11 @@ export default function SupplierManagement() {
 
     const approvedSupplierList = approvedSuppliersData ?? [];
 
-    const stats = [
-        {
-            label: isVendor ? 'My applications' : 'Applications',
-            value: isVendor ? myApplications.length : applications.length,
-            icon: Building2,
-            tone: 'blue',
-            detail: isVendor ? 'Linked to your account' : 'All supplier records',
-        },
+    const myApproved = approvedSupplierList.find(supplier => supplier.id === myApplications[0]?.id);
+
+    type StatCard = { label: string; value: string | number; icon: typeof Building2; tone: 'blue' | 'amber' | 'emerald' | 'rose'; detail: string };
+    const adminStats: StatCard[] = [
+        { label: 'Applications', value: applications.length, icon: Building2, tone: 'blue', detail: 'All supplier records' },
         {
             label: 'Pending review',
             value: applications.filter(application => application.status === 'submitted' || application.status === 'under-review').length,
@@ -171,13 +167,7 @@ export default function SupplierManagement() {
             tone: 'amber',
             detail: 'Waiting on compliance review',
         },
-        {
-            label: 'Approved suppliers',
-            value: approvedSupplierList.length,
-            icon: BadgeCheck,
-            tone: 'emerald',
-            detail: 'Approved supplier registry',
-        },
+        { label: 'Approved suppliers', value: approvedSupplierList.length, icon: BadgeCheck, tone: 'emerald', detail: 'Approved supplier registry' },
         {
             label: 'Quota alerts',
             value: approvedSupplierList.filter(supplier => supplier.quotaStatus === 'near-limit' || supplier.quotaStatus === 'exceeded').length,
@@ -185,7 +175,25 @@ export default function SupplierManagement() {
             tone: 'rose',
             detail: `Suppliers at ${NEAR_LIMIT_PERCENT}% of their annual quota or over`,
         },
-    ] as const;
+    ];
+
+    // A supplier sees their own company only: no counts of other suppliers, queues or network-wide alerts.
+    const mine = myApplications[0];
+    const vendorStats: StatCard[] = [
+        { label: 'Account status', value: mine ? STATUS_LABELS[mine.status] : 'Not linked', icon: BadgeCheck, tone: mine?.status === 'approved' ? 'emerald' : 'amber', detail: mine ? `Submitted ${formatDate(mine.submittedAt)}` : 'No supplier record on your login yet' },
+        {
+            label: 'Annual import quota',
+            value: myApproved?.importQuotaKg == null ? 'Not set' : `${myApproved.usagePercent ?? 0}%`,
+            icon: ShieldAlert,
+            tone: myApproved?.quotaStatus === 'exceeded' ? 'rose' : myApproved?.quotaStatus === 'near-limit' ? 'amber' : 'blue',
+            detail: myApproved?.importQuotaKg == null
+                ? 'An administrator sets this'
+                : `${(myApproved.totalSalesKg ?? 0).toLocaleString(undefined, { maximumFractionDigits: 1 })} of ${myApproved.importQuotaKg.toLocaleString()} kg sold this year`,
+        },
+        { label: 'Refrigerants supplied', value: mine?.refrigerantsSupplied.length ?? 0, icon: Truck, tone: 'blue', detail: mine?.refrigerantsSupplied.join(', ') || 'None listed' },
+        { label: 'Registration number', value: mine?.registrationNumber || 'None', icon: Building2, tone: 'blue', detail: 'Quote this when you contact HEVACRAZ' },
+    ];
+    const stats = isVendor ? vendorStats : adminStats;
 
     const updateStatus = async (id: string, status: SupplierRegistrationStatus) => {
         if (status === 'rejected' && !reviewNote.trim()) {
@@ -221,6 +229,7 @@ export default function SupplierManagement() {
 
     return (
         <div className="space-y-6">
+            {canReview && (
             <section className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
                 <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
                     <div className="max-w-3xl space-y-3">
@@ -230,18 +239,17 @@ export default function SupplierManagement() {
                         <div className="space-y-2">
                             <h2 className="text-2xl font-bold text-gray-900">Review supplier applications and approved partners</h2>
                             <p className="max-w-2xl text-sm leading-6 text-gray-600">
-                                Keep supplier onboarding, approval status, and approved refrigerant partners in one place.
-                                Vendors see their own application state, while org admins and program admins can review the full queue.
+                                Keep supplier onboarding, approval status, quotas and approved refrigerant partners in one place.
                             </p>
                         </div>
                     </div>
 
                     <div className="flex flex-wrap gap-3">
                         <Link
-                            href={canReview ? '/admin/suppliers/add' : '/contact'}
+                            href="/admin/suppliers/add"
                             className="inline-flex items-center gap-2 bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
                         >
-                            {canReview ? 'Invite supplier' : 'Request onboarding'}
+                            Invite supplier
                             <ArrowRight className="h-4 w-4" />
                         </Link>
                         <Link
@@ -253,6 +261,7 @@ export default function SupplierManagement() {
                     </div>
                 </div>
             </section>
+            )}
 
             <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 {stats.map((item) => {
@@ -270,10 +279,9 @@ export default function SupplierManagement() {
                                 <div className={`p-3 ${toneClasses[item.tone]}`}>
                                     <Icon className="h-5 w-5" />
                                 </div>
-                                <Sparkles className="h-4 w-4 text-gray-300" />
                             </div>
                             <div className="mt-4 space-y-1">
-                                <p className="text-3xl font-bold text-gray-900">{item.value}</p>
+                                <p className={`${typeof item.value === 'string' ? 'text-2xl' : 'text-3xl'} font-bold text-gray-900`}>{item.value}</p>
                                 <p className="text-sm font-semibold text-gray-700">{item.label}</p>
                                 <p className="text-xs text-gray-500">{item.detail}</p>
                             </div>
@@ -293,7 +301,7 @@ export default function SupplierManagement() {
                             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-400">Your account</p>
                             <h3 className="mt-2 text-lg font-semibold text-gray-900">Supplier status linked to {session?.email ?? 'your profile'}</h3>
                             <p className="mt-1 text-sm text-gray-600">
-                                Vendors only see their own application records in this view.
+                                These are the details on file for your company.
                             </p>
                         </div>
                         <Badge className="border-gray-200 bg-gray-50 text-gray-600">Vendor view</Badge>
@@ -345,20 +353,21 @@ export default function SupplierManagement() {
                             </div>
 
                             <div className="border border-gray-200 bg-white p-5">
-                                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-400">Next step</p>
-                                <ul className="mt-4 space-y-3 text-sm leading-6 text-gray-600">
-                                    <li className="flex items-start gap-3">
-                                        <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-600" />
-                                        Keep your business details current for compliance review.
-                                    </li>
-                                    <li className="flex items-start gap-3">
-                                        <ShieldCheck className="mt-0.5 h-4 w-4 text-blue-600" />
-                                        Approved suppliers appear in the management and NOU flows.
-                                    </li>
-                                    <li className="flex items-start gap-3">
-                                        <Truck className="mt-0.5 h-4 w-4 text-amber-600" />
-                                        Supplier records are synced to the central HEVACRAZ database.
-                                    </li>
+                                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-400">Quick links</p>
+                                <ul className="mt-4 space-y-2 text-sm">
+                                    {[
+                                        { href: '/supplier-compliance', label: "File this month's compliance certificate", icon: ShieldCheck },
+                                        { href: '/suppliers/reorder', label: 'Reorder refrigerant', icon: Truck },
+                                        { href: '/suppliers/verify-buyer', label: 'Verify a buyer before a sale', icon: CheckCircle2 },
+                                    ].map(link => (
+                                        <li key={link.href}>
+                                            <Link href={link.href} className="flex items-center gap-3 border border-gray-200 px-3 py-2.5 font-medium text-gray-800 transition hover:bg-gray-50">
+                                                <link.icon className="h-4 w-4 text-blue-600" aria-hidden="true" />
+                                                {link.label}
+                                                <ArrowRight className="ml-auto h-4 w-4 text-gray-400" aria-hidden="true" />
+                                            </Link>
+                                        </li>
+                                    ))}
                                 </ul>
                             </div>
                         </div>
@@ -658,7 +667,7 @@ export default function SupplierManagement() {
                 </section>
             )}
 
-            {!canReview && (
+            {!canReview && !isVendor && (
                 <section className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
                     <div className="flex items-start gap-4">
                         <ShieldCheck className="mt-0.5 h-5 w-5 text-blue-600" />
