@@ -9,6 +9,7 @@ import {
     useCocRequests,
     useSupplierComplianceApplications,
     useSupplierLedger,
+    useSupplierApplications,
     useCourses,
     useExamSubmissions,
     useTrainingSessions,
@@ -56,6 +57,7 @@ import {            ClipboardCheck,
     Package,
     ShieldCheck,
     Receipt,
+    Factory,
 } from 'lucide-react';
 import Link from 'next/link';
 import { CertificateRecord, JobTypeLabels, RefrigerantLog } from '@/types/index';
@@ -65,6 +67,8 @@ import { Drilldown } from '@/components/ui/Drilldown';
 import { isFieldWorkerRole } from '@/lib/field-worker';
 import { gettingStartedChecklist } from '@/lib/membership-status';
 import { monthlyComplianceStatus } from '@/lib/dashboard-stats';
+import { quotaUsage } from '@/lib/supplier-quota';
+import { vendorApplicationInfo, vendorAttention } from '@/lib/vendor-status';
 import {
     ContractorOnboardingBanner,
     GettingStartedChecklist,
@@ -73,6 +77,10 @@ import {
     ReadyForCertificatePanel,
     RecentBuyerChecksPanel,
     StandingPanel,
+    VendorAttentionPanel,
+    VendorCompliancePanel,
+    VendorQuotaPanel,
+    VendorReordersPanel,
     type LearnerCourse,
 } from '@/components/dashboard/DashboardPanels';
 
@@ -189,6 +197,7 @@ export default function DashboardPage() {
     const standingQ = useMyStanding(isTechnician);
     const trainerStatsQ = useTrainerCourseStats(isTrainerOrLecturer);
     const verificationsQ = useVerifications(isVendor);
+    const applicationsQ = useSupplierApplications(isVendor);
 
     const plannerJobs = jobsQ.data ?? [];
     const cocRequests = cocQ.data ?? [];
@@ -217,7 +226,7 @@ export default function DashboardPage() {
         [summaryQ, 'registry summary'], [queueQ, 'the approvals queue'], [jobsQ, 'planner jobs'], [gasLogsQ, 'refrigerant logs'],
         [cocQ, 'COC requests'], [reordersQ, 'reorders'], [complianceQ, 'compliance certificates'], [ledgerQ, 'the ledger'],
         [coursesQ, 'courses'], [submissionsQ, 'exam submissions'], [sessionsQ, 'training sessions'],
-        [certRequestsQ, 'certificate requests'], [enrollmentsQ, 'enrolments'], [progressQ, 'course progress'],
+        [applicationsQ, 'your supplier application'], [certRequestsQ, 'certificate requests'], [enrollmentsQ, 'enrolments'], [progressQ, 'course progress'],
     ].filter(([query]) => (query as { error?: unknown }).error).map(([, name]) => name as string);
 
     const statsNow = nowMs || 0;
@@ -340,6 +349,13 @@ export default function DashboardPage() {
             iconClassName: 'bg-emerald-100 text-emerald-600',
         },
         {
+            href: '/suppliers',
+            title: 'Record a Sale',
+            detail: 'Log a sale or purchase in your ledger',
+            icon: Factory,
+            iconClassName: 'bg-orange-100 text-orange-600',
+        },
+        {
             href: '/suppliers/verify-buyer',
             title: 'Verify Buyer',
             detail: 'Confirm technician registration before sale',
@@ -459,6 +475,14 @@ export default function DashboardPage() {
         isContractor: session.role === 'contractor',
     });
     const monthly = monthlyComplianceStatus(complianceApps, statsNow);
+    const supplierApplications = applicationsQ.data ?? [];
+    const vendorApplication = vendorApplicationInfo(supplierApplications);
+    const approvedSupplier = supplierApplications.find((a) => a.status === 'approved');
+    const vendorQuota = quotaUsage({ sales: vendorLedger.filter((entry) => entry.direction === 'sale'), quotaKg: approvedSupplier?.importQuotaKg, now: statsNow });
+    const vendorAttentionItems = vendorAttention({
+        application: vendorApplication, quota: vendorQuota, reorders, monthlyComplianceSubmitted: monthly.submitted,
+        monthLabel: monthly.month, now: statsNow,
+    });
     const recentBuyerChecks = (verificationsQ.data ?? [])
         .slice()
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -590,95 +614,11 @@ export default function DashboardPage() {
             {/* ── Vendor-only sections ── */}
             {isVendor && (
                 <>
-                    {!complianceQ.isLoading && !complianceQ.error && <MonthlyCompliancePrompt month={monthly.month} submitted={monthly.submitted} />}
-                    {/* Reorder Queue */}
-                    <div className="rounded-lg overflow-hidden bg-white border border-[#E7E5E4]">
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-[#E7E5E4]">
-                            <div>
-                                <h2 className="text-base font-semibold text-[#1C1917]">Recent Reorders</h2>
-                                <p className="text-xs text-[#78716C] mt-0.5">Your submitted gas reorder requests</p>
-                            </div>
-                            <Link href="/suppliers/reorder" className="inline-flex items-center gap-1 text-xs font-semibold text-[#D97706] hover:text-[#b45309]">
-                                View all <ChevronRight className="h-3 w-3" />
-                            </Link>
-                        </div>
-                        {reorders.length === 0 ? (
-                            <div className="px-6 py-10 text-center">
-                                <Package className="h-8 w-8 text-[#D1C5C0] mx-auto mb-3" />
-                                <p className="text-sm text-[#78716C]">No reorders submitted yet.</p>
-                                <Link
-                                    href="/suppliers/reorder"
-                                    className="rounded-lg mt-4 inline-flex items-center gap-2 bg-[#D97706] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#b45309]"
-                                >
-                                    Submit a Reorder
-                                    <ArrowRight className="h-4 w-4" />
-                                </Link>
-                            </div>
-                        ) : (
-                            <div className="divide-y divide-[#E7E5E4]">
-                                {reorders.slice(0, 5).map((reorder) => {
-                                    const statusColors: Record<string, string> = {
-                                        pending_hevacraz: 'bg-amber-50 text-amber-700 border-amber-200',
-                                        pending_nou: 'bg-amber-50 text-amber-700 border-amber-200',
-                                        approved: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-                                        rejected: 'bg-red-50 text-red-700 border-red-200',
-                                    };
-                                    return (
-                                        <div key={reorder.id} className="px-6 py-4 hover:bg-[#FAFAF9] transition-colors">
-                                            <div className="flex items-center justify-between gap-4">
-                                                <div className="min-w-0">
-                                                    <div className="flex items-center gap-2 flex-wrap">
-                                                        <p className="text-sm font-semibold text-[#1C1917]">{reorder.gasType} · {reorder.quantityKg} kg</p>
-                                                        <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${statusColors[reorder.status] ?? 'bg-gray-50 text-gray-600 border-gray-200'}`}>
-                                                            {reorder.status.replace('_', ' ')}
-                                                        </span>
-                                                    </div>
-                                                    <p className="text-xs text-[#78716C] mt-1">{reorder.purpose}</p>
-                                                </div>
-                                                <span className="text-xs text-[#A8A29E] shrink-0">{new Date(reorder.createdAt).toLocaleDateString('en-ZW')}</span>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Compliance Applications */}
-                    <div className="rounded-lg overflow-hidden bg-white border border-[#E7E5E4]">
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-[#E7E5E4]">
-                            <div>
-                                <h2 className="text-base font-semibold text-[#1C1917]">Compliance Certificates</h2>
-                                <p className="text-xs text-[#78716C] mt-0.5">Distribution compliance & NOU reporting status</p>
-                            </div>
-                            <Link href="/supplier-compliance" className="inline-flex items-center gap-1 text-xs font-semibold text-[#D97706] hover:text-[#b45309]">
-                                Manage <ChevronRight className="h-3 w-3" />
-                            </Link>
-                        </div>
-                        {complianceApps.length === 0 ? (
-                            <div className="px-6 py-10 text-center">
-                                <ShieldCheck className="h-8 w-8 text-[#D1C5C0] mx-auto mb-3" />
-                                <p className="text-sm text-[#78716C]">No compliance applications submitted yet.</p>
-                                <Link href="/supplier-compliance" className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-[#D97706]">
-                                    Apply for compliance certificate <ArrowRight className="h-3 w-3" />
-                                </Link>
-                            </div>
-                        ) : (
-                            <div className="divide-y divide-[#E7E5E4]">
-                                {complianceApps.slice(0, 5).map((app) => (
-                                    <div key={app.id} className="px-6 py-4 hover:bg-[#FAFAF9] transition-colors flex items-center justify-between gap-4">
-                                        <div className="min-w-0">
-                                            <p className="text-sm font-semibold text-[#1C1917]">{app.certificateType.replace(/-/g, ' ')}</p>
-                                            <p className="text-xs text-[#78716C] mt-0.5">{app.monthCoverage} · {app.sitesCovered} sites</p>
-                                        </div>
-                                        <span className="inline-flex rounded-full border border-[#E7E5E4] bg-white px-2 py-0.5 text-xs font-semibold text-[#44403C] shrink-0">
-                                            {app.status.replace('-', ' ')}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                    {!applicationsQ.isLoading && !complianceQ.isLoading && !reordersQ.isLoading && !ledgerQ.isLoading && <VendorAttentionPanel items={vendorAttentionItems} />}
+                    {!complianceQ.isLoading && !complianceQ.error && monthly.submitted && <MonthlyCompliancePrompt month={monthly.month} submitted />}
+                    <VendorQuotaPanel quota={vendorQuota} />
+                    <VendorReordersPanel reorders={reorders} />
+                    <VendorCompliancePanel apps={complianceApps} />
 
                     <RecentBuyerChecksPanel checks={verificationsQ.isLoading ? undefined : recentBuyerChecks} />
                 </>

@@ -76,6 +76,19 @@ describe('technicianCards', () => {
   });
 });
 
+describe('vendorCards recovery returns', () => {
+  it('does not count recovery returns as approved stock and dates by approval', () => {
+    const cards = vendorCards({
+      reorders: [
+        { status: 'approved', quantityKg: 100, createdAt: daysAgo(60), nouReviewedAt: hoursAgo(3), reorderType: 'purchase' },
+        { status: 'approved', quantityKg: 40, createdAt: hoursAgo(5), reorderType: 'recovery' },
+      ],
+      complianceApps: [], ledger: [], range: 'today', now: NOW,
+    });
+    expect(byLabel(cards, 'Approved Volume').value).toBe('100 kg');
+  });
+});
+
 describe('vendorCards', () => {
   const input = {
     reorders: [
@@ -90,9 +103,10 @@ describe('vendorCards', () => {
       { status: 'submitted', monthCoverage: '2026-10' },
     ],
     ledger: [
-      { totalValueUsd: 120.5, transactionDate: hoursAgo(2) },
-      { totalValueUsd: 1000, transactionDate: daysAgo(10) },
-      { totalValueUsd: 5000, transactionDate: daysAgo(100) },
+      { totalValueUsd: 120.5, transactionDate: hoursAgo(2), direction: 'sale' },
+      { totalValueUsd: 1000, transactionDate: daysAgo(10), direction: 'sale' },
+      { totalValueUsd: 700, transactionDate: daysAgo(5), direction: 'purchase' },
+      { totalValueUsd: 5000, transactionDate: daysAgo(100), direction: 'sale' },
     ],
     now: NOW,
   };
@@ -101,11 +115,12 @@ describe('vendorCards', () => {
     const today = vendorCards({ ...input, range: 'today' });
     expect(byLabel(today, 'Pending Reorders').value).toBe('2');
     expect(byLabel(today, 'Approved Volume').value).toBe('200 kg');
-    expect(byLabel(today, 'Ledger Value').value).toBe('$120.5');
+    expect(byLabel(today, 'Sales Value').value).toBe('$120.5');
 
     const month = vendorCards({ ...input, range: 'month' });
     expect(byLabel(month, 'Approved Volume').value).toBe('500 kg');
-    expect(byLabel(month, 'Ledger Value').value).toBe('$1,120.5');
+    expect(byLabel(month, 'Sales Value').value).toBe('$1,120.5');
+    expect(byLabel(month, 'Sales Value').note).toContain('purchases $700');
   });
 
   it('reports approved certificates with pending ones in the note', () => {

@@ -90,20 +90,28 @@ export function currentMonthKey(now: number): string {
 }
 
 export function vendorCards(input: {
-  reorders: Array<{ status: string; quantityKg: number; createdAt: string }>;
+  reorders: Array<{ status: string; quantityKg: number; createdAt: string; reorderType?: string; nouReviewedAt?: string }>;
   complianceApps: Array<{ status: string; monthCoverage: string }>;
-  ledger: Array<{ totalValueUsd: number; transactionDate: string }>;
+  ledger: Array<{ totalValueUsd: number; transactionDate: string; direction?: string }>;
   range: SimpleDateRange;
   now: number;
 }): StatCard[] {
   const { range, now } = input;
   const pendingReorders = input.reorders.filter((r) => r.status === 'pending_hevacraz' || r.status === 'pending_nou').length;
-  const approvedInPeriod = input.reorders.filter((r) => r.status === 'approved' && inPeriod(r.createdAt, range, now));
+  // Approved stock purchases, dated by the final approval. Returned (recovered) gas is not stock bought.
+  const approvedInPeriod = input.reorders.filter(
+    (r) => r.status === 'approved' && r.reorderType !== 'recovery' && inPeriod(r.nouReviewedAt ?? r.createdAt, range, now),
+  );
   const approvedKg = approvedInPeriod.reduce((sum, r) => sum + r.quantityKg, 0);
   const approvedCompliance = input.complianceApps.filter((a) => a.status === 'approved').length;
   const openCompliance = input.complianceApps.filter((a) => a.status === 'submitted' || a.status === 'under-review').length;
   const ledgerInPeriod = input.ledger.filter((entry) => inPeriod(entry.transactionDate, range, now));
-  const ledgerTotal = ledgerInPeriod.reduce((sum, entry) => sum + (Number.isFinite(entry.totalValueUsd) ? entry.totalValueUsd : 0), 0);
+  const valueOf = (entry: { totalValueUsd: number }) => (Number.isFinite(entry.totalValueUsd) ? entry.totalValueUsd : 0);
+  const sales = ledgerInPeriod.filter((entry) => entry.direction !== 'purchase');
+  const purchases = ledgerInPeriod.filter((entry) => entry.direction === 'purchase');
+  const salesTotal = sales.reduce((sum, entry) => sum + valueOf(entry), 0);
+  const purchasesTotal = purchases.reduce((sum, entry) => sum + valueOf(entry), 0);
+  const money = (value: number) => `$${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
 
   return [
     {
@@ -116,7 +124,7 @@ export function vendorCards(input: {
       label: 'Approved Volume',
       value: kg(approvedKg),
       note: `${approvedInPeriod.length} approved ${periodLabel(range)}`,
-      definition: 'Quantity on your approved reorders created in the selected period.',
+      definition: 'Stock you bought on reorders approved in the selected period. Recovery returns are not counted.',
     },
     {
       label: 'Compliance Certificates',
@@ -125,10 +133,10 @@ export function vendorCards(input: {
       definition: 'Approved compliance applications. Pending ones are counted in the note. Not affected by the period.',
     },
     {
-      label: 'Ledger Value',
-      value: `$${ledgerTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}`,
-      note: `${ledgerInPeriod.length} transaction${ledgerInPeriod.length === 1 ? '' : 's'} ${periodLabel(range)}`,
-      definition: 'Value of your ledger transactions dated in the selected period.',
+      label: 'Sales Value',
+      value: money(salesTotal),
+      note: `${sales.length} sale${sales.length === 1 ? '' : 's'} ${periodLabel(range)} · purchases ${money(purchasesTotal)}`,
+      definition: 'Value of the sales in your ledger dated in the selected period. Purchases are shown in the note and are not added in.',
     },
   ];
 }
