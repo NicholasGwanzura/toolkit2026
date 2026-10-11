@@ -345,10 +345,10 @@ export function FloatingVoiceButton() {
 
   return (
     <>
-      <div className="fixed bottom-5 right-5 z-50">
+      <div className="fixed bottom-4 right-3 z-50 sm:bottom-5 sm:right-5">
         <button
           onClick={() => setShowOverlay(true)}
-          className={`group relative flex h-16 w-16 items-center justify-center rounded-full shadow-2xl transition-all duration-300 hover:scale-105 ${
+          className={`group relative flex h-12 w-12 items-center justify-center rounded-full shadow-2xl sm:h-16 sm:w-16 transition-all duration-300 hover:scale-105 ${
             emergencyMode
               ? 'bg-gradient-to-br from-red-600 to-red-700'
               : 'bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500'

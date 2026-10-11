@@ -621,7 +621,7 @@ const SizingTool: React.FC = () => {
   );
 
   const liveEstimate = (
-    <div className="border border-blue-200 bg-blue-50 px-4 py-3 lg:p-4" aria-live="polite">
+    <div className="border border-blue-200 bg-blue-50 px-4 py-2 lg:p-4" aria-live="polite">
       <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">Live estimate</p>
       {sizingInputsValid ? (
         <>
@@ -890,11 +890,11 @@ const SizingTool: React.FC = () => {
                       <h4 className="text-sm font-bold text-blue-900">Blast Freezing Parameters</h4>
                     </div>
                     <HelpNote>Blast-air temperature and cycle duration feed this load estimate. Air velocity is recorded for process context only; this tool does not calculate product core freezing time.</HelpNote>
-                    <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
                         <label className="text-xs font-semibold text-blue-800 uppercase tracking-wide">
                           Air Temperature
-                          <span className="ml-1 font-normal normal-case text-blue-600">(industrial: -30°C to -40°C)</span>
+                          <span className="block font-normal normal-case text-blue-600">(industrial: -30°C to -40°C)</span>
                         </label>
                         <div className="flex items-center gap-2">
                           <input
@@ -906,7 +906,7 @@ const SizingTool: React.FC = () => {
                             onChange={(e) => setInputs({ ...inputs, blastAirTemp: Number(e.target.value) })}
                             className="flex-1 accent-blue-600"
                           />
-                          <span className="text-sm font-bold text-blue-800 w-16 text-right">{inputs.blastAirTemp}°C</span>
+                          <span className="text-sm font-bold text-blue-800 min-w-[4.5rem] shrink-0 whitespace-nowrap text-right">{inputs.blastAirTemp}°C</span>
                         </div>
                         <div className="flex justify-between text-xs text-blue-500">
                           <span>{inputs.blastPharmaMode ? '-120°C' : '-65°C'}</span>
@@ -917,7 +917,7 @@ const SizingTool: React.FC = () => {
                       <div className="space-y-2">
                         <label className="text-xs font-semibold text-blue-800 uppercase tracking-wide">
                           Air Velocity
-                          <span className="ml-1 font-normal normal-case text-blue-600">(3.0 - 6.0 m/s)</span>
+                          <span className="block font-normal normal-case text-blue-600">(3.0 - 6.0 m/s)</span>
                         </label>
                         <input
                           type="number"
@@ -932,7 +932,7 @@ const SizingTool: React.FC = () => {
                       <div className="space-y-2">
                         <label className="text-xs font-semibold text-blue-800 uppercase tracking-wide">
                           Cycle Duration
-                          <span className="ml-1 font-normal normal-case text-blue-600">(max 240 min)</span>
+                          <span className="block font-normal normal-case text-blue-600">(max 240 min)</span>
                         </label>
                         <div className="flex items-center gap-2">
                           <input
@@ -946,7 +946,7 @@ const SizingTool: React.FC = () => {
                               setInputs({ ...inputs, blastCycleDurationMinutes: minutes, loadingTimeHours: minutes / 60 });
                             }}
                             className="flex-1 accent-blue-600" />
-                          <span className="text-sm font-bold text-blue-800 w-16 text-right">{inputs.blastCycleDurationMinutes} min</span>
+                          <span className="text-sm font-bold text-blue-800 min-w-[4.5rem] shrink-0 whitespace-nowrap text-right">{inputs.blastCycleDurationMinutes} min</span>
                         </div>
                         <div className="flex justify-between text-xs text-blue-500">
                           <span>30 min</span>
@@ -957,13 +957,13 @@ const SizingTool: React.FC = () => {
                         <label className="text-xs font-semibold text-blue-800 uppercase tracking-wide">
                           Target Core Temperature
                         </label>
-                        <div className="h-[42px] flex items-center px-3 border border-blue-200 bg-white">
+                        <div className="min-h-[42px] flex flex-wrap items-center px-3 py-2 border border-blue-200 bg-white">
                           <span className="text-sm font-bold text-blue-900">{inputs.productTargetTempC}°C</span>
                           <span className="ml-2 text-xs text-blue-500">(set the required product endpoint below)</span>
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 pt-1">
+                    <div className="flex flex-wrap items-center gap-3 pt-1">
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input
                           type="checkbox"
@@ -998,11 +998,11 @@ const SizingTool: React.FC = () => {
                       <h4 className="text-sm font-bold text-emerald-900">Holding / Storage Parameters</h4>
                     </div>
                     <HelpNote>Room humidity feeds the infiltration enthalpy calculation. Enter airflow directly in the Conditions step; door recovery time and air velocity are not used as airflow proxies.</HelpNote>
-                    <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
                         <label className="text-xs font-semibold text-emerald-800 uppercase tracking-wide">
                           Target Air Temperature
-                          <span className="ml-1 font-normal normal-case text-emerald-600">(1°C to 3.3°C)</span>
+                          <span className="block font-normal normal-case text-emerald-600">(1°C to 3.3°C)</span>
                         </label>
                         <input
                           type="number"
@@ -1020,7 +1020,7 @@ const SizingTool: React.FC = () => {
                       <div className="space-y-2">
                         <label className="text-xs font-semibold text-emerald-800 uppercase tracking-wide">
                           Relative Humidity
-                          <span className="ml-1 font-normal normal-case text-emerald-600">(60-75% general / 85-90% meat-produce)</span>
+                          <span className="block font-normal normal-case text-emerald-600">(60-75% general / 85-90% meat-produce)</span>
                         </label>
                         <div className="flex items-center gap-2">
                           <input
@@ -1060,7 +1060,7 @@ const SizingTool: React.FC = () => {
                       <div className="space-y-2">
                         <label className="text-xs font-semibold text-emerald-800 uppercase tracking-wide">
                           Defrost Cycles
-                          <span className="ml-1 font-normal normal-case text-emerald-600">(4-6x/day, 15-20 min)</span>
+                          <span className="block font-normal normal-case text-emerald-600">(4-6x/day, 15-20 min)</span>
                         </label>
                         <div className="grid grid-cols-2 gap-2">
                           <div>
@@ -1092,7 +1092,7 @@ const SizingTool: React.FC = () => {
                       <div className="space-y-2">
                         <label className="text-xs font-semibold text-emerald-800 uppercase tracking-wide">
                           Air Velocity
-                          <span className="ml-1 font-normal normal-case text-emerald-600">(0.1 - 0.3 m/s)</span>
+                          <span className="block font-normal normal-case text-emerald-600">(0.1 - 0.3 m/s)</span>
                         </label>
                         <input
                           type="number"
@@ -1108,7 +1108,7 @@ const SizingTool: React.FC = () => {
                       <div className="space-y-2">
                         <label className="text-xs font-semibold text-emerald-800 uppercase tracking-wide">
                           Recovery Time
-                          <span className="ml-1 font-normal normal-case text-emerald-600">(60-90 sec after door opening)</span>
+                          <span className="block font-normal normal-case text-emerald-600">(60-90 sec after door opening)</span>
                         </label>
                         <div className="flex items-center gap-2">
                           <input
@@ -1120,7 +1120,7 @@ const SizingTool: React.FC = () => {
                             onChange={(e) => setInputs({ ...inputs, holdRecoveryTimeSec: Number(e.target.value) })}
                             className="flex-1 accent-emerald-600"
                           />
-                          <span className="text-sm font-bold text-emerald-800 w-16 text-right">{inputs.holdRecoveryTimeSec}s</span>
+                          <span className="text-sm font-bold text-emerald-800 min-w-[4.5rem] shrink-0 whitespace-nowrap text-right">{inputs.holdRecoveryTimeSec}s</span>
                         </div>
                         <div className="flex justify-between text-xs text-emerald-500">
                           <span>30s</span>
@@ -1162,11 +1162,11 @@ const SizingTool: React.FC = () => {
                       <h4 className="text-sm font-bold text-cyan-900">Freezing Parameters</h4>
                     </div>
                     <HelpNote>Storage setpoint affects envelope load. The rate, air velocity and thickness controls are not used to predict freezing time; no time estimate is presented.</HelpNote>
-                    <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
                         <label className="text-xs font-semibold text-cyan-800 uppercase tracking-wide">
                           Storage Temperature
-                          <span className="ml-1 font-normal normal-case text-cyan-600">(-18°C to -25°C)</span>
+                          <span className="block font-normal normal-case text-cyan-600">(-18°C to -25°C)</span>
                         </label>
                         <div className="flex items-center gap-2">
                           <input
@@ -1178,7 +1178,7 @@ const SizingTool: React.FC = () => {
                             onChange={(e) => setInputs({ ...inputs, freezeStorageTemp: Number(e.target.value) })}
                             className="flex-1 accent-cyan-600"
                           />
-                          <span className="text-sm font-bold text-cyan-800 w-16 text-right">{inputs.freezeStorageTemp}°C</span>
+                          <span className="text-sm font-bold text-cyan-800 min-w-[4.5rem] shrink-0 whitespace-nowrap text-right">{inputs.freezeStorageTemp}°C</span>
                         </div>
                         <div className="flex justify-between text-xs text-cyan-500">
                           <span>{inputs.freezeBioStorage ? '-80°C' : '-30°C'}</span>
@@ -1207,7 +1207,7 @@ const SizingTool: React.FC = () => {
                       <div className="space-y-2">
                         <label className="text-xs font-semibold text-cyan-800 uppercase tracking-wide">
                           Freezing Rate
-                          <span className="ml-1 font-normal normal-case text-cyan-600">(blast: 5-30°C/hr)</span>
+                          <span className="block font-normal normal-case text-cyan-600">(blast: 5-30°C/hr)</span>
                         </label>
                         <div className="flex items-center gap-2">
                           <input
@@ -1219,7 +1219,7 @@ const SizingTool: React.FC = () => {
                             onChange={(e) => setInputs({ ...inputs, freezeRateCHour: Number(e.target.value) })}
                             className="flex-1 accent-cyan-600"
                           />
-                          <span className="text-sm font-bold text-cyan-800 w-16 text-right">{inputs.freezeRateCHour}°C/hr</span>
+                          <span className="text-sm font-bold text-cyan-800 min-w-[4.5rem] shrink-0 whitespace-nowrap text-right">{inputs.freezeRateCHour}°C/hr</span>
                         </div>
                         <div className="flex justify-between text-xs text-cyan-500">
                           <span>1°C/hr (slow)</span>
@@ -1233,7 +1233,7 @@ const SizingTool: React.FC = () => {
                       <div className="space-y-2">
                         <label className="text-xs font-semibold text-cyan-800 uppercase tracking-wide">
                           Air Velocity
-                          <span className="ml-1 font-normal normal-case text-cyan-600">(1.5 - 6.0 m/s)</span>
+                          <span className="block font-normal normal-case text-cyan-600">(1.5 - 6.0 m/s)</span>
                         </label>
                         <input
                           type="number"
@@ -1248,7 +1248,7 @@ const SizingTool: React.FC = () => {
                       <div className="space-y-2">
                         <label className="text-xs font-semibold text-cyan-800 uppercase tracking-wide">
                           Product Thickness
-                          <span className="ml-1 font-normal normal-case text-cyan-600">(max 150 mm)</span>
+                          <span className="block font-normal normal-case text-cyan-600">(max 150 mm)</span>
                         </label>
                         <div className="flex items-center gap-2">
                           <input
@@ -1260,7 +1260,7 @@ const SizingTool: React.FC = () => {
                             onChange={(e) => setInputs({ ...inputs, freezeProductThicknessMm: Number(e.target.value) })}
                             className="flex-1 accent-cyan-600"
                           />
-                          <span className="text-sm font-bold text-cyan-800 w-16 text-right">{inputs.freezeProductThicknessMm} mm</span>
+                          <span className="text-sm font-bold text-cyan-800 min-w-[4.5rem] shrink-0 whitespace-nowrap text-right">{inputs.freezeProductThicknessMm} mm</span>
                         </div>
                         <div className="flex justify-between text-xs text-cyan-500">
                           <span>10 mm</span>
