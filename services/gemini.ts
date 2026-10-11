@@ -52,27 +52,45 @@ async function runLookupRefrigerant(query: string): Promise<string> {
   });
 }
 
-const SYSTEM_INSTRUCTION = `You are the HEVACRAZ / National Ozone Unit Zimbabwe field safety voice assistant, used by \
-HVAC-R technicians on job sites. Be concise (2-4 sentences, this is spoken aloud), practical, and safety-first. \
-Cover: refrigerant handling/safety class, leak response, PPE, ventilation, COC/certificate workflow questions, and \
-general HVAC-R compliance questions for Zimbabwe. Always use the lookup_refrigerant tool before stating any \
-refrigerant's safety class, GWP, or ODP — never guess these from memory. If asked something outside HVAC-R/safety/\
-compliance scope, say so briefly and redirect. Respond in the same language the user asked in (English or French).`;
+const BASE_INSTRUCTION = `You are the HEVACRAZ / National Ozone Unit Zimbabwe field safety voice assistant, used by \
+HVAC-R technicians on job sites. Your answers are spoken aloud, so write 2 to 4 plain sentences with no markdown, \
+no lists and no symbols. Be practical and safety-first. Cover: refrigerant handling and safety class, leak response, \
+PPE, ventilation, COC and certificate workflow questions, and general HVAC-R compliance. Always use the \
+lookup_refrigerant tool before stating any refrigerant's safety class, GWP or ODP. Never guess these from memory. \
+You do not have the text of Zimbabwean laws or regulations: for questions about what a specific regulation or SI \
+requires, say you cannot confirm it and point to the National Ozone Unit or the manufacturer's safety data sheet. \
+If asked something outside HVAC-R, safety or compliance, say so briefly and redirect.`;
+
+function systemInstruction(context: VoiceContext): string {
+  const language = context.language === 'fr' ? 'Reply in French.' : 'Reply in English.';
+  const emergency = context.emergencyMode
+    ? ' The technician has switched on emergency mode: lead with the immediate action (move people away, no ignition sources, ventilate only if safe, call for help), then one sentence of detail.'
+    : '';
+  return `${BASE_INSTRUCTION} ${language}${emergency}`;
+}
 
 export type ChatTurn = { role: 'user' | 'model'; text: string };
+export interface VoiceContext { language: 'en' | 'fr'; emergencyMode: boolean }
+
+const REQUEST_TIMEOUT_MS = 9000;
+const MAX_TOOL_ROUNDS = 3;
 
 /**
  * Gemini-backed voice assistant response, grounded in the real WhatGas refrigerant registry via
- * function calling. Returns null (never throws) on any failure or missing API key, so callers can
- * fall back to the rule-based responder — field technicians need the assistant to keep working
- * even when Gemini is unreachable or unconfigured.
+ * function calling. Returns null (never throws) on any failure, timeout or missing API key, so callers
+ * can fall back to offline guidance: field technicians need the assistant to keep working even when
+ * Gemini is unreachable or unconfigured.
  */
 export async function getVoiceAssistantResponse(
   message: string,
   history: ChatTurn[] = [],
+  context: VoiceContext = { language: 'en', emergencyMode: false },
 ): Promise<string | null> {
   const client = getClient();
   if (!client) return null;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
     const contents: Content[] = [
@@ -80,44 +98,44 @@ export async function getVoiceAssistantResponse(
       { role: 'user', parts: [{ text: message }] },
     ];
 
+    const config = {
+      systemInstruction: systemInstruction(context),
+      tools: [{ functionDeclarations: [lookupRefrigerantTool] }],
+      temperature: 0.3,
+      // On the 2.5 models, hidden "thinking" counts toward the output limit and could leave nothing
+      // to say. A short spoken answer does not need it.
+      thinkingConfig: { thinkingBudget: 0 },
+      maxOutputTokens: 500,
+      abortSignal: controller.signal,
+    };
+
     let response = await client.models.generateContent({
       model: MODEL,
       contents,
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
-        tools: [{ functionDeclarations: [lookupRefrigerantTool] }],
-        toolConfig: { functionCallingConfig: { mode: FunctionCallingConfigMode.AUTO } },
-        temperature: 0.3,
-        maxOutputTokens: 400,
-      },
+      config: { ...config, toolConfig: { functionCallingConfig: { mode: FunctionCallingConfigMode.AUTO } } },
     });
 
-    const calls = response.functionCalls;
-    if (calls && calls.length > 0) {
-      const call = calls[0];
-      const query = (call.args?.query as string) ?? '';
-      const result = await runLookupRefrigerant(query);
+    // The model may ask for several lookups, in one turn or over a few turns.
+    for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+      const calls = response.functionCalls;
+      if (!calls || calls.length === 0) break;
 
-      contents.push(
-        { role: 'model', parts: [{ functionCall: call }] },
-        { role: 'user', parts: [{ functionResponse: { name: call.name!, response: { result } } }] },
+      contents.push({ role: 'model', parts: calls.map((call) => ({ functionCall: call })) });
+      const results = await Promise.all(
+        calls.map(async (call) => ({
+          functionResponse: { name: call.name!, response: { result: await runLookupRefrigerant(String(call.args?.query ?? '')) } },
+        })),
       );
+      contents.push({ role: 'user', parts: results });
 
-      response = await client.models.generateContent({
-        model: MODEL,
-        contents,
-        config: {
-          systemInstruction: SYSTEM_INSTRUCTION,
-          tools: [{ functionDeclarations: [lookupRefrigerantTool] }],
-          temperature: 0.3,
-          maxOutputTokens: 400,
-        },
-      });
+      response = await client.models.generateContent({ model: MODEL, contents, config });
     }
 
     return response.text?.trim() || null;
   } catch (err) {
     console.error('[gemini] voice assistant request failed:', err instanceof Error ? err.message : err);
     return null;
+  } finally {
+    clearTimeout(timer);
   }
 }

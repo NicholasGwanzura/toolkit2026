@@ -13,6 +13,8 @@ export const STORAGE_KEYS = {
     imageRecords: 'coolpro_image_records',
     voiceSessions: 'coolpro_voice_sessions',
     ttsVoice: 'coolpro_tts_voice',
+    voiceAutoSpeak: 'coolpro_voice_autospeak',
+    voiceHandsFree: 'coolpro_voice_handsfree',
     language: 'coolpro_language',
     emergencyMode: 'coolpro_emergency_mode',
     certificateRecords: 'coolpro_certificate_records',

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Camera, CheckSquare, ClipboardCheck, FileText, ScanText, type LucideIcon } from 'lucide-react';
 import type { InstallationChecklistSnapshot } from '@/types/index';
@@ -8,7 +8,7 @@ import { OcrNameplateScanner } from '@/components/OcrNameplateScanner';
 import { ImageAnnotationWorkbench } from '@/components/ImageAnnotationWorkbench';
 import ChecklistTab from '@/components/field-toolkit/ChecklistTab';
 import InstallationsTab from '@/components/field-toolkit/InstallationsTab';
-import GasRegisterTab from '@/components/field-toolkit/GasRegisterTab';
+import GasRegisterTab, { ACTIONS, type GasRegisterPrefill } from '@/components/field-toolkit/GasRegisterTab';
 
 type ToolkitTab = 'scan' | 'checklist' | 'installations' | 'register' | 'photos';
 
@@ -33,7 +33,19 @@ export default function FieldToolkit() {
 
   // Work that has to travel between tabs lives here: the saved checklist and the scanned refrigerant.
   const [checklist, setChecklist] = useState<InstallationChecklistSnapshot | null>(null);
-  const [prefillCode, setPrefillCode] = useState<string | undefined>();
+  const [scannedCode, setScannedCode] = useState<string | undefined>();
+
+  // A voice command opens the register with details in the address. They are read once, checked, and cleared.
+  const voicePrefill = useMemo<GasRegisterPrefill | undefined>(() => {
+    const amountRaw = searchParams.get('amount');
+    const amount = amountRaw !== null ? Number(amountRaw) : NaN;
+    const action = ACTIONS.find(item => item === searchParams.get('action'));
+    const code = searchParams.get('refrigerant')?.match(/^R-\d{2,4}[A-Z]{0,2}$/i)?.[0].toUpperCase();
+    const client = searchParams.get('client')?.trim().slice(0, 80) || undefined;
+    if (!(amount > 0 && amount <= 10000) && !action && !code && !client) return undefined;
+    return { source: 'voice', code, action, client, amount: amount > 0 && amount <= 10000 ? String(amount) : undefined };
+  }, [searchParams]);
+  const prefill: GasRegisterPrefill | undefined = voicePrefill ?? (scannedCode ? { source: 'scan', code: scannedCode } : undefined);
 
   const go = useCallback((tab: ToolkitTab) => {
     router.replace(`${pathname}?tab=${tab}`, { scroll: false });
@@ -80,7 +92,7 @@ export default function FieldToolkit() {
         {active === 'scan' && (
           <OcrNameplateScanner
             onUseRefrigerant={code => {
-              setPrefillCode(code);
+              setScannedCode(code);
               go('register');
             }}
           />
@@ -92,7 +104,13 @@ export default function FieldToolkit() {
           <InstallationsTab checklist={checklist} onChecklistUsed={() => setChecklist(null)} onGoToChecklist={() => go('checklist')} />
         )}
         {active === 'register' && (
-          <GasRegisterTab prefillCode={prefillCode} onPrefillConsumed={() => setPrefillCode(undefined)} />
+          <GasRegisterTab
+            prefill={prefill}
+            onPrefillConsumed={() => {
+              setScannedCode(undefined);
+              if (voicePrefill) router.replace(`${pathname}?tab=register`, { scroll: false });
+            }}
+          />
         )}
         {active === 'photos' && (
           <div className="space-y-3">

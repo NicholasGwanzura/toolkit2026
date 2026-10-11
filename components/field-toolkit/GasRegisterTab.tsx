@@ -10,8 +10,8 @@ import { JobTypeLabels, type JobType, type Refrigerant, type RefrigerantLog } fr
 import { JOB_TYPE_OPTIONS } from './checklists';
 
 const inputClass = 'min-h-11 w-full border border-stone-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-[#D97706] focus:ring-2 focus:ring-[#D97706]/20';
-const ACTIONS = ['Charge', 'Recovery', 'Leak Repair'] as const;
-type Action = (typeof ACTIONS)[number];
+export const ACTIONS = ['Charge', 'Recovery', 'Leak Repair'] as const;
+export type Action = (typeof ACTIONS)[number];
 type LogState = 'synced' | 'pending' | 'failed';
 
 const EMPTY_FORM = {
@@ -68,13 +68,21 @@ async function downloadPdf(log: RefrigerantLog) {
   doc.save(`coolpro-log-${log.id}.pdf`);
 }
 
+export interface GasRegisterPrefill {
+  /** Refrigerant code, from the nameplate scanner or a voice command. */
+  code?: string;
+  amount?: string;
+  action?: Action;
+  client?: string;
+  source: 'scan' | 'voice';
+}
+
 interface GasRegisterTabProps {
-  /** A refrigerant code from the nameplate scanner, to prefill the form. */
-  prefillCode?: string;
+  prefill?: GasRegisterPrefill;
   onPrefillConsumed?: () => void;
 }
 
-export default function GasRegisterTab({ prefillCode, onPrefillConsumed }: GasRegisterTabProps) {
+export default function GasRegisterTab({ prefill, onPrefillConsumed }: GasRegisterTabProps) {
   const { user } = useAuth();
   const { data: suppliers = [], error: suppliersError, isLoading: suppliersLoading } = useApprovedSuppliers();
   const { data: plannerJobs = [] } = usePlannerJobs();
@@ -88,25 +96,34 @@ export default function GasRegisterTab({ prefillCode, onPrefillConsumed }: GasRe
 
   const openJobs = useMemo(() => plannerJobs.filter(job => job.status !== 'completed' && job.status !== 'cancelled'), [plannerJobs]);
 
-  // Apply a refrigerant scanned from a nameplate.
+  // Apply details from a nameplate scan or a voice command. Nothing is saved: the person reviews and presses Save.
+  const prefillKey = prefill ? JSON.stringify(prefill) : '';
   useEffect(() => {
-    if (!prefillCode) return;
+    if (!prefill) return;
     let cancelled = false;
     (async () => {
       let refrigerant: Refrigerant | null = null;
-      try {
-        refrigerant = (await searchRefrigerantsOnce({ q: prefillCode, pageSize: 1 })).data[0] ?? null;
-      } catch (err) {
-        console.error('Could not look up the scanned refrigerant:', err);
+      if (prefill.code) {
+        try {
+          refrigerant = (await searchRefrigerantsOnce({ q: prefill.code, pageSize: 1 })).data[0] ?? null;
+        } catch (err) {
+          console.error('Could not look up the refrigerant:', err);
+        }
       }
       if (cancelled) return;
-      setForm(prev => ({ ...prev, refrigerant, refrigerantType: refrigerant ? refrigerantLabel(refrigerant) : prefillCode }));
-      setPrefillNotice(`Filled from nameplate scan: ${prefillCode}`);
+      setForm(prev => ({
+        ...prev,
+        ...(prefill.code ? { refrigerant, refrigerantType: refrigerant ? refrigerantLabel(refrigerant) : prefill.code } : {}),
+        ...(prefill.amount ? { amount: prefill.amount } : {}),
+        ...(prefill.action ? { actionType: prefill.action } : {}),
+        ...(prefill.client ? { clientName: prefill.client } : {}),
+      }));
+      setPrefillNotice(prefill.source === 'voice' ? 'Filled from your voice command. Check every field, then press Save.' : `Filled from nameplate scan: ${prefill.code}`);
       onPrefillConsumed?.();
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [prefillCode]);
+  }, [prefillKey]);
 
   const chooseJob = (jobId: string) => {
     const job = openJobs.find(item => item.id === jobId);
