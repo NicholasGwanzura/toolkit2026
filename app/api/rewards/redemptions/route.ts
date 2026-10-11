@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, sql } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { rewardRedemptions } from '@/db/schema/index';
 import { readSessionFromRequest, requireRole } from '@/lib/server/auth';
@@ -7,28 +7,10 @@ import { requireApprovedSupplier } from '@/lib/server/supplier-access';
 import { checkRateLimit } from '@/lib/server/rate-limit';
 import { computeTechnicianRewardSummary, computeVendorRewardSummary } from '@/lib/server/rewards';
 import { TECHNICIAN_REWARDS, VENDOR_REWARDS } from '@/constants/rewards';
-import type { RewardRedemption } from '@/types/index';
+import { toRewardRedemption } from '@/lib/server/reward-serializer';
 
 const RATE_LIMIT = 10;
 const RATE_WINDOW_MS = 60 * 60 * 1000;
-
-function toRewardRedemption(row: typeof rewardRedemptions.$inferSelect): RewardRedemption {
-  return {
-    id: row.id,
-    userId: row.userId,
-    userName: row.userName,
-    userEmail: row.userEmail,
-    userRole: row.userRole,
-    rewardId: row.rewardId,
-    rewardTitle: row.rewardTitle,
-    pointsCost: row.pointsCost,
-    status: row.status as RewardRedemption['status'],
-    requestedAt: row.requestedAt.toISOString(),
-    resolvedAt: row.resolvedAt?.toISOString() ?? undefined,
-    resolvedBy: row.resolvedBy ?? undefined,
-    notes: row.notes ?? undefined,
-  };
-}
 
 export async function GET(req: Request) {
   const session = await readSessionFromRequest(req);
@@ -66,30 +48,37 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Unknown rewardId' }, { status: 400 });
   }
 
-  const summary = session.role === 'vendor'
-    ? await computeVendorRewardSummary(session.id, session.email)
-    : await computeTechnicianRewardSummary(session.id);
-  if (summary.availablePoints < reward.points) {
-    return NextResponse.json(
-      { error: `Not enough points. Available: ${summary.availablePoints}, required: ${reward.points}.` },
-      { status: 400 }
-    );
-  }
+  const userId = session.id;
+  const result = await db.transaction(async (tx) => {
+    // Serialise redemptions per person: the balance check and the insert must not interleave with
+    // another request from the same account, or the same points could be spent twice.
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${userId}::text))`);
 
-  const [inserted] = await db
-    .insert(rewardRedemptions)
-    .values({
-      userId: session.id,
-      userName: session.name,
-      userEmail: session.email,
-      userRole: session.role as typeof rewardRedemptions.$inferInsert['userRole'],
-      rewardId: reward.id,
-      rewardTitle: reward.title,
-      pointsCost: reward.points,
-      status: 'requested',
-      requestedAt: new Date(),
-    })
-    .returning();
+    const summary = session.role === 'vendor'
+      ? await computeVendorRewardSummary(session.id, session.email)
+      : await computeTechnicianRewardSummary(session.id);
+    if (summary.availablePoints < reward.points) {
+      return { error: `Not enough points. Available: ${summary.availablePoints}, required: ${reward.points}.` } as const;
+    }
+
+    const [row] = await tx
+      .insert(rewardRedemptions)
+      .values({
+        userId: session.id,
+        userName: session.name,
+        userEmail: session.email,
+        userRole: session.role as typeof rewardRedemptions.$inferInsert['userRole'],
+        rewardId: reward.id,
+        rewardTitle: reward.title,
+        pointsCost: reward.points,
+        status: 'requested',
+        requestedAt: new Date(),
+      })
+      .returning();
+    return { inserted: row } as const;
+  });
+  if ('error' in result) return NextResponse.json({ error: result.error }, { status: 400 });
+  const inserted = result.inserted;
 
   return NextResponse.json(toRewardRedemption(inserted), { status: 201 });
 }

@@ -16,28 +16,24 @@ export const TECHNICIAN_REWARDS: RewardItem[] = [
     title: 'Digital Manifold Set 10% Discount',
     points: 500,
     vendor: 'Fieldpiece',
-    image: 'https://picsum.photos/seed/tool1/400/300',
   },
   {
     id: '2',
     title: 'Refillable Nitrogen Tank Voucher',
     points: 300,
     vendor: 'GasCo',
-    image: 'https://picsum.photos/seed/gas/400/300',
   },
   {
     id: '3',
     title: 'Safe Handling PPE Kit',
     points: 200,
     vendor: 'CoolSafe',
-    image: 'https://picsum.photos/seed/ppe/400/300',
   },
   {
     id: '4',
     title: 'Transcritical CO2 Advanced Training',
     points: 1000,
     vendor: 'Global HVAC Academy',
-    image: 'https://picsum.photos/seed/train/400/300',
   },
 ];
 

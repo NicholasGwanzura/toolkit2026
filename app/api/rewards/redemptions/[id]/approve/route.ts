@@ -1,27 +1,11 @@
 import { NextResponse } from 'next/server';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { rewardRedemptions } from '@/db/schema/index';
 import { requireRole } from '@/lib/server/auth';
-import type { RewardRedemption } from '@/types/index';
-
-function toRewardRedemption(row: typeof rewardRedemptions.$inferSelect): RewardRedemption {
-  return {
-    id: row.id,
-    userId: row.userId,
-    userName: row.userName,
-    userEmail: row.userEmail,
-    userRole: row.userRole,
-    rewardId: row.rewardId,
-    rewardTitle: row.rewardTitle,
-    pointsCost: row.pointsCost,
-    status: row.status as RewardRedemption['status'],
-    requestedAt: row.requestedAt.toISOString(),
-    resolvedAt: row.resolvedAt?.toISOString() ?? undefined,
-    resolvedBy: row.resolvedBy ?? undefined,
-    notes: row.notes ?? undefined,
-  };
-}
+import { toRewardRedemption } from '@/lib/server/reward-serializer';
+import { notifyUser } from '@/lib/server/notifications';
+import { notificationTemplates } from '@/lib/notification-templates';
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   let session;
@@ -41,8 +25,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const [updated] = await db
     .update(rewardRedemptions)
     .set({ status: 'fulfilled', resolvedAt: new Date(), resolvedBy: session.name })
-    .where(eq(rewardRedemptions.id, id))
+    .where(and(eq(rewardRedemptions.id, id), eq(rewardRedemptions.status, 'requested')))
     .returning();
+  if (!updated) return NextResponse.json({ error: 'This redemption was already resolved by someone else.' }, { status: 409 });
 
+  await notifyUser(updated.userId, notificationTemplates.rewardDecision({ fulfilled: true, rewardTitle: updated.rewardTitle, points: updated.pointsCost }));
   return NextResponse.json(toRewardRedemption(updated));
 }

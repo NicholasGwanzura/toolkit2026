@@ -6,6 +6,7 @@ import { ArrowRight, Award, CheckCircle2, FileBadge2, Gift, ShieldCheck } from '
 import { useSupplierComplianceApplications, useRewardSummary, useRewardRedemptions, createRewardRedemption } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import { VENDOR_REWARDS } from '@/constants/rewards';
+import { ConfirmModal, PointsHint, RedemptionHistory } from '@/components/rewards/Shared';
 import type { UserSession } from '@/lib/auth';
 
 function formatDate(value: string) {
@@ -18,18 +19,22 @@ export default function VendorRewardsPanel({ session }: { session: UserSession }
     const { data: summary } = useRewardSummary();
     const { data: redemptions = [] } = useRewardRedemptions();
     const [redeemingId, setRedeemingId] = useState<string | null>(null);
+    const [confirmId, setConfirmId] = useState<string | null>(null);
 
     const supplierComplianceApplications = useMemo(() => {
         return allComplianceApplications.filter(entry => entry.supplierEmail === session.email);
     }, [allComplianceApplications, session.email]);
 
+    const loadingBalance = summary === undefined;
     const availablePoints = summary?.availablePoints ?? 0;
+    const confirming = VENDOR_REWARDS.find(reward => reward.id === confirmId);
 
     const handleRedeem = async (rewardId: string) => {
+        setConfirmId(null);
         setRedeemingId(rewardId);
         try {
             await createRewardRedemption(rewardId);
-            success('Redemption requested — an admin will review it shortly.');
+            success('Redemption requested. An administrator will review it, and you will be notified.');
         } catch (e) {
             toastError(e instanceof Error ? e.message : 'Failed to submit redemption request.');
         } finally {
@@ -54,9 +59,9 @@ export default function VendorRewardsPanel({ session }: { session: UserSession }
                         </div>
                         <div className="rounded-lg border border-white/10 bg-white/10 p-6 text-center backdrop-blur">
                             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-300">Available points</p>
-                            <p className="mt-3 text-5xl font-bold text-emerald-300">{availablePoints}</p>
+                            <p className="mt-3 text-5xl font-bold text-emerald-300" aria-live="polite">{loadingBalance ? '…' : availablePoints}</p>
                             {summary && summary.reservedPoints > 0 && (
-                                <p className="mt-1 text-[10px] text-slate-400">{summary.reservedPoints} pts reserved in pending redemptions</p>
+                                <p className="mt-2 text-xs text-slate-300">{summary.reservedPoints} points are held for requests waiting for review</p>
                             )}
                         </div>
                     </div>
@@ -75,28 +80,7 @@ export default function VendorRewardsPanel({ session }: { session: UserSession }
                 ))}
             </section>
 
-            {redemptions.length > 0 && (
-                <section>
-                    <h2 className="mb-4 text-lg font-semibold text-gray-900">My Redemption Requests</h2>
-                    <div className="space-y-2">
-                        {redemptions.slice(0, 5).map(redemption => {
-                            const statusStyles: Record<string, string> = {
-                                requested: 'bg-amber-50 text-amber-700',
-                                fulfilled: 'bg-emerald-50 text-emerald-700',
-                                rejected: 'bg-rose-50 text-rose-700',
-                            };
-                            return (
-                                <div key={redemption.id} className="rounded-lg flex items-center justify-between border border-gray-200 bg-white p-3 text-sm">
-                                    <span className="font-medium text-gray-700">{redemption.rewardTitle}</span>
-                                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${statusStyles[redemption.status]}`}>
-                                        {redemption.status}
-                                    </span>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </section>
-            )}
+            <RedemptionHistory redemptions={redemptions} />
 
             <section className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
                 <article className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
@@ -110,7 +94,7 @@ export default function VendorRewardsPanel({ session }: { session: UserSession }
 
                     <div className="space-y-3">
                         {VENDOR_REWARDS.map((reward) => {
-                            const canRedeem = availablePoints >= reward.points;
+                            const canRedeem = !loadingBalance && availablePoints >= reward.points;
                             return (
                                 <div key={reward.id} className="rounded-lg border border-gray-200 bg-gray-50 p-4">
                                     <div className="flex items-start justify-between gap-3">
@@ -123,9 +107,10 @@ export default function VendorRewardsPanel({ session }: { session: UserSession }
                                             <p className="text-xs uppercase tracking-[0.18em] text-gray-400">points</p>
                                         </div>
                                     </div>
+                                    <div className="mt-3"><PointsHint available={availablePoints} cost={reward.points} loading={loadingBalance} /></div>
                                     <button
                                         disabled={!canRedeem || redeemingId === reward.id}
-                                        onClick={() => handleRedeem(reward.id)}
+                                        onClick={() => setConfirmId(reward.id)}
                                         className={`mt-3 inline-flex items-center gap-1 px-4 py-2 text-sm font-semibold transition-all ${
                                             canRedeem
                                                 ? 'bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-50'
@@ -181,6 +166,15 @@ export default function VendorRewardsPanel({ session }: { session: UserSession }
                     </div>
                 </article>
             </section>
+            {confirming && (
+                <ConfirmModal
+                    title={`Redeem ${confirming.title}?`}
+                    body={`This uses ${confirming.points} of your ${availablePoints} points. They are held while an administrator reviews the request. If it is not approved, they come back to you.`}
+                    confirmLabel="Request this reward"
+                    onConfirm={() => handleRedeem(confirming.id)}
+                    onCancel={() => setConfirmId(null)}
+                />
+            )}
         </div>
     );
 }

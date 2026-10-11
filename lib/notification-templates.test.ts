@@ -40,4 +40,13 @@ describe('notification templates', () => {
     expect(rejected.body).toContain('Quota exceeded');
     expect(rejected.body).toContain('1,250.5 kg of R-290');
   });
+
+  it('words reward decisions and keeps the reason', () => {
+    const ok = t.rewardDecision({ fulfilled: true, rewardTitle: 'PPE Kit', points: 200 });
+    expect(ok.kind).toBe('reward_fulfilled');
+    const no = t.rewardDecision({ fulfilled: false, rewardTitle: 'PPE Kit', points: 200, reason: 'Out of stock' });
+    expect(no.kind).toBe('reward_rejected');
+    expect(no.body).toContain('Out of stock');
+    expect(no.body).toContain('available again');
+  });
 });

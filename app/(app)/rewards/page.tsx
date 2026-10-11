@@ -1,34 +1,13 @@
 'use client';
 
-import { useMemo } from 'react';
-import Link from 'next/link';
-import { Building2, ShieldCheck, Truck } from 'lucide-react';
 import RewardsHub from '@/components/RewardsHub';
 import VendorRewardsPanel from '@/components/VendorRewardsPanel';
 import { useAuth } from '@/lib/auth';
-import { useSupplierApplications } from '@/lib/api';
 
 export default function RewardsPage() {
     const { user: session } = useAuth();
-    const { data: supplierApplications = [] } = useSupplierApplications();
     const isAdmin = session?.role === 'org_admin';
     const isVendor = session?.role === 'vendor';
-
-    const supplierSummary = useMemo(() => {
-        const pendingApplications = supplierApplications.filter(
-            application => application.status === 'submitted' || application.status === 'under-review'
-        );
-        const approvedApplications = supplierApplications.filter(
-            application => application.status === 'approved'
-        );
-        return {
-            approvedSuppliers: approvedApplications.length,
-            pendingApplications: pendingApplications.length,
-            refrigerantCoverage: new Set(
-                approvedApplications.flatMap(supplier => supplier.refrigerantsSupplied)
-            ).size,
-        };
-    }, [supplierApplications]);
 
     if (session && isVendor) {
         return <VendorRewardsPanel session={session} />;
@@ -47,59 +26,13 @@ export default function RewardsPage() {
         );
     }
 
-    // Admin view — includes supplier summary stats
+    // Admin view
     return (
         <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Rewards Overview</h1>
-                    <p className="text-gray-500 mt-1">Track all active rewards, vendor participation, and supplier-backed reward coverage.</p>
-                </div>
-                <Link
-                    href="/suppliers"
-                    className="rounded-lg inline-flex items-center gap-2 border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
-                >
-                    <Building2 className="h-4 w-4" />
-                    Open Supplier Management
-                </Link>
+            <div>
+                <h1 className="text-2xl font-bold text-gray-900">Rewards Overview</h1>
+                <p className="mt-1 text-gray-500">Review redemption requests, see what people have earned, and check the current reward catalogue.</p>
             </div>
-
-            <section className="grid gap-4 md:grid-cols-3">
-                <article className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-                    <div className="flex items-start justify-between gap-3">
-                        <div>
-                            <p className="text-sm text-gray-500">Approved supplier partners</p>
-                            <p className="mt-2 text-3xl font-bold text-gray-900">{supplierSummary.approvedSuppliers}</p>
-                        </div>
-                        <div className="bg-emerald-50 p-3 text-emerald-700">
-                            <ShieldCheck className="h-5 w-5" />
-                        </div>
-                    </div>
-                </article>
-                <article className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-                    <div className="flex items-start justify-between gap-3">
-                        <div>
-                            <p className="text-sm text-gray-500">Applications in review</p>
-                            <p className="mt-2 text-3xl font-bold text-gray-900">{supplierSummary.pendingApplications}</p>
-                        </div>
-                        <div className="bg-amber-50 p-3 text-amber-700">
-                            <Building2 className="h-5 w-5" />
-                        </div>
-                    </div>
-                </article>
-                <article className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-                    <div className="flex items-start justify-between gap-3">
-                        <div>
-                            <p className="text-sm text-gray-500">Refrigerant coverage</p>
-                            <p className="mt-2 text-3xl font-bold text-gray-900">{supplierSummary.refrigerantCoverage}</p>
-                        </div>
-                        <div className="bg-slate-50 p-3 text-slate-700">
-                            <Truck className="h-5 w-5" />
-                        </div>
-                    </div>
-                </article>
-            </section>
-
             <RewardsHub adminView={true} />
         </div>
     );

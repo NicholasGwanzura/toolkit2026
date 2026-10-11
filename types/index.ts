@@ -604,7 +604,6 @@ export interface RewardItem {
   title: string;
   points: number;
   vendor: string;
-  image: string;
 }
 
 export type RewardRedemptionStatus = 'requested' | 'fulfilled' | 'rejected';

@@ -58,6 +58,12 @@ export const notificationTemplates = {
     };
   },
 
+  rewardDecision(input: { fulfilled: boolean; rewardTitle: string; points: number; reason?: string }): NotificationContent {
+    return input.fulfilled
+      ? { kind: 'reward_fulfilled', title: 'Reward ready', body: `Your request for "${input.rewardTitle}" (${input.points} points) was fulfilled.`, link: '/rewards' }
+      : { kind: 'reward_rejected', title: 'Reward request not approved', body: `Your request for "${input.rewardTitle}" was not approved${input.reason ? `: ${input.reason}` : '.'} Your ${input.points} points are available again.`, link: '/rewards' };
+  },
+
   reorderDecision(input: { approved: boolean; stage: 'hevacraz' | 'nou'; gasType: string; quantityKg: number; reason?: string }): NotificationContent {
     const what = `${kgText(input.quantityKg)} of ${input.gasType}`;
     if (!input.approved) {
