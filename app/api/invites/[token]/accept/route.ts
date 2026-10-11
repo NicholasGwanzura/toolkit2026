@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { eq, sql } from 'drizzle-orm';
 import { db } from '@/db/client';
-import { invites } from '@/db/schema/index';
+import { invites, users } from '@/db/schema/index';
 import { signSession, sessionCookie } from '@/lib/server/auth';
 import { hashPassword, isPasswordStrongEnough, MIN_PASSWORD_LENGTH } from '@/lib/server/password';
 import type { UserSession } from '@/lib/session-types';
@@ -58,12 +58,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
         WHERE token = ${token}
           AND status = 'pending'
           AND expires_at >= now()
+          AND NOT EXISTS (SELECT 1 FROM users u WHERE u.email = invites.email AND u.password_hash IS NOT NULL)
         RETURNING email, role, region
       ),
       created_user AS (
         INSERT INTO users (name, email, password_hash, role, region, status, is_demo)
         SELECT ${name}, email, ${passwordHash}, role, region, 'active', false
         FROM claimed_invite
+        -- A login that exists without a password (provisioned from an application) is completed, not rejected.
+        ON CONFLICT (email) DO UPDATE
+          SET name = EXCLUDED.name, password_hash = EXCLUDED.password_hash, status = 'active', updated_at = now()
+          WHERE users.password_hash IS NULL
         RETURNING id, name, email, role, region, is_demo, session_version
       )
       SELECT
@@ -85,6 +90,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
   }
 
   if (!user) {
+    const [existing] = await db.select({ passwordHash: users.passwordHash }).from(users).where(eq(users.email, invite.email)).limit(1);
+    if (existing?.passwordHash) {
+      return NextResponse.json({ error: 'An account already exists for this email. Sign in, or use "Forgot password" on the login page.' }, { status: 409 });
+    }
     return NextResponse.json({ error: 'This invite is no longer available' }, { status: 410 });
   }
 

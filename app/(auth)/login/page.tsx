@@ -153,6 +153,10 @@ function LoginPageContent() {
                 </button>
                 </form>
 
+                <p className="border-t border-[#E7E5E4] pt-4 text-center text-xs leading-5 text-[#78716C]">
+                  On the technician registry but never signed in?{' '}
+                  <Link href="/activate-account" className="font-semibold text-[#D97706] hover:text-[#b45309]">Activate your account</Link>
+                </p>
               </div>
             )}
 

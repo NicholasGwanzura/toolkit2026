@@ -8,6 +8,7 @@ import { jsPDF } from 'jspdf';
 import { Technician } from '@/types/index';
 import { useAuth } from '@/lib/auth';
 import { useTechnicians } from '@/lib/api';
+import { RegistryLoginsPanel } from '@/components/admin/RegistryLoginsPanel';
 import { TECHNICIAN_SPECIALIZATIONS, ZIMBABWE_PROVINCES } from '@/constants/registry';
 
 type CertificationFilter = '' | 'valid' | 'expired' | 'pending';
@@ -185,6 +186,8 @@ function TechnicianRegistryContent() {
           Export PDF Report
         </button>
       </div>
+
+      {session?.role === 'org_admin' && <RegistryLoginsPanel />}
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
         <SummaryCard label="Registered Techs" value={registrySummary.total} />

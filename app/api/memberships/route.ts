@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server';
-import { randomBytes } from 'crypto';
 import { and, desc, eq, ilike, or } from 'drizzle-orm';
 import { db } from '@/db/client';
-import { memberships, technicians, users, invites } from '@/db/schema/index';
+import { memberships, technicians } from '@/db/schema/index';
 import { requireRole } from '@/lib/server/auth';
 import { generateMembershipNumber } from '@/lib/server/membership-number';
 import { recordAuditEvent } from '@/lib/server/audit';
-import { sendInviteEmail, sendMembershipConfirmationEmail } from '@/lib/server/email';
-import { SITE_URL } from '@/lib/site-url';
+import { sendMembershipConfirmationEmail } from '@/lib/server/email';
+import { issueActivationInvite } from '@/lib/server/activation-invite';
 import type { Membership } from '@/types/index';
 
 function toMembership(row: typeof memberships.$inferSelect): Membership {
@@ -127,29 +126,14 @@ export async function POST(req: Request) {
     return NextResponse.json(toMembership(created), { status: 201 });
   }
 
-  const [existingUser] = await db.select().from(users).where(eq(users.email, technician.email)).limit(1);
-
-  if (!existingUser) {
-    // No login account exists — send a secure activation link instead of emailing a password.
-    const token = randomBytes(24).toString('base64url');
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
-
-    await db.insert(invites).values({
-      email: technician.email,
-      role: 'technician',
-      region: technician.region,
-      token,
-      invitedBy: session.email,
-      expiresAt,
-    }).catch(() => {}); // best-effort: a pending invite may already exist for this email
-
-    const inviteUrl = `${SITE_URL}/accept-invite?token=${token}`;
-    await sendInviteEmail({
-      email: technician.email, inviteUrl, role: 'technician', invitedBy: session.name,
-      log: { type: 'account_activation', entityType: 'membership', entityId: created.id, label: technician.name },
-    });
-  }
+  // No login yet: send a secure activation link instead of ever emailing a password.
+  await issueActivationInvite({
+    email: technician.email,
+    region: technician.region,
+    invitedBy: session.email,
+    invitedByName: session.name,
+    log: { entityType: 'membership', entityId: created.id, label: technician.name },
+  });
 
   await sendMembershipConfirmationEmail({
     email: technician.email,

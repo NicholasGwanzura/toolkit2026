@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 const PUBLIC_ROUTES: Record<string, string> = {
   'auth/login': 'sign-in',
   'auth/logout': 'clears the cookie',
+  'auth/activate-account': 'registry technician asks for an activation link, rate limited, same answer every time',
   'auth/password-reset/request': 'forgotten password, rate limited',
   'auth/password-reset/complete': 'token from the email',
   'contact': 'public contact form, rate limited',
