@@ -18,7 +18,16 @@ interface Props {
   sel: EquipmentSelection | null;
 }
 
-const fieldClass = 'mt-1 w-full border border-emerald-200 bg-white px-3 py-2.5 text-base text-gray-900 sm:text-sm';
+const controlClass = 'block h-11 w-full border border-emerald-200 bg-white px-3 text-base text-gray-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 sm:text-sm';
+
+// Label, control and hint in fixed rows so every field lines up, whatever the hint length.
+const Field = ({ label, hint, children }: { label: string; hint: string; children: React.ReactNode }) => (
+  <label className="flex min-w-0 flex-col gap-1">
+    <span className="text-xs font-semibold text-gray-800">{label}</span>
+    {children}
+    <span className="text-xs leading-4 text-gray-600">{hint}</span>
+  </label>
+);
 
 const Row = ({ label, value, note }: { label: string; value: string; note?: string }) => (
   <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 border-b border-emerald-100 py-2 last:border-b-0">
@@ -52,21 +61,21 @@ const EquipmentSelectionPanel: React.FC<Props> = ({ loadKw, roomTempC, ambientTe
   return (
     <div className="mt-4 space-y-3">
       <p className="text-sm font-semibold text-emerald-900">Indicative equipment and pipe sizes</p>
-      <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 lg:grid-cols-4">
-        <label className="text-xs font-semibold text-gray-700">Refrigerant
-          <select className={fieldClass} value={refrigerant} onChange={(e) => setRefrigerant(e.target.value as SelectableRefrigerant)}>
+      <div className="grid grid-cols-2 items-start gap-x-3 gap-y-4 xl:grid-cols-4">
+        <Field label="Refrigerant" hint="Pick one that suits the room temperature.">
+          <select className={`${controlClass} appearance-none bg-[right_0.75rem_center] bg-no-repeat pr-9`} style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23374151' stroke-width='3'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")" }} value={refrigerant} onChange={(e) => setRefrigerant(e.target.value as SelectableRefrigerant)}>
             {SELECTABLE_REFRIGERANTS.map((r) => <option key={r} value={r}>{r}</option>)}
           </select>
-        </label>
-        <label className="text-xs font-semibold text-gray-700">Compressor run time (h/day)
-          <input type="number" min={8} max={24} step={1} className={fieldClass} value={runtime} onChange={(e) => setRuntime(num(e.target.value))} />
-        </label>
-        <label className="text-xs font-semibold text-gray-700">Evaporator TD (K)
-          <input type="number" min={2} max={15} step={1} className={fieldClass} value={evaporatorTdK} onChange={(e) => setEvapTd(num(e.target.value))} />
-        </label>
-        <label className="text-xs font-semibold text-gray-700">Condenser TD over ambient (K)
-          <input type="number" min={5} max={25} step={1} className={fieldClass} value={condTd} onChange={(e) => setCondTd(num(e.target.value))} />
-        </label>
+        </Field>
+        <Field label="Run time (h/day)" hint="Hours the compressor may run, 8 to 24.">
+          <input type="number" inputMode="decimal" min={8} max={24} step={1} className={controlClass} value={runtime} onChange={(e) => setRuntime(num(e.target.value))} />
+        </Field>
+        <Field label="Evaporator TD (K)" hint="Room air minus refrigerant temperature.">
+          <input type="number" inputMode="decimal" min={2} max={15} step={1} className={controlClass} value={evaporatorTdK} onChange={(e) => setEvapTd(num(e.target.value))} />
+        </Field>
+        <Field label="Condenser TD (K)" hint="Condensing temperature above ambient.">
+          <input type="number" inputMode="decimal" min={5} max={25} step={1} className={controlClass} value={condTd} onChange={(e) => setCondTd(num(e.target.value))} />
+        </Field>
       </div>
 
       {!sel && <p className="text-xs text-amber-900">Enter a cooling load above zero and a run time between 8 and 24 hours to see sizes.</p>}
