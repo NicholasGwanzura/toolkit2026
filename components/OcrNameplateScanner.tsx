@@ -7,6 +7,7 @@ import { createOcrScan, useOcrScans } from '@/lib/api';
 import { RefrigerantRiskBadge } from '@/components/RefrigerantRiskBadge';
 import { cropImage, enhanceForOcr, readBarcodes, rotateImage, type CropRect } from '@/lib/nameplateImage';
 import { LOW_CONFIDENCE, fieldConfidence, flattenWords, reconcileSerial, type FieldConfidence, type FieldKey } from '@/lib/nameplateScan';
+import { resolveManufacturer } from '@/lib/nameplate-brands';
 import type { OcrScanRecord } from '@/types/index';
 
 function formatScanDate(iso: string) {
@@ -25,6 +26,8 @@ export function OcrNameplateScanner({ onUseRefrigerant }: OcrNameplateScannerPro
     const [confidence, setConfidence] = useState<FieldConfidence>({});
     const [serialSuggestions, setSerialSuggestions] = useState<string[]>([]);
     const [serialNote, setSerialNote] = useState('');
+    const [brandNote, setBrandNote] = useState('');
+    const [brandSuggestions, setBrandSuggestions] = useState<string[]>([]);
     const dragStart = useRef<{ x: number; y: number } | null>(null);
     const [result, setResult] = useState<OcrScanRecord | null>(null);
     const [isScanning, setIsScanning] = useState(false);
@@ -118,6 +121,8 @@ export function OcrNameplateScanner({ onUseRefrigerant }: OcrNameplateScannerPro
         setConfidence({});
         setSerialSuggestions([]);
         setSerialNote('');
+        setBrandNote('');
+        setBrandSuggestions([]);
 
         try {
             const region = await cropImage(source, crop);
@@ -129,6 +134,18 @@ export function OcrNameplateScanner({ onUseRefrigerant }: OcrNameplateScannerPro
             const parsed = await extractNameplateData(scan.data.text);
             const words = flattenWords(scan.data.blocks);
 
+            // Tidy the maker against the brands technicians meet, or find one elsewhere on the plate.
+            const brand = resolveManufacturer(parsed.manufacturer, parsed.rawText);
+            if (brand.value) parsed.manufacturer = brand.value;
+            setBrandSuggestions(brand.suggestions);
+            setBrandNote(
+                brand.source === 'corrected' || brand.source === 'found'
+                    ? `Manufacturer matched to ${brand.value}${brand.from ? ` (read as "${brand.from}")` : ''}. Check it against the plate.`
+                    : brand.source === 'unrecognised'
+                        ? 'This manufacturer is not one we recognise. Check the spelling against the plate.'
+                        : '',
+            );
+
             // Barcodes are far more reliable than OCR for serials; use them to confirm or fix the OCR value.
             const barcodes = await readBarcodes(region);
             const decision = reconcileSerial(parsed.serialNumber, parsed.model, barcodes);
@@ -139,7 +156,7 @@ export function OcrNameplateScanner({ onUseRefrigerant }: OcrNameplateScannerPro
             setSerialSuggestions(decision.suggestions);
 
             const next: FieldConfidence = {
-                manufacturer: fieldConfidence(parsed.manufacturer, words),
+                manufacturer: fieldConfidence(brand.from ?? parsed.manufacturer, words),
                 model: fieldConfidence(parsed.model, words),
                 serialNumber: decision.source === 'barcode' ? 100 : fieldConfidence(parsed.serialNumber, words),
                 refrigerantCode: fieldConfidence(parsed.refrigerantCode, words),
@@ -158,6 +175,10 @@ export function OcrNameplateScanner({ onUseRefrigerant }: OcrNameplateScannerPro
         // A hand-edited value is one the user vouches for.
         setConfidence((current) => ({ ...current, [key]: 100 }));
         setSerialNote('');
+        if (key === 'manufacturer') {
+            setBrandNote('');
+            setBrandSuggestions([]);
+        }
         setResult((current) => current ? {
             ...current,
             [key]: value || undefined,
@@ -275,6 +296,17 @@ export function OcrNameplateScanner({ onUseRefrigerant }: OcrNameplateScannerPro
                             ) : result ? (
                                 <div className="space-y-3 text-sm text-gray-700">
                                     <EditableDetail label="Manufacturer" confidence={confidence.manufacturer} value={result.manufacturer ?? ''} onChange={(value) => updateResult('manufacturer', value)} />
+                                    {brandNote && <p className="text-xs text-amber-800">{brandNote}</p>}
+                                    {brandSuggestions.length > 0 && (
+                                        <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600">
+                                            Did you mean:
+                                            {brandSuggestions.map((name) => (
+                                                <button key={name} type="button" onClick={() => updateResult('manufacturer', name)} className="min-h-9 border border-gray-300 bg-white px-2 py-1 font-semibold hover:bg-gray-50">
+                                                    {name}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
                                     <EditableDetail label="Model" confidence={confidence.model} value={result.model ?? ''} onChange={(value) => updateResult('model', value)} />
                                     <EditableDetail label="Serial" confidence={confidence.serialNumber} value={result.serialNumber ?? ''} onChange={(value) => updateResult('serialNumber', value)} />
                                     {serialNote && <p className="text-xs text-emerald-700">{serialNote}</p>}
