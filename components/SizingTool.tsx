@@ -712,9 +712,9 @@ const SizingTool: React.FC = () => {
   );
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
-      <div className="border border-gray-200 bg-white p-3 shadow-sm">
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-5">
+    <div className="max-w-5xl mx-auto space-y-6 pb-24 sm:space-y-8 lg:pb-0">
+      <div className="border border-gray-200 bg-white p-2 shadow-sm sm:p-3">
+        <div className="flex gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-2 sm:overflow-visible sm:pb-0 xl:grid-cols-5">
           {[
             { id: 'wizard', label: 'Cooling Load Wizard', icon: Calculator },
             { id: 'superheat', label: 'Superheat & Subcooling', icon: Thermometer },
@@ -728,7 +728,7 @@ const SizingTool: React.FC = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveCalculator(tab.id as CalculatorTab)}
-                className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold transition-all ${
+                className={`flex shrink-0 items-center gap-2 whitespace-nowrap px-4 py-3 text-sm font-semibold transition-all sm:shrink ${
                   isActive
                     ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
                     : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
@@ -742,7 +742,7 @@ const SizingTool: React.FC = () => {
         </div>
       </div>
 
-      <div role="note" className="flex gap-3 border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+      <div role="note" className="flex gap-3 border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950 sm:p-4 sm:text-sm">
         <Info className="mt-0.5 h-5 w-5 shrink-0" />
         <p><strong>Preliminary load estimate only.</strong> Results depend on entered U-values, airflow, humidity and product data. Equipment and pipe sizes are indicative only and do not replace manufacturer selection, a site survey or a qualified design review.</p>
       </div>
@@ -784,7 +784,7 @@ const SizingTool: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Form */}
         <div className="lg:col-span-2 space-y-6">
-          <div key={step} className="sizing-step-enter bg-white p-6 sm:p-8 border border-gray-200 shadow-sm">
+          <div key={step} className="sizing-step-enter bg-white p-4 sm:p-8 border border-gray-200 shadow-sm">
             {step === 1 && (
               <div className="space-y-6">
                 <div className="flex items-center gap-3 mb-6">
