@@ -1,3 +1,4 @@
+import { recordAuditEventSafe } from '@/lib/server/audit';
 import { toSupplierReorder } from '@/lib/server/request-serializers';
 import { notifyUser } from '@/lib/server/notifications';
 import { notificationTemplates } from '@/lib/notification-templates';
@@ -37,5 +38,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!updated) return NextResponse.json({ error: 'A different admin must perform the NOU review after HEVACRAZ review' }, { status: 409 });
 
   await notifyUser(updated.vendorId, notificationTemplates.reorderDecision({ approved: false, stage: 'nou', gasType: updated.gasType, quantityKg: Number(updated.quantityKg), reason: updated.rejectionReason ?? undefined }));
+  await recordAuditEventSafe({
+    entityType: 'supplier_reorder',
+    entityId: updated.id,
+    action: 'nou_rejected',
+    previousStatus: 'pending_nou',
+    newStatus: 'rejected',
+    performedBy: session.name,
+    performedByRole: session.role,
+    notes: body.reason ?? undefined,
+  });
   return NextResponse.json(toSupplierReorder(updated));
 }

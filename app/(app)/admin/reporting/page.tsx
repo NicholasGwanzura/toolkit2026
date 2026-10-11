@@ -5,17 +5,19 @@ import { useAuth } from '@/lib/auth';
 import {
     useStudentApplications,
     useTechnicianApplications,
-    useTechnicians,
     useCourses,
     useSupplierApplications,
     useReorders,
+    useRegistrationApplications,
+    useReportingSummary,
 } from '@/lib/api';
+import type { Pipeline, ReportRange } from '@/lib/reporting-summary';
 // NOTE: Multiple admin pages (Dashboard, Reporting, NOU Dashboard) independently fetch
 // the same underlying datasets via SWR. SWR deduplicates requests with the same key,
 // so this is a maintenance/perf smell rather than a functional issue.
 import OccupationalAccidentSection from '@/components/OccupationalAccidentSection';
 import type { SupplierReorder } from '@/lib/platformStore';
-import type { StudentApplication, TechnicianApplication, SupplierRegistration } from '@/types/index';
+import type { StudentApplication, TechnicianApplication, SupplierRegistration, RegistrationApplication } from '@/types/index';
 import type { ManagedCourse } from '@/lib/platformStore';
 import {
     Download,
@@ -33,7 +35,7 @@ import {
     Eye,
 } from 'lucide-react';
 import Link from 'next/link';
-import { rangeMsFor, type SimpleDateRange } from '@/lib/dateRange';
+import { rangeStart } from '@/lib/reporting-summary';
 
 // ---------------------------------------------------------------------------
 // Types for the activity timeline
@@ -54,7 +56,10 @@ type ActivityType =
     | 'supplier_rejected'
     | 'reorder_submitted'
     | 'reorder_approved'
-    | 'reorder_rejected';
+    | 'reorder_rejected'
+    | 'role_submitted'
+    | 'role_approved'
+    | 'role_rejected';
 
 interface ActivityEntry {
     id: string;
@@ -86,6 +91,9 @@ const ACTIVITY_META: Record<ActivityType, { color: string; bg: string; icon: typ
     reorder_submitted:   { color: 'text-cyan-600',    bg: 'bg-cyan-50',    icon: ShoppingCart },
     reorder_approved:    { color: 'text-green-600',   bg: 'bg-green-50',   icon: CheckCircle2 },
     reorder_rejected:    { color: 'text-red-600',     bg: 'bg-red-50',     icon: XCircle },
+    role_submitted:      { color: 'text-indigo-600',  bg: 'bg-indigo-50',  icon: UserPlus },
+    role_approved:       { color: 'text-green-600',   bg: 'bg-green-50',   icon: CheckCircle2 },
+    role_rejected:       { color: 'text-red-600',     bg: 'bg-red-50',     icon: XCircle },
 };
 
 function buildStudentActivity(items: StudentApplication[] | undefined): ActivityEntry[] {
@@ -123,6 +131,25 @@ function buildTechnicianActivity(items: TechnicianApplication[] | undefined): Ac
         description: `${t.specialization} · ${t.province} · ${t.yearsExperience}yrs exp`,
         actor: t.name,
         href: '/technician-registry',
+    }));
+}
+
+function buildRegistrationActivity(items: RegistrationApplication[] | undefined): ActivityEntry[] {
+    if (!items) return [];
+    return items.map(a => ({
+        id: `registration-${a.id}`,
+        timestamp: a.submittedAt,
+        type: (a.status === 'approved' ? 'role_approved'
+            : a.status === 'rejected' ? 'role_rejected'
+            : 'role_submitted') as ActivityType,
+        label: a.status === 'approved'
+            ? `${a.firstName} ${a.lastName} approved as ${a.role}`
+            : a.status === 'rejected'
+                ? `${a.firstName} ${a.lastName} rejected as ${a.role}`
+                : `${a.firstName} ${a.lastName} applied as ${a.role}`,
+        description: `${a.region}${a.organisation ? ` · ${a.organisation}` : ''}`,
+        actor: `${a.firstName} ${a.lastName}`,
+        href: '/admin/applications',
     }));
 }
 
@@ -190,49 +217,27 @@ export default function ReportingPage() {
     const { user, isLoading: authLoading } = useAuth();
     const { data: students } = useStudentApplications();
     const { data: technicianApps } = useTechnicianApplications();
-    const { data: registeredTechs } = useTechnicians();
+    const { data: registrationApps } = useRegistrationApplications();
     const { data: courses } = useCourses();
     const { data: suppliers } = useSupplierApplications();
     const { data: reorders } = useReorders();
 
-    const [dateFilter, setDateFilter] = useState('all');
+    const [dateFilter, setDateFilter] = useState<ReportRange>('all');
     const [nowRef] = useState(() => Date.now());
+    const { data: summary, error: summaryError, mutate: reloadSummary } = useReportingSummary(dateFilter);
 
     const reports = useMemo(() => {
-        const totalStudents = students?.length ?? 0;
-        const approvedStudents = students?.filter(s => s.status === 'approved').length ?? 0;
-        const pendingStudents = students?.filter(s => s.status === 'submitted' || s.status === 'under-review').length ?? 0;
-        const rejectedStudents = students?.filter(s => s.status === 'rejected').length ?? 0;
-
-        const totalTechApps = technicianApps?.length ?? 0;
-        const approvedTechs = technicianApps?.filter(t => t.status === 'approved').length ?? 0;
-        const pendingTechs = technicianApps?.filter(t => t.status === 'submitted' || t.status === 'under-review').length ?? 0;
-        const rejectedTechs = technicianApps?.filter(t => t.status === 'rejected').length ?? 0;
-
-        const registeredCount = registeredTechs?.length ?? 0;
-        const activeTechs = registeredTechs?.filter(t => t.status === 'active').length ?? 0;
-
-        const totalCourses = courses?.length ?? 0;
-        const approvedCourses = courses?.filter(c => c.status === 'approved').length ?? 0;
-        const pendingCourses = courses?.filter(c => c.status === 'draft' || c.status === 'pending_nou').length ?? 0;
-        const rejectedCourses = courses?.filter(c => c.status === 'rejected').length ?? 0;
-
-        const totalSuppliers = suppliers?.length ?? 0;
-        const approvedSuppliers = suppliers?.filter(s => s.status === 'approved').length ?? 0;
-        const pendingSuppliers = suppliers?.filter(s => s.status === 'submitted' || s.status === 'under-review').length ?? 0;
-        const rejectedSuppliers = suppliers?.filter(s => s.status === 'rejected').length ?? 0;
-
-        const totalReorders = reorders?.length ?? 0;
-        const pendingReorders = reorders?.filter(r => r.status === 'pending_hevacraz' || r.status === 'pending_nou').length ?? 0;
-
+        const zero: Pipeline = { total: 0, approved: 0, pending: 0, rejected: 0 };
+        const t = summary?.technicianApplications ?? zero;
         return {
-            students: { total: totalStudents, approved: approvedStudents, pending: pendingStudents, rejected: rejectedStudents },
-            technicians: { totalApps: totalTechApps, approved: approvedTechs, pending: pendingTechs, rejected: rejectedTechs, registered: registeredCount, active: activeTechs },
-            courses: { total: totalCourses, approved: approvedCourses, pending: pendingCourses, rejected: rejectedCourses },
-            suppliers: { total: totalSuppliers, approved: approvedSuppliers, pending: pendingSuppliers, rejected: rejectedSuppliers },
-            reorders: { total: totalReorders, pending: pendingReorders },
+            students: summary?.students ?? zero,
+            technicians: { totalApps: t.total, approved: t.approved, pending: t.pending, rejected: t.rejected, registered: summary?.registry.registered ?? 0, active: summary?.registry.active ?? 0 },
+            otherRoles: summary?.otherRoles ?? { ...zero, byRole: {} },
+            courses: summary?.courses ?? zero,
+            suppliers: summary?.suppliers ?? zero,
+            reorders: { total: summary?.reorders.total ?? 0, pending: summary?.reorders.pending ?? 0 },
         };
-    }, [students, technicianApps, registeredTechs, courses, suppliers, reorders]);
+    }, [summary]);
 
     // Build the merged activity timeline
     const activityTimeline = useMemo(() => {
@@ -242,24 +247,24 @@ export default function ReportingPage() {
             ...buildCourseActivity(courses),
             ...buildSupplierActivity(suppliers),
             ...buildReorderActivity(reorders),
+            ...buildRegistrationActivity(registrationApps),
         ];
 
         // Sort newest first
         all.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
         // Apply date filter
-        if (dateFilter !== 'all') {
-            const rangeMs = rangeMsFor(dateFilter as SimpleDateRange);
-            const cutoff = nowRef - rangeMs;
-            return all.filter(e => new Date(e.timestamp).getTime() >= cutoff);
-        }
-
-        return all.slice(0, 200); // Limit display
-    }, [students, technicianApps, courses, suppliers, reorders, dateFilter, nowRef]);
+        const start = rangeStart(dateFilter, new Date(nowRef));
+        const inRange = start ? all.filter(e => new Date(e.timestamp).getTime() >= start.getTime()) : all;
+        return inRange.slice(0, 200); // Limit display
+    }, [students, technicianApps, courses, suppliers, reorders, registrationApps, dateFilter, nowRef]);
 
     const exportCSV = () => {
-        const rows = [
+        if (!summary) return;
+        const rangeLabel = dateFilter === 'all' ? 'All time' : dateFilter === 'today' ? 'Last 24 hours' : dateFilter === 'week' ? 'Last 7 days' : 'Last 30 days';
+        const rows: (string | number)[][] = [
             ['Category', 'Metric', 'Value'],
+            ['Report', 'Period', rangeLabel],
             ['Students', 'Total Applications', reports.students.total],
             ['Students', 'Approved', reports.students.approved],
             ['Students', 'Pending Review', reports.students.pending],
@@ -268,8 +273,16 @@ export default function ReportingPage() {
             ['Technicians', 'Approved', reports.technicians.approved],
             ['Technicians', 'Pending', reports.technicians.pending],
             ['Technicians', 'Rejected', reports.technicians.rejected],
-            ['Technicians', 'Registered', reports.technicians.registered],
-            ['Technicians', 'Active', reports.technicians.active],
+            ['Technicians', 'Registered (whole registry)', reports.technicians.registered],
+            ['Technicians', 'Active (whole registry)', reports.technicians.active],
+            ['Trainers, lecturers and contractors', 'Total Applications', reports.otherRoles.total],
+            ['Trainers, lecturers and contractors', 'Approved', reports.otherRoles.approved],
+            ['Trainers, lecturers and contractors', 'Pending', reports.otherRoles.pending],
+            ['Trainers, lecturers and contractors', 'Rejected', reports.otherRoles.rejected],
+            ...Object.entries(reports.otherRoles.byRole).flatMap(([role, p]) => [
+                [`Applications: ${role}`, 'Total', p.total],
+                [`Applications: ${role}`, 'Approved', p.approved],
+            ]),
             ['Courses', 'Total', reports.courses.total],
             ['Courses', 'Approved', reports.courses.approved],
             ['Courses', 'Pending / Draft', reports.courses.pending],
@@ -280,15 +293,19 @@ export default function ReportingPage() {
             ['Suppliers', 'Rejected', reports.suppliers.rejected],
             ['Reorders', 'Total', reports.reorders.total],
             ['Reorders', 'Pending Review', reports.reorders.pending],
-            ['Accidents', 'Logged', '(see accidents section below)'],
+            ['Accidents', 'Logged', '(see accidents section on the page)'],
         ];
 
-        const csv = rows.map(r => r.join(',')).join('\n');
+        const cell = (value: string | number) => {
+            const text = String(value);
+            return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+        };
+        const csv = rows.map(r => r.map(cell).join(',')).join('\n');
         const blob = new Blob([csv], { type: 'text/csv' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `hevacraz-report-${new Date().toISOString().slice(0, 10)}.csv`;
+        a.download = `hevacraz-report-${dateFilter}-${new Date().toISOString().slice(0, 10)}.csv`;
         a.click();
         URL.revokeObjectURL(url);
     };
@@ -316,7 +333,6 @@ export default function ReportingPage() {
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
-                    {/* Date filter only affects the activity timeline, not summary cards or export. */}
                     <div className="rounded-lg flex items-center border border-gray-200 bg-white divide-x divide-gray-200">
                         {(['all', 'today', 'week', 'month'] as const).map((range) => (
                             <button
@@ -334,7 +350,8 @@ export default function ReportingPage() {
                     </div>
                     <button
                         onClick={exportCSV}
-                        className="inline-flex items-center gap-2 bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-gray-800"
+                        disabled={!summary}
+                        className="inline-flex items-center gap-2 bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-gray-800 disabled:opacity-50"
                     >
                         <Download className="h-4 w-4" />
                         Export CSV
@@ -343,11 +360,21 @@ export default function ReportingPage() {
             </div>
 
             <p className="-mt-4 text-xs text-gray-500">
-                Summary cards and CSV export show all-time totals. The date selector below filters only the activity timeline.
+                The period applies to the summary cards, the pipelines, the CSV export and the timeline. Registry totals always cover the whole registry.
             </p>
 
+            {!summary ? (
+                summaryError ? (
+                    <div role="alert" className="flex items-center justify-between gap-3 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
+                        <span>The report totals could not be loaded, so no figures are shown. Zero would be misleading.</span>
+                        <button type="button" onClick={() => reloadSummary()} className="border border-rose-300 bg-white px-3 py-1.5 font-semibold hover:bg-rose-100">Try again</button>
+                    </div>
+                ) : (
+                    <p className="rounded-lg border border-gray-200 bg-white p-6 text-sm text-gray-500">Loading report totals…</p>
+                )
+            ) : (<>
             {/* ── Summary Cards ── */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
                 <ReportCard
                     icon={GraduationCap}
                     label="Students"
@@ -361,6 +388,13 @@ export default function ReportingPage() {
                     value={reports.technicians.registered}
                     sub={`${reports.technicians.active} active · ${reports.technicians.totalApps} applications`}
                     color="text-blue-600 bg-blue-50"
+                />
+                <ReportCard
+                    icon={UserPlus}
+                    label="Trainers, lecturers, contractors"
+                    value={reports.otherRoles.total}
+                    sub={`${reports.otherRoles.approved} approved · ${reports.otherRoles.pending} pending`}
+                    color="text-indigo-600 bg-indigo-50"
                 />
                 <ReportCard
                     icon={BookOpen}
@@ -505,6 +539,7 @@ export default function ReportingPage() {
                 </div>
             </div>
 
+            </>)}
             {/* ── System-Wide Activity Timeline ── */}
             <section className="rounded-lg border border-gray-200 bg-white shadow-sm">
                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">

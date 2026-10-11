@@ -63,10 +63,10 @@ function ComplianceSection({ data }: { data: RefrigerantAnalytics['complianceOve
           <p className="text-2xl font-bold text-gray-900">{data.cylinders.totalCylinders}</p>
           <div className="flex flex-wrap gap-2 text-xs">
             <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2 py-0.5">
-              <CheckCircle2 className="h-3 w-3" /> {data.cylinders.activeCount} active
+              <CheckCircle2 className="h-3 w-3" /> {data.cylinders.inServiceCount} in service
             </span>
             <span className="inline-flex items-center gap-1 bg-rose-50 text-rose-700 px-2 py-0.5">
-              <AlertTriangle className="h-3 w-3" /> {data.cylinders.expiredCount} expired
+              <AlertTriangle className="h-3 w-3" /> {data.cylinders.overdueInspectionCount} inspection overdue
             </span>
           </div>
           <p className="text-xs text-gray-500">{data.cylinders.totalFillKg.toFixed(1)} kg total fill</p>
@@ -127,12 +127,26 @@ function ComplianceSection({ data }: { data: RefrigerantAnalytics['complianceOve
   );
 }
 
-export default function RefrigerantAnalyticsPage() {
-  const { data, isLoading } = useRefrigerantAnalytics();
+function Empty({ children }: { children: React.ReactNode }) {
+  return <p className="flex h-[280px] items-center justify-center text-center text-sm text-gray-500">{children}</p>;
+}
 
+export default function RefrigerantAnalyticsPage() {
+  const { data, error, isLoading, mutate } = useRefrigerantAnalytics();
+
+  if (error) {
+    return (
+      <div role="alert" className="space-y-3 rounded-lg border border-rose-200 bg-rose-50 p-6 text-sm text-rose-800">
+        <p className="font-semibold">Refrigerant analytics could not be loaded.</p>
+        <p>{error instanceof Error ? error.message : 'The server returned an error.'} Nothing on this page should be read as zero until it loads.</p>
+        <button type="button" onClick={() => mutate()} className="border border-rose-300 bg-white px-3 py-1.5 font-semibold text-rose-800 hover:bg-rose-100">Try again</button>
+      </div>
+    );
+  }
   if (isLoading || !data) {
     return <div className="p-8 text-sm text-gray-500">Loading analytics…</div>;
   }
+  const hasKg = (rows: { totalKg: number }[]) => rows.some((r) => r.totalKg > 0);
 
   return (
     <div className="space-y-6">
@@ -144,8 +158,8 @@ export default function RefrigerantAnalyticsPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <ChartCard title="Most Used Refrigerants (kg logged)">
-          <ResponsiveContainer width="100%" height={280}>
+        <ChartCard title="Most Charged Refrigerants (kg, excluding recovery)">
+          {!hasKg(data.mostUsed) ? <Empty>No charge or leak-repair gas has been logged yet.</Empty> : <ResponsiveContainer width="100%" height={280}>
             <BarChart data={data.mostUsed}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="refrigerant" tick={{ fontSize: 11 }} />
@@ -153,11 +167,11 @@ export default function RefrigerantAnalyticsPage() {
               <Tooltip />
               <Bar dataKey="totalKg" fill="#D97706" />
             </BarChart>
-          </ResponsiveContainer>
+          </ResponsiveContainer>}
         </ChartCard>
 
-        <ChartCard title="Most Installed (planner jobs)">
-          <ResponsiveContainer width="100%" height={280}>
+        <ChartCard title="Most Installed (planned and completed jobs, cancelled excluded)">
+          {data.mostInstalled.length === 0 ? <Empty>No jobs with a refrigerant have been planned yet.</Empty> : <ResponsiveContainer width="100%" height={280}>
             <BarChart data={data.mostInstalled}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="refrigerant" tick={{ fontSize: 11 }} />
@@ -165,11 +179,11 @@ export default function RefrigerantAnalyticsPage() {
               <Tooltip />
               <Bar dataKey="count" fill="#2563eb" />
             </BarChart>
-          </ResponsiveContainer>
+          </ResponsiveContainer>}
         </ChartCard>
 
         <ChartCard title="Most Recovered Refrigerants (kg)">
-          <ResponsiveContainer width="100%" height={280}>
+          {!hasKg(data.mostRecovered) ? <Empty>No recovery has been logged yet.</Empty> : <ResponsiveContainer width="100%" height={280}>
             <PieChart>
               <Pie
                 data={data.mostRecovered}
@@ -187,11 +201,12 @@ export default function RefrigerantAnalyticsPage() {
               <Tooltip />
               <Legend />
             </PieChart>
-          </ResponsiveContainer>
+          </ResponsiveContainer>}
         </ChartCard>
 
-        <ChartCard title="Regulatory Classification Breakdown (kg)">
-          <ResponsiveContainer width="100%" height={280}>
+        <ChartCard title="Regulatory Classification (kg, categories overlap)">
+          <p className="-mt-2 mb-2 text-xs text-gray-500">A gas can be in several categories, so these bars add up to more than the total logged.</p>
+          {!hasKg(data.classificationBreakdown) ? <Empty>No gas has been logged yet.</Empty> : <ResponsiveContainer width="100%" height={280}>
             <BarChart data={data.classificationBreakdown} layout="vertical" margin={{ left: 40 }}>
               <CartesianGrid strokeDasharray="3 3" horizontal={false} />
               <XAxis type="number" tick={{ fontSize: 11 }} />
@@ -199,15 +214,15 @@ export default function RefrigerantAnalyticsPage() {
               <Tooltip />
               <Bar dataKey="totalKg" fill="#7c3aed" />
             </BarChart>
-          </ResponsiveContainer>
+          </ResponsiveContainer>}
         </ChartCard>
 
         <div className="lg:col-span-2">
           <ChartCard title="Monthly Usage Trend (last 6 months)">
             <div className="mb-2 flex items-center gap-1.5 text-xs text-gray-500">
-              <TrendingUp className="h-3.5 w-3.5" /> Total kg logged per month across all refrigerants
+              <TrendingUp className="h-3.5 w-3.5" /> Total kg logged per month across all refrigerants and actions, including recovery
             </div>
-            <ResponsiveContainer width="100%" height={280}>
+            {!hasKg(data.monthlyTrend) ? <Empty>No gas has been logged in the last 6 months.</Empty> : <ResponsiveContainer width="100%" height={280}>
               <LineChart data={data.monthlyTrend}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="month" tick={{ fontSize: 11 }} />
@@ -215,7 +230,7 @@ export default function RefrigerantAnalyticsPage() {
                 <Tooltip />
                 <Line type="monotone" dataKey="totalKg" stroke="#D97706" strokeWidth={2} dot={{ r: 3 }} />
               </LineChart>
-            </ResponsiveContainer>
+            </ResponsiveContainer>}
           </ChartCard>
         </div>
       </div>

@@ -1,3 +1,4 @@
+import { recordAuditEventSafe } from '@/lib/server/audit';
 import { NextResponse } from 'next/server';
 import { randomBytes } from 'crypto';
 import { and, eq } from 'drizzle-orm';
@@ -38,5 +39,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   if (!updated) return NextResponse.json({ error: 'Permit is missing or no longer pending review' }, { status: 409 });
 
+  await recordAuditEventSafe({
+    entityType: 'trade_permit',
+    entityId: updated.id,
+    action: 'approved',
+    previousStatus: 'pending',
+    newStatus: 'approved',
+    performedBy: session.name,
+    performedByRole: session.role,
+  });
   return NextResponse.json(toTradePermit(updated));
 }

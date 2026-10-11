@@ -10,7 +10,12 @@ export type AuditEntityType =
   | 'user'
   | 'course'
   | 'exam_submission'
-  | 'certificate_request';
+  | 'certificate_request'
+  | 'coc_request'
+  | 'supplier_reorder'
+  | 'trade_permit'
+  | 'supplier_compliance'
+  | 'accident';
 
 export interface RecordAuditEventInput {
   entityType: AuditEntityType;
@@ -35,4 +40,16 @@ export async function recordAuditEvent(input: RecordAuditEventInput): Promise<vo
     performedByRole: input.performedByRole ?? null,
     notes: input.notes ?? null,
   });
+}
+
+/**
+ * Same as recordAuditEvent, but a failure to write the trail is logged and swallowed so it can
+ * never turn an already-saved review decision into an error for the admin.
+ */
+export async function recordAuditEventSafe(input: RecordAuditEventInput): Promise<void> {
+  try {
+    await recordAuditEvent(input);
+  } catch (error) {
+    console.error('Audit trail write failed', input.entityType, input.entityId, error);
+  }
 }

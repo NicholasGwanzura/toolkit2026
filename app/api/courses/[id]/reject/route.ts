@@ -1,3 +1,4 @@
+import { recordAuditEventSafe } from '@/lib/server/audit';
 import { notifyUser } from '@/lib/server/notifications';
 import { notificationTemplates } from '@/lib/notification-templates';
 import { NextResponse } from 'next/server';
@@ -8,8 +9,9 @@ import { requireRole } from '@/lib/server/auth';
 import { toManagedCourse } from '../../course-validation';
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  let session;
   try {
-    await requireRole(req, ['org_admin']);
+    session = await requireRole(req, ['org_admin']);
   } catch (e) {
     return e as Response;
   }
@@ -32,5 +34,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     .returning();
 
   await notifyUser(updated.lecturerId, notificationTemplates.courseDecision('rejected', updated.title, updated.rejectionReason ?? undefined));
+  await recordAuditEventSafe({
+    entityType: 'course',
+    entityId: updated.id,
+    action: 'rejected',
+    previousStatus: row.status,
+    newStatus: 'rejected',
+    performedBy: session.name,
+    performedByRole: session.role,
+    notes: body.reason?.trim(),
+  });
   return NextResponse.json(toManagedCourse(updated));
 }

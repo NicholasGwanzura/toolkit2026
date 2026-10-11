@@ -1,3 +1,4 @@
+import { recordAuditEventSafe } from '@/lib/server/audit';
 import { NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
 import { db } from '@/db/client';
@@ -42,8 +43,9 @@ function toOccupationalAccident(row: typeof occupationalAccidents.$inferSelect):
 }
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  let session;
   try {
-    await requireRole(req, ['org_admin']);
+    session = await requireRole(req, ['org_admin']);
   } catch (e) {
     return e as Response;
   }
@@ -87,5 +89,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     .where(eq(occupationalAccidents.id, id))
     .returning();
 
+  await recordAuditEventSafe({
+    entityType: 'accident',
+    entityId: updated.id,
+    action: 'investigation_updated',
+    previousStatus: row.status,
+    newStatus: status,
+    performedBy: session.name,
+    performedByRole: session.role,
+    notes: investigatorName ? `Investigator: ${investigatorName}` : undefined,
+  });
   return NextResponse.json(toOccupationalAccident(updated));
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import type { ApplicationCounts } from '@/lib/application-counts';
+import type { ReportRange, ReportingSummary } from '@/lib/reporting-summary';
 import useSWR, { mutate } from 'swr';
 import useSWRInfinite from 'swr/infinite';
 import type {
@@ -1306,4 +1307,27 @@ export function useEmailLog(filters: { status?: string; type?: string; q?: strin
 export async function resendLoggedEmail(id: string): Promise<void> {
   await post(`/api/email-log/${id}/resend`);
   await mutate((key) => typeof key === 'string' && key.startsWith('/api/email-log'));
+}
+
+export interface AuditLogPage {
+  items: AuditLogEntry[];
+  total: number;
+  page: number;
+  pageSize: number;
+  entityTypes: string[];
+}
+
+/** One page of the audit trail, filtered in the database. */
+export function useAuditLogPage(filters: { entityType?: string; q?: string; from?: string; to?: string; page?: number } = {}) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(filters)) {
+    if (value !== undefined && value !== '' && !(key === 'page' && value === 1)) params.set(key, String(value));
+  }
+  const qs = params.toString();
+  return useSWR<AuditLogPage>(`/api/audit-log${qs ? `?${qs}` : ''}`, fetcher, { keepPreviousData: true });
+}
+
+/** Report totals counted in the database for one range. Refreshes every 2 minutes. */
+export function useReportingSummary(range: ReportRange) {
+  return useSWR<ReportingSummary>(`/api/admin/reporting-summary?range=${range}`, fetcher, { refreshInterval: 120_000, keepPreviousData: true });
 }

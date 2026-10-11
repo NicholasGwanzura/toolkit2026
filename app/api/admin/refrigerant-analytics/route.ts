@@ -16,6 +16,7 @@ export async function GET(req: Request) {
     return e as Response;
   }
 
+  try {
   const [mostUsed, mostInstalled, mostRecovered, classificationBreakdown, monthlyTrend, complianceOverview] =
     await Promise.all([
       getMostUsedRefrigerants(10),
@@ -34,4 +35,8 @@ export async function GET(req: Request) {
     monthlyTrend,
     complianceOverview,
   });
+  } catch (error) {
+    console.error('Refrigerant analytics failed', error);
+    return NextResponse.json({ error: 'Could not load refrigerant analytics.' }, { status: 500 });
+  }
 }

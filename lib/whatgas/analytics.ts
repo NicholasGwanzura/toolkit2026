@@ -1,52 +1,55 @@
 import { sql } from 'drizzle-orm';
 import { db } from '@/db/client';
+import { fillMonths, mergeUsage, type UsageRow } from './analytics-helpers';
 
 export type RefrigerantUsageEntry = { refrigerant: string; totalKg: number; count: number };
 export type ClassificationBreakdown = { category: string; totalKg: number; count: number };
 
-/** Most-used refrigerants by total kg logged across field gas usage (charge/recovery/leak repair). */
+type RawUsage = { refrigerant: string; total_kg: string; count: number };
+const toUsage = (rows: RawUsage[]): UsageRow[] => rows.map((r) => ({ refrigerant: r.refrigerant, totalKg: Number(r.total_kg), count: r.count }));
+
+/** Gas charged into systems (charge and leak-repair top-ups). Recovery is reported separately. */
 export async function getMostUsedRefrigerants(limit = 10): Promise<RefrigerantUsageEntry[]> {
-  const rows = await db.execute<{ refrigerant: string; total_kg: string; count: number }>(sql`
+  const rows = await db.execute<RawUsage>(sql`
     SELECT refrigerant_type AS refrigerant, COALESCE(SUM(amount), 0) AS total_kg, COUNT(*)::int AS count
     FROM gas_usage_logs
+    WHERE action_type <> 'Recovery'
     GROUP BY refrigerant_type
-    ORDER BY total_kg DESC
-    LIMIT ${limit}
   `);
-  return rows.rows.map((r) => ({ refrigerant: r.refrigerant, totalKg: Number(r.total_kg), count: r.count }));
+  return mergeUsage(toUsage(rows.rows), limit);
 }
 
-/** Most-installed refrigerants across scheduled/completed planner jobs. */
+/** Most-installed refrigerants across scheduled and completed planner jobs (cancelled jobs are left out). */
 export async function getMostInstalledRefrigerants(limit = 10): Promise<RefrigerantUsageEntry[]> {
-  const rows = await db.execute<{ refrigerant: string; total_kg: string; count: number }>(sql`
+  const rows = await db.execute<RawUsage>(sql`
     SELECT refrigerant_type AS refrigerant, COALESCE(SUM(amount), 0) AS total_kg, COUNT(*)::int AS count
     FROM planner_jobs
-    WHERE refrigerant_type IS NOT NULL
+    WHERE refrigerant_type IS NOT NULL AND status <> 'cancelled'
     GROUP BY refrigerant_type
-    ORDER BY count DESC
-    LIMIT ${limit}
   `);
-  return rows.rows.map((r) => ({ refrigerant: r.refrigerant, totalKg: Number(r.total_kg), count: r.count }));
+  return mergeUsage(toUsage(rows.rows), limit, 'count');
 }
 
 /** Most-recovered refrigerants (gas usage logs with actionType = 'Recovery'). */
 export async function getMostRecoveredRefrigerants(limit = 10): Promise<RefrigerantUsageEntry[]> {
-  const rows = await db.execute<{ refrigerant: string; total_kg: string; count: number }>(sql`
+  const rows = await db.execute<RawUsage>(sql`
     SELECT refrigerant_type AS refrigerant, COALESCE(SUM(amount), 0) AS total_kg, COUNT(*)::int AS count
     FROM gas_usage_logs
     WHERE action_type = 'Recovery'
     GROUP BY refrigerant_type
-    ORDER BY total_kg DESC
-    LIMIT ${limit}
   `);
-  return rows.rows.map((r) => ({ refrigerant: r.refrigerant, totalKg: Number(r.total_kg), count: r.count }));
+  return mergeUsage(toUsage(rows.rows), limit);
 }
 
-/** Gas usage broken down by WhatGas classification (HFC / HCFC / CFC / high-GWP / ODP / Kigali / Montreal). */
+/**
+ * Gas usage by WhatGas classification. A refrigerant can sit in several categories (an HFC can
+ * also be high-GWP and Kigali controlled), so these rows overlap and must not be added together.
+ * Logs that are not linked to a catalogue refrigerant appear as "Not linked to catalogue".
+ */
 export async function getClassificationBreakdown(): Promise<ClassificationBreakdown[]> {
   const rows = await db.execute<{ category: string; total_kg: string; count: number }>(sql`
     WITH classified AS (
-      SELECT g.amount, r.is_hfc, r.is_hcfc, r.is_cfc, r.is_odp,
+      SELECT g.amount, (r.id IS NOT NULL) AS linked, r.is_hfc, r.is_hcfc, r.is_cfc, r.is_odp,
         (r.gwp ~ '^[0-9.]+$' AND r.gwp::numeric >= 1000) AS high_gwp,
         (r.kigali_gwp_value IS NOT NULL AND r.kigali_gwp_value != '' AND r.kigali_gwp_value != '0') AS kigali_controlled,
         r.is_ctrl_montreal_protocol AS montreal_controlled
@@ -66,27 +69,29 @@ export async function getClassificationBreakdown(): Promise<ClassificationBreakd
     SELECT 'Kigali Controlled', COALESCE(SUM(amount) FILTER (WHERE kigali_controlled), 0), COUNT(*) FILTER (WHERE kigali_controlled)::int FROM classified
     UNION ALL
     SELECT 'Montreal Controlled', COALESCE(SUM(amount) FILTER (WHERE montreal_controlled), 0), COUNT(*) FILTER (WHERE montreal_controlled)::int FROM classified
+    UNION ALL
+    SELECT 'Not linked to catalogue', COALESCE(SUM(amount) FILTER (WHERE NOT linked), 0), COUNT(*) FILTER (WHERE NOT linked)::int FROM classified
   `);
   return rows.rows.map((r) => ({ category: r.category, totalKg: Number(r.total_kg), count: r.count }));
 }
 
-/** Monthly usage trend (last 6 months) for trend-line charting. */
+/** Total kg logged per month for the last 6 months. Months with no logs are returned as zero. */
 export async function getMonthlyUsageTrend(): Promise<{ month: string; totalKg: number }[]> {
   const rows = await db.execute<{ month: string; total_kg: string }>(sql`
     SELECT to_char(date_trunc('month', "timestamp"), 'YYYY-MM') AS month, COALESCE(SUM(amount), 0) AS total_kg
     FROM gas_usage_logs
-    WHERE "timestamp" >= now() - interval '6 months'
+    WHERE "timestamp" >= date_trunc('month', now()) - interval '5 months'
     GROUP BY 1
     ORDER BY 1
   `);
-  return rows.rows.map((r) => ({ month: r.month, totalKg: Number(r.total_kg) }));
+  return fillMonths(rows.rows.map((r) => ({ month: r.month, totalKg: Number(r.total_kg) })), new Date());
 }
 
 // ---------------------------------------------------------------------------
 // Compliance module analytics (cylinders, permits, reclamation, recycling)
 // ---------------------------------------------------------------------------
 
-export type CylinderStats = { totalCylinders: number; totalFillKg: number; activeCount: number; expiredCount: number };
+export type CylinderStats = { totalCylinders: number; totalFillKg: number; inServiceCount: number; overdueInspectionCount: number };
 export type PermitStats = { totalPermits: number; approvedCount: number; pendingCount: number; totalQuantityKg: number };
 export type ReclamationStats = { totalRecords: number; totalQuantityKg: number; passedCount: number; failedCount: number; pendingCount: number };
 export type RecyclingStats = { totalRecords: number; totalQuantityKg: number };
@@ -98,22 +103,27 @@ export type ComplianceOverview = {
 };
 
 export async function getCylinderStats(): Promise<CylinderStats> {
+  // next_inspection_due is stored as text (YYYY-MM-DD); only well-formed dates are compared.
   const rows = await db.execute<{
-    total: string; total_fill_kg: string; active: string; expired: string;
+    total: string; total_fill_kg: string; in_service: string; overdue: string;
   }>(sql`
     SELECT
       COUNT(*)::text AS total,
       COALESCE(SUM(current_fill_kg), 0) AS total_fill_kg,
-      COUNT(*) FILTER (WHERE status = 'active')::text AS active,
-      COUNT(*) FILTER (WHERE status = 'expired' OR next_inspection_due < now())::text AS expired
+      COUNT(*) FILTER (WHERE status <> 'scrapped')::text AS in_service,
+      COUNT(*) FILTER (
+        WHERE status <> 'scrapped'
+          AND next_inspection_due ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}'
+          AND substring(next_inspection_due from 1 for 10)::date < current_date
+      )::text AS overdue
     FROM cylinders
   `);
   const r = rows.rows[0];
   return {
     totalCylinders: Number(r?.total ?? 0),
     totalFillKg: Number(r?.total_fill_kg ?? 0),
-    activeCount: Number(r?.active ?? 0),
-    expiredCount: Number(r?.expired ?? 0),
+    inServiceCount: Number(r?.in_service ?? 0),
+    overdueInspectionCount: Number(r?.overdue ?? 0),
   };
 }
 

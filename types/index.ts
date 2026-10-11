@@ -646,7 +646,7 @@ export interface Membership {
 
 export interface AuditLogEntry {
   id: string;
-  entityType: 'technician_application' | 'membership';
+  entityType: string;
   entityId: string;
   action: string;
   previousStatus?: string;
@@ -1296,7 +1296,7 @@ export interface RefrigerantAnalytics {
   classificationBreakdown: ClassificationBreakdown[];
   monthlyTrend: { month: string; totalKg: number }[];
   complianceOverview: {
-    cylinders: { totalCylinders: number; totalFillKg: number; activeCount: number; expiredCount: number };
+    cylinders: { totalCylinders: number; totalFillKg: number; inServiceCount: number; overdueInspectionCount: number };
     permits: { totalPermits: number; approvedCount: number; pendingCount: number; totalQuantityKg: number };
     reclamation: { totalRecords: number; totalQuantityKg: number; passedCount: number; failedCount: number; pendingCount: number };
     recycling: { totalRecords: number; totalQuantityKg: number };

@@ -1,3 +1,4 @@
+import { recordAuditEventSafe } from '@/lib/server/audit';
 import { notifyUser } from '@/lib/server/notifications';
 import { notificationTemplates } from '@/lib/notification-templates';
 import { NextResponse } from 'next/server';
@@ -54,5 +55,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!updated) return NextResponse.json({ error: 'COC request is no longer pending review' }, { status: 409 });
 
   await notifyUser(updated.technicianId, notificationTemplates.cocDecision(true, updated.location));
+  await recordAuditEventSafe({
+    entityType: 'coc_request',
+    entityId: updated.id,
+    action: 'approved',
+    previousStatus: 'submitted',
+    newStatus: 'approved',
+    performedBy: session.name,
+    performedByRole: session.role,
+  });
   return NextResponse.json(toCocRequest(updated));
 }

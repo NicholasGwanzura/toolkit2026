@@ -1,3 +1,4 @@
+import { recordAuditEventSafe } from '@/lib/server/audit';
 import { NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
 import { db } from '@/db/client';
@@ -22,8 +23,9 @@ function toSupplierComplianceApplication(row: typeof supplierComplianceApplicati
 }
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  let session;
   try {
-    await requireRole(req, ['org_admin']);
+    session = await requireRole(req, ['org_admin']);
   } catch (e) {
     return e as Response;
   }
@@ -35,6 +37,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     .where(eq(supplierComplianceApplications.id, id))
     .limit(1);
   if (!row) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  if (row.status !== 'submitted' && row.status !== 'under-review') {
+    return NextResponse.json({ error: `This application was already ${row.status}.` }, { status: 409 });
+  }
 
   const body = await req.json().catch(() => ({})) as { notes?: string };
 
@@ -44,5 +49,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     .where(eq(supplierComplianceApplications.id, id))
     .returning();
 
+  await recordAuditEventSafe({
+    entityType: 'supplier_compliance',
+    entityId: updated.id,
+    action: 'rejected',
+    previousStatus: row.status,
+    newStatus: 'rejected',
+    performedBy: session.name,
+    performedByRole: session.role,
+    notes: body.notes ?? undefined,
+  });
   return NextResponse.json(toSupplierComplianceApplication(updated));
 }

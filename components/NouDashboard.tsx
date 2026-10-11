@@ -123,11 +123,11 @@ export default function NouDashboard() {
   const { success, info } = useToast();
 
   const { data: courses = [] } = useCourses();
-  const { data: reorders = [] } = useReorders();
+  const { data: reorders = [], isLoading: reordersLoading, error: reordersError } = useReorders();
   const { data: verifications = [] } = useVerifications();
   const { data: techniciansData = [] } = useTechnicians();
-  const { data: registrySummary } = useAdminDashboardSummary('month', 'all');
-  const { data: recoveryTotals } = useRecoveryTotals();
+  const { data: registrySummary, error: registryError } = useAdminDashboardSummary('month', 'all');
+  const { data: recoveryTotals, error: recoveryError } = useRecoveryTotals();
 
   const { data: supplierApplications = [] } = useSupplierApplications();
   const { data: supplierLedger = [] } = useSupplierLedger();
@@ -193,7 +193,8 @@ export default function NouDashboard() {
 
   // Refrigerant breakdown from approved reorders
   const refrigerantBreakdown = useMemo(() => {
-    const approved = reorders.filter(r => r.status === 'approved');
+    // Purchases only, to match the Purchased Kg card. Recovery returns are counted as recovered gas.
+    const approved = reorders.filter(r => r.status === 'approved' && r.reorderType !== 'recovery');
     const byGas: Record<string, number> = {};
     for (const r of approved) {
       byGas[r.gasType] = (byGas[r.gasType] ?? 0) + r.quantityKg;
@@ -218,8 +219,9 @@ export default function NouDashboard() {
       buckets.push({ key, month: MONTH_LABELS[d.getMonth()], purchasedKg: 0, usedKg: 0 });
     }
     for (const r of reorders) {
-      if (r.status !== 'approved') continue;
-      const created = new Date(r.createdAt);
+      if (r.status !== 'approved' || r.reorderType === 'recovery') continue;
+      // Counted in the month the final approval was given, not the month it was requested.
+      const created = new Date(r.nouReviewedAt ?? r.createdAt);
       const key = `${created.getFullYear()}-${String(created.getMonth() + 1).padStart(2, '0')}`;
       const bucket = buckets.find(b => b.key === key);
       if (bucket) bucket.purchasedKg += r.quantityKg;
@@ -259,14 +261,20 @@ export default function NouDashboard() {
       });
   }, [supplierApplications, supplierLedger]);
 
+  const kpiState: 'loading' | 'error' | 'ready' =
+    reordersError || registryError || recoveryError ? 'error'
+      : reordersLoading || !registrySummary || !recoveryTotals ? 'loading'
+        : 'ready';
+  const showKpi = (value: string) => (kpiState === 'ready' ? value : kpiState === 'loading' ? '…' : '—');
   const kpis = useMemo(
     () => [
-      { label: 'Registered Technicians', value: String(liveStats.totalTechnicians), hint: 'Across the registry', icon: Warehouse },
-      { label: 'Purchased Kg', value: liveStats.totalPurchasedKg.toLocaleString(), hint: 'Approved purchase reorders', icon: BarChart3 },
-      { label: 'Recovered Kg', value: liveStats.totalRecoveredKg.toLocaleString(), hint: `${liveStats.fieldRecoveredKg.toLocaleString()} kg in the field, ${liveStats.supplierRecoveredKg.toLocaleString()} kg supplier returns`, icon: RefreshCcw },
-      { label: 'Emissions Avoided', value: `${liveStats.emissionsAvoidedTonnes}t`, hint: 'CO2-eq from recovered gas, all time', icon: ShieldCheck },
+      { label: 'Registered Technicians', value: showKpi(String(liveStats.totalTechnicians)), hint: 'Across the registry', icon: Warehouse },
+      { label: 'Purchased Kg', value: showKpi(liveStats.totalPurchasedKg.toLocaleString()), hint: 'Approved purchase reorders', icon: BarChart3 },
+      { label: 'Recovered Kg', value: showKpi(liveStats.totalRecoveredKg.toLocaleString()), hint: `${liveStats.fieldRecoveredKg.toLocaleString()} kg in the field, ${liveStats.supplierRecoveredKg.toLocaleString()} kg supplier returns`, icon: RefreshCcw },
+      { label: 'Emissions Avoided', value: showKpi(`${liveStats.emissionsAvoidedTonnes}t`), hint: 'CO2-eq from recovered gas, all time', icon: ShieldCheck },
     ],
-    [liveStats]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [liveStats, kpiState]
   );
   // Derived metrics for new KPI cards
   const pendingCourseApprovals = useMemo(
@@ -870,7 +878,7 @@ export default function NouDashboard() {
 
         <article className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
           <div className="mb-5">
-            <h2 className="text-lg font-semibold text-gray-900">Monthly Purchase vs Usage</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Monthly Purchases vs Supplier Sales</h2>
             <p className="text-sm text-gray-500">Last 6 months of approved reorders and vendor sales</p>
           </div>
 
@@ -1067,6 +1075,9 @@ export default function NouDashboard() {
             <div>
               <h2 className="text-lg font-semibold text-gray-900">Discrepancy Alerts</h2>
               <p className="text-sm text-gray-500">Technicians flagged for follow-up</p>
+              {gasLogs.length >= 500 && (
+                <p className="mt-1 text-xs text-amber-800">Logged usage here comes from the latest 500 gas logs only, so older usage is not counted. Check a flagged technician&apos;s own log before acting.</p>
+              )}
             </div>
           </div>
 

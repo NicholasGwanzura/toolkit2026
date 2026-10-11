@@ -193,6 +193,7 @@ const ADMIN_NAV_SECTIONS: NavSection[] = [
             { name: 'Applicants', href: '/admin/applicants', icon: ClipboardList, roles: ['org_admin'] },
             { name: 'Memberships', href: '/admin/memberships', icon: Award, roles: ['org_admin'] },
             { name: 'Email Log', href: '/admin/email-log', icon: Mail, roles: ['org_admin'] },
+            { name: 'Audit Trail', href: '/admin/audit-trail', icon: ClipboardList, roles: ['org_admin'] },
             { name: 'Contractors', href: '/admin/contractors', icon: HardHat, roles: ['org_admin'] },
             { name: 'Invites', href: '/admin/invites', icon: UserPlus, roles: ['org_admin'] },
         ],

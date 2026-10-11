@@ -1,3 +1,4 @@
+import { recordAuditEventSafe } from '@/lib/server/audit';
 import { toSupplierReorder } from '@/lib/server/request-serializers';
 import { notifyUser } from '@/lib/server/notifications';
 import { notificationTemplates } from '@/lib/notification-templates';
@@ -32,5 +33,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!updated) return NextResponse.json({ error: 'Reorder is missing or no longer awaiting HEVACRAZ review' }, { status: 409 });
 
   await notifyUser(updated.vendorId, notificationTemplates.reorderDecision({ approved: false, stage: 'hevacraz', gasType: updated.gasType, quantityKg: Number(updated.quantityKg), reason: updated.rejectionReason ?? undefined }));
+  await recordAuditEventSafe({
+    entityType: 'supplier_reorder',
+    entityId: updated.id,
+    action: 'hevacraz_rejected',
+    previousStatus: 'pending_hevacraz',
+    newStatus: 'rejected',
+    performedBy: session.name,
+    performedByRole: session.role,
+    notes: body.reason,
+  });
   return NextResponse.json(toSupplierReorder(updated));
 }
