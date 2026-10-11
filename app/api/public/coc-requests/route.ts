@@ -1,3 +1,4 @@
+import { publicLookupLimit } from '@/lib/server/rate-limit';
 import { NextResponse } from 'next/server';
 import { and, eq } from 'drizzle-orm';
 import { db } from '@/db/client';
@@ -6,6 +7,8 @@ import { cocRequests } from '@/db/schema/index';
 // Public COC verification lookup — only ever returns approved certificates, and only the
 // fields relevant to confirming legitimacy (no internal review notes).
 export async function GET(req: Request) {
+  const limited = publicLookupLimit(req, 'coc');
+  if (limited) return limited;
   const url = new URL(req.url);
   const q = url.searchParams.get('q');
   const token = url.searchParams.get('token');

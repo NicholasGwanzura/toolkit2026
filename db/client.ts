@@ -19,6 +19,13 @@ function getDb(): DrizzleDB {
     max: 10,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 10_000,
+    // A runaway query is stopped instead of holding a connection forever.
+    statement_timeout: 30_000,
+  });
+  // An idle connection dropped by the database (restart, failover) emits an error on the pool.
+  // Without a listener Node treats it as uncaught and the whole server exits.
+  _pool.on('error', (error) => {
+    console.error('[db] idle connection error', error.message);
   });
   _db = drizzle(_pool, { schema });
 

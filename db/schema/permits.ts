@@ -1,4 +1,4 @@
-import { pgEnum, pgTable, text, timestamp, numeric, uuid, integer } from 'drizzle-orm/pg-core';
+import { pgEnum, pgTable, text, timestamp, numeric, uuid, integer, index } from 'drizzle-orm/pg-core';
 
 export const permitTypeEnum = pgEnum('permit_type', ['import', 'export']);
 
@@ -30,4 +30,7 @@ export const tradePermits = pgTable('trade_permits', {
   notes: text('notes'),
   submittedAt: timestamp('submitted_at', { withTimezone: true }).defaultNow().notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  index('trade_permits_status_idx').on(table.status),
+  index('trade_permits_applicant_email_idx').on(table.applicantEmail),
+]);

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { MAX_LIST_ROWS } from '@/lib/server/list-limits';
 import { ilike, or } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { technicians } from '@/db/schema/index';
@@ -47,11 +48,12 @@ export async function GET(req: Request) {
     const rows = await db
       .select()
       .from(technicians)
-      .where(or(ilike(technicians.name, `%${q}%`), ilike(technicians.registrationNumber, `%${q}%`)));
+      .where(or(ilike(technicians.name, `%${q}%`), ilike(technicians.registrationNumber, `%${q}%`)))
+      .limit(MAX_LIST_ROWS);
     return NextResponse.json(rows.map((row) => toTechnician(row, session.role === 'org_admin')));
   }
 
-  const rows = await db.select().from(technicians);
+  const rows = await db.select().from(technicians).limit(MAX_LIST_ROWS);
   return NextResponse.json(rows.map((row) => toTechnician(row, session.role === 'org_admin')));
 }
 

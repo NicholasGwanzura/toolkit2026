@@ -1,4 +1,4 @@
-import { pgEnum, pgTable, text, timestamp, numeric, uuid, integer } from 'drizzle-orm/pg-core';
+import { pgEnum, pgTable, text, timestamp, numeric, uuid, integer, index } from 'drizzle-orm/pg-core';
 
 export const cylinderStatusEnum = pgEnum('cylinder_status', [
   'full',
@@ -32,4 +32,6 @@ export const cylinders = pgTable('cylinders', {
   notes: text('notes'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  index('cylinders_owner_id_idx').on(table.ownerId),
+]);

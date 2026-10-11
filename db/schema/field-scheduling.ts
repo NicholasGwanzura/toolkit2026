@@ -1,4 +1,4 @@
-import { pgEnum, pgTable, text, timestamp, uuid, jsonb, integer } from 'drizzle-orm/pg-core';
+import { pgEnum, pgTable, text, timestamp, uuid, jsonb, integer, index } from 'drizzle-orm/pg-core';
 
 export const equipmentStatusEnum = pgEnum('equipment_status', ['normal', 'due-soon', 'overdue']);
 
@@ -25,4 +25,6 @@ export const equipmentRecords = pgTable('equipment_records', {
   recommendedAction: text('recommended_action'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  index('equipment_records_equipment_id_idx').on(table.equipmentId),
+]);

@@ -1,4 +1,4 @@
-import { pgEnum, pgTable, text, timestamp, uuid, boolean, jsonb } from 'drizzle-orm/pg-core';
+import { pgEnum, pgTable, text, timestamp, uuid, boolean, jsonb, index } from 'drizzle-orm/pg-core';
 import type { InstallationChecklistSnapshot } from '@/types/index';
 
 export const installationStatusEnum = pgEnum('installation_status', [
@@ -36,4 +36,6 @@ export const installations = pgTable('installations', {
   notes: text('notes'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  index('installations_technician_id_idx').on(table.technicianId),
+]);

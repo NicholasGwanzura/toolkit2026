@@ -1,4 +1,4 @@
-import { pgTable, pgEnum, uuid, text, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, pgEnum, uuid, text, timestamp, index } from 'drizzle-orm/pg-core';
 
 export const membershipStatusEnum = pgEnum('membership_status', [
   'active',
@@ -25,4 +25,7 @@ export const memberships = pgTable('memberships', {
   approvedAt: timestamp('approved_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  index('memberships_technician_id_idx').on(table.technicianId),
+  index('memberships_expiry_date_idx').on(table.expiryDate),
+]);

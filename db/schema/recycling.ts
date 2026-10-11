@@ -1,4 +1,4 @@
-import { pgEnum, pgTable, text, timestamp, numeric, uuid, integer } from 'drizzle-orm/pg-core';
+import { pgEnum, pgTable, text, timestamp, numeric, uuid, integer, index } from 'drizzle-orm/pg-core';
 
 export const recyclingStatusEnum = pgEnum('recycling_status', [
   'pending',
@@ -20,4 +20,6 @@ export const recyclingRecords = pgTable('recycling_records', {
   status: recyclingStatusEnum('status').notNull().default('pending'),
   notes: text('notes'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  index('recycling_records_technician_id_idx').on(table.technicianId),
+]);

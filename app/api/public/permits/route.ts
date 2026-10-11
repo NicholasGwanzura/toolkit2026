@@ -1,3 +1,4 @@
+import { publicLookupLimit } from '@/lib/server/rate-limit';
 import { NextResponse } from 'next/server';
 import { and, eq } from 'drizzle-orm';
 import { db } from '@/db/client';
@@ -6,6 +7,8 @@ import { tradePermits } from '@/db/schema/index';
 // Public permit verification lookup — only ever returns approved permits, and only the
 // fields relevant to confirming legitimacy (no applicant email, no internal review notes).
 export async function GET(req: Request) {
+  const limited = publicLookupLimit(req, 'permits');
+  if (limited) return limited;
   const url = new URL(req.url);
   const q = url.searchParams.get('q');
   const token = url.searchParams.get('token');

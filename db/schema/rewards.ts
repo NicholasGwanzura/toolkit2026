@@ -1,4 +1,4 @@
-import { pgEnum, pgTable, text, timestamp, integer, uuid } from 'drizzle-orm/pg-core';
+import { pgEnum, pgTable, text, timestamp, integer, uuid, index } from 'drizzle-orm/pg-core';
 import { userRoleEnum } from './users';
 
 export const rewardRedemptionStatusEnum = pgEnum('reward_redemption_status', [
@@ -24,4 +24,6 @@ export const rewardRedemptions = pgTable('reward_redemptions', {
   resolvedAt: timestamp('resolved_at', { withTimezone: true }),
   resolvedBy: text('resolved_by'),
   notes: text('notes'),
-});
+}, (table) => [
+  index('reward_redemptions_user_id_idx').on(table.userId),
+]);

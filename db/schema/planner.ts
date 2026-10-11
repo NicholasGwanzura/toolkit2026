@@ -1,4 +1,4 @@
-import { pgEnum, pgTable, text, timestamp, numeric, uuid, jsonb, boolean, integer } from 'drizzle-orm/pg-core';
+import { pgEnum, pgTable, text, timestamp, numeric, uuid, jsonb, boolean, integer, index } from 'drizzle-orm/pg-core';
 
 export const plannerJobStatusEnum = pgEnum('planner_job_status', [
   'scheduled',
@@ -31,4 +31,7 @@ export const plannerJobs = pgTable('planner_jobs', {
   notes: text('notes'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  index('planner_jobs_technician_id_scheduled_date_idx').on(table.technicianId, table.scheduledDate),
+  index('planner_jobs_status_idx').on(table.status),
+]);

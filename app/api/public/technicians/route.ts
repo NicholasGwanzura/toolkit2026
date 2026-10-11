@@ -1,3 +1,4 @@
+import { publicLookupLimit } from '@/lib/server/rate-limit';
 import { NextResponse } from 'next/server';
 import { eq, ilike, or, asc } from 'drizzle-orm';
 import { db } from '@/db/client';
@@ -34,6 +35,8 @@ function toPublicTechnician(row: typeof technicians.$inferSelect): Technician {
 }
 
 export async function GET(req: Request) {
+  const limited = publicLookupLimit(req, 'technicians');
+  if (limited) return limited;
   const url = new URL(req.url);
   const q = url.searchParams.get('q')?.trim();
   if (!q || q.length < 2 || q.length > 100) {

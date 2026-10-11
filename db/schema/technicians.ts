@@ -1,4 +1,4 @@
-import { pgTable, pgEnum, uuid, text, jsonb, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, pgEnum, uuid, text, jsonb, timestamp, index } from 'drizzle-orm/pg-core';
 
 export const technicianStatusEnum = pgEnum('technician_status', [
   'active',
@@ -55,4 +55,7 @@ export const technicians = pgTable('technicians', {
   surveyData: jsonb('survey_data'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  index('technicians_status_idx').on(table.status),
+  index('technicians_expiry_date_idx').on(table.expiryDate),
+]);

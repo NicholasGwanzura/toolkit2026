@@ -1,4 +1,4 @@
-import { pgEnum, pgTable, text, timestamp, numeric, uuid, integer } from 'drizzle-orm/pg-core';
+import { pgEnum, pgTable, text, timestamp, numeric, uuid, integer, index } from 'drizzle-orm/pg-core';
 
 export const reclamationStatusEnum = pgEnum('reclamation_status', [
   'pending',
@@ -22,4 +22,6 @@ export const reclamationRecords = pgTable('reclamation_records', {
   testedDate: text('tested_date'),
   notes: text('notes'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  index('reclamation_records_technician_id_idx').on(table.technicianId),
+]);

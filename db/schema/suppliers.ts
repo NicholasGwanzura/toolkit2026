@@ -1,4 +1,4 @@
-import { pgTable, pgEnum, uuid, text, numeric, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, pgEnum, uuid, text, numeric, timestamp, index } from 'drizzle-orm/pg-core';
 
 export const reorderStatusEnum = pgEnum('reorder_status', [
   'pending_hevacraz',
@@ -44,7 +44,10 @@ export const supplierReorders = pgTable('supplier_reorders', {
   rejectionReason: text('rejection_reason'),
   rejectedBy: rejectedByEnum('rejected_by'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  index('supplier_reorders_vendor_id_idx').on(table.vendorId),
+  index('supplier_reorders_status_idx').on(table.status),
+]);
 
 // Matches TechnicianVerification interface
 export const technicianVerifications = pgTable('technician_verifications', {

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { MAX_LIST_ROWS } from '@/lib/server/list-limits';
 import { eq } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { supplierComplianceApplications } from '@/db/schema/index';
@@ -35,7 +36,7 @@ export async function GET(req: Request) {
   }
 
   if (session.role === 'org_admin') {
-    const rows = await db.select().from(supplierComplianceApplications);
+    const rows = await db.select().from(supplierComplianceApplications).limit(MAX_LIST_ROWS);
     return NextResponse.json(rows.map(toSupplierComplianceApplication));
   }
 

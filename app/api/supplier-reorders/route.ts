@@ -1,4 +1,5 @@
 import { toSupplierReorder } from '@/lib/server/request-serializers';
+import { MAX_LIST_ROWS } from '@/lib/server/list-limits';
 import { validateReorder } from '@/lib/server/reorder-validation';
 import { NextResponse } from 'next/server';
 import { eq, inArray } from 'drizzle-orm';
@@ -26,7 +27,8 @@ export async function GET(req: Request) {
   const rows = await db
     .select()
     .from(supplierReorders)
-    .where(inArray(supplierReorders.status, ['pending_hevacraz', 'pending_nou', 'approved', 'rejected']));
+    .where(inArray(supplierReorders.status, ['pending_hevacraz', 'pending_nou', 'approved', 'rejected']))
+    .limit(MAX_LIST_ROWS);
   return NextResponse.json(rows.map(toSupplierReorder));
 }
 

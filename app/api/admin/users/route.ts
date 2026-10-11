@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { MAX_LIST_ROWS } from '@/lib/server/list-limits';
 import { desc, ilike, or } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { users } from '@/db/schema/index';
@@ -18,7 +19,8 @@ export async function GET(req: Request) {
     .select()
     .from(users)
     .where(q ? or(ilike(users.name, `%${q}%`), ilike(users.email, `%${q}%`)) : undefined)
-    .orderBy(desc(users.createdAt));
+    .orderBy(desc(users.createdAt))
+    .limit(MAX_LIST_ROWS);
 
   const data = rows.map(({ passwordHash: _passwordHash, ...rest }) => rest);
   return NextResponse.json({ data });

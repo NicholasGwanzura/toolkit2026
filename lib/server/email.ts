@@ -58,6 +58,7 @@ const DEFAULT_LOG_TYPE: Record<string, string> = {
   'contact-notification': 'contact_notification',
   'contact-confirmation': 'contact_confirmation',
   'password-reset': 'password_reset',
+  'expiry-reminder': 'expiry_reminder',
 };
 
 /**
@@ -570,5 +571,36 @@ export async function sendPasswordResetEmail(input: {
     `, 'A password reset was requested for your HEVACRAZ account.'),
     label: 'password-reset',
     log: input.log,
+  });
+}
+
+function expiryReminderEmailHtml(input: { name: string; headline: string; detail: string; expiryDate: string }): string {
+  return emailShell(`
+    ${eyebrow('Renewal reminder')}
+    ${heading(escapeHtml(input.headline))}
+    ${paragraph(`Hello ${escapeHtml(input.name)},`)}
+    ${paragraph(escapeHtml(input.detail))}
+    ${detailCard([{ label: 'Expiry date', value: escapeHtml(input.expiryDate.slice(0, 10)) }])}
+    ${button('Open my dashboard', `${SITE_URL}/dashboard`)}
+    ${smallPrint('Questions about renewal? Reply to this email or contact HEVACRAZ.')}
+  `, input.headline);
+}
+
+/** Tells a technician their registration or membership is close to expiring, or has expired. */
+export async function sendExpiryReminderEmail(input: {
+  email: string;
+  name: string;
+  subject: string;
+  headline: string;
+  detail: string;
+  expiryDate: string;
+  log?: EmailLogContext;
+}): Promise<SendResult> {
+  return deliver({
+    to: input.email,
+    subject: input.subject,
+    html: expiryReminderEmailHtml(input),
+    label: 'expiry-reminder',
+    log: input.log ?? { label: input.name },
   });
 }

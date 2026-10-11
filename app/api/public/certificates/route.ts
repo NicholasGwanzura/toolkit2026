@@ -1,3 +1,4 @@
+import { publicLookupLimit } from '@/lib/server/rate-limit';
 import { NextResponse } from 'next/server';
 import { and, eq } from 'drizzle-orm';
 import { db } from '@/db/client';
@@ -27,6 +28,8 @@ function toCertificateRecord(row: typeof trainerCertificateRequests.$inferSelect
 
 // Public certificate verification lookup — only ever returns issued certificates.
 export async function GET(req: Request) {
+  const limited = publicLookupLimit(req, 'certificates');
+  if (limited) return limited;
   const url = new URL(req.url);
   const q = url.searchParams.get('q');
   const token = url.searchParams.get('token');

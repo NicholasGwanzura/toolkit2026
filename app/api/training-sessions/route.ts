@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { MAX_LIST_ROWS } from '@/lib/server/list-limits';
 import { asc } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { trainingSessions } from '@/db/schema/index';
@@ -25,7 +26,7 @@ function toTrainingSession(row: typeof trainingSessions.$inferSelect): TrainingS
 
 // Public GET — the marketing training schedule reads this without auth.
 export async function GET() {
-  const rows = await db.select().from(trainingSessions).orderBy(asc(trainingSessions.startDate));
+  const rows = await db.select().from(trainingSessions).orderBy(asc(trainingSessions.startDate)).limit(MAX_LIST_ROWS);
   return NextResponse.json(rows.map(toTrainingSession));
 }
 

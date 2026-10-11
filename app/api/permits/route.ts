@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { MAX_LIST_ROWS } from '@/lib/server/list-limits';
 import { randomBytes } from 'node:crypto';
 import { desc, sql } from 'drizzle-orm';
 import { db } from '@/db/client';
@@ -22,7 +23,7 @@ export async function GET(req: Request) {
 
   const rows =
     session.role === 'org_admin'
-      ? await db.select().from(tradePermits).orderBy(desc(tradePermits.submittedAt))
+      ? await db.select().from(tradePermits).orderBy(desc(tradePermits.submittedAt)).limit(MAX_LIST_ROWS)
       : await db
           .select()
           .from(tradePermits)
@@ -32,7 +33,8 @@ export async function GET(req: Request) {
               SELECT email FROM supplier_applications WHERE id = ${session.id}::uuid AND status = 'approved'
             )`
           )
-          .orderBy(desc(tradePermits.submittedAt));
+          .orderBy(desc(tradePermits.submittedAt))
+          .limit(MAX_LIST_ROWS);
 
   return NextResponse.json(rows.map(toTradePermit));
 }

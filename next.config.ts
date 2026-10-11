@@ -12,6 +12,21 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' },
+          // The scanner, voice assistant and job locations need these on our own pages only.
+          { key: 'Permissions-Policy', value: 'camera=(self), microphone=(self), geolocation=(self)' },
+        ],
+      },
+    ];
+  },
   env: {
     // Bridges the server-only ENABLE_DEMO_LOGIN into a client-readable value at build time,
     // so only one hosting env var needs to be set instead of two independently-named ones

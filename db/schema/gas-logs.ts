@@ -1,4 +1,4 @@
-import { uuid, text, numeric, timestamp, pgTable, boolean, integer, uniqueIndex } from 'drizzle-orm/pg-core';
+import { uuid, text, numeric, timestamp, pgTable, boolean, integer, uniqueIndex, index } from 'drizzle-orm/pg-core';
 
 export const gasUsageLogs = pgTable('gas_usage_logs', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -28,4 +28,6 @@ export const gasUsageLogs = pgTable('gas_usage_logs', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({
   clientLogIdIdx: uniqueIndex('gas_usage_logs_client_log_id_idx').on(table.clientLogId),
+  technicianTimeIdx: index('gas_usage_logs_technician_id_timestamp_idx').on(table.technicianId, table.timestamp),
+  timeIdx: index('gas_usage_logs_timestamp_idx').on(table.timestamp),
 }));

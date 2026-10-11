@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { MAX_LIST_ROWS } from '@/lib/server/list-limits';
 import { desc, eq } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { recyclingRecords } from '@/db/schema/index';
@@ -33,12 +34,13 @@ export async function GET(req: Request) {
 
   const rows =
     session.role === 'org_admin'
-      ? await db.select().from(recyclingRecords).orderBy(desc(recyclingRecords.createdAt))
+      ? await db.select().from(recyclingRecords).orderBy(desc(recyclingRecords.createdAt)).limit(MAX_LIST_ROWS)
       : await db
           .select()
           .from(recyclingRecords)
           .where(eq(recyclingRecords.technicianId, session.id))
-          .orderBy(desc(recyclingRecords.createdAt));
+          .orderBy(desc(recyclingRecords.createdAt))
+          .limit(MAX_LIST_ROWS);
 
   return NextResponse.json(rows.map(toRecyclingRecord));
 }

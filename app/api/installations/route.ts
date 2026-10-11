@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { MAX_LIST_ROWS } from '@/lib/server/list-limits';
 import { z } from 'zod';
 import { desc, eq } from 'drizzle-orm';
 import { db } from '@/db/client';
@@ -56,12 +57,13 @@ export async function GET(req: Request) {
 
   const rows =
     session.role === 'org_admin'
-      ? await db.select().from(installations).orderBy(desc(installations.createdAt))
+      ? await db.select().from(installations).orderBy(desc(installations.createdAt)).limit(MAX_LIST_ROWS)
       : await db
           .select()
           .from(installations)
           .where(eq(installations.technicianId, session.id))
-          .orderBy(desc(installations.createdAt));
+          .orderBy(desc(installations.createdAt))
+          .limit(MAX_LIST_ROWS);
 
   return NextResponse.json(rows.map(toInstallation));
 }

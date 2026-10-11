@@ -1,4 +1,4 @@
-import { pgTable, pgEnum, uuid, text, integer, boolean, numeric, jsonb, timestamp, unique } from 'drizzle-orm/pg-core';
+import { pgTable, pgEnum, uuid, text, integer, boolean, numeric, jsonb, timestamp, unique, index } from 'drizzle-orm/pg-core';
 import { users } from './users';
 
 export const courseStatusEnum = pgEnum('course_status', [
@@ -30,7 +30,10 @@ export const courses = pgTable('courses', {
   cpdCredits: integer('cpd_credits').notNull().default(12),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  index('courses_status_idx').on(table.status),
+  index('courses_lecturer_id_idx').on(table.lecturerId),
+]);
 
 // A learner's enrollment in an approved course. Exams and downloads require one.
 export const courseEnrollments = pgTable('course_enrollments', {
@@ -55,4 +58,8 @@ export const examSubmissions = pgTable('exam_submissions', {
   status: examSubmissionStatusEnum('status').notNull().default('pending'),
   submittedAt: timestamp('submitted_at', { withTimezone: true }).defaultNow().notNull(),
   gradedAt: timestamp('graded_at', { withTimezone: true }),
-});
+}, (table) => [
+  index('exam_submissions_course_id_idx').on(table.courseId),
+  index('exam_submissions_student_id_idx').on(table.studentId),
+  index('exam_submissions_status_idx').on(table.status),
+]);

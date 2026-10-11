@@ -1,4 +1,4 @@
-import { pgEnum, pgTable, text, timestamp, uuid, boolean, jsonb } from 'drizzle-orm/pg-core';
+import { pgEnum, pgTable, text, timestamp, uuid, boolean, jsonb, index } from 'drizzle-orm/pg-core';
 import type { InstallationChecklistSnapshot } from '@/types/index';
 
 export const cocRequestStatusEnum = pgEnum('coc_request_status', [
@@ -34,4 +34,7 @@ export const cocRequests = pgTable('coc_requests', {
   issuedDate: text('issued_date'),
   submittedAt: timestamp('submitted_at', { withTimezone: true }).defaultNow().notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  index('coc_requests_technician_id_idx').on(table.technicianId),
+  index('coc_requests_status_idx').on(table.status),
+]);

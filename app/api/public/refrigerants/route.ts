@@ -1,3 +1,4 @@
+import { publicLookupLimit } from '@/lib/server/rate-limit';
 import { NextResponse } from 'next/server';
 import { searchRefrigerants, type RefrigerantFilters } from '@/lib/whatgas/service';
 
@@ -9,6 +10,8 @@ const MAX_PAGE_SIZE = 20;
 // an account/session yet. Capped to a small page size since it's autocomplete-only, not the
 // full catalogue browser (that stays behind auth at /api/refrigerants).
 export async function GET(req: Request) {
+  const limited = publicLookupLimit(req, 'refrigerants');
+  if (limited) return limited;
   const url = new URL(req.url);
   const q = url.searchParams.get('q')?.trim();
 

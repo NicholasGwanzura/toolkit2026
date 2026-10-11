@@ -1,4 +1,4 @@
-import { pgEnum, pgTable, text, timestamp, boolean, uuid } from 'drizzle-orm/pg-core';
+import { pgEnum, pgTable, text, timestamp, boolean, uuid, index } from 'drizzle-orm/pg-core';
 
 export const accidentSeverityEnum = pgEnum('accident_severity', ['Critical', 'High', 'Medium', 'Low']);
 
@@ -29,4 +29,7 @@ export const occupationalAccidents = pgTable('occupational_accidents', {
   status: accidentInvestigationStatusEnum('status').notNull().default('Open'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  index('occupational_accidents_technician_id_idx').on(table.technicianId),
+  index('occupational_accidents_status_idx').on(table.status),
+]);

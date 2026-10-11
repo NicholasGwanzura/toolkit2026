@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { MAX_LIST_ROWS } from '@/lib/server/list-limits';
 import { eq } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { courses } from '@/db/schema/index';
@@ -22,7 +23,7 @@ export async function GET(req: Request) {
   } else if (session.role === 'student' || isFieldWorkerRole(session.role)) {
     rows = await db.select().from(courses).where(eq(courses.status, 'approved'));
   } else {
-    rows = await db.select().from(courses);
+    rows = await db.select().from(courses).limit(MAX_LIST_ROWS);
   }
 
   return NextResponse.json(rows.map(toManagedCourse));

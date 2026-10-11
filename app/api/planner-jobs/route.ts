@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { MAX_LIST_ROWS } from '@/lib/server/list-limits';
 import { desc, eq } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { plannerJobs } from '@/db/schema/index';
@@ -47,7 +48,8 @@ export async function GET(req: Request) {
           .from(plannerJobs)
           .where(eq(plannerJobs.technicianId, session.id))
           .orderBy(desc(plannerJobs.scheduledDate))
-      : await db.select().from(plannerJobs).orderBy(desc(plannerJobs.scheduledDate));
+          .limit(MAX_LIST_ROWS)
+      : await db.select().from(plannerJobs).orderBy(desc(plannerJobs.scheduledDate)).limit(MAX_LIST_ROWS);
 
   return NextResponse.json(rows.map(toPlannerJob));
 }

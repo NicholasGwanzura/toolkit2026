@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Type check
+        run: npx tsc --noEmit
+      - name: Lint
+        run: npm run lint
+      - name: Tests
+        run: npm test
+      - name: Build
+        run: npm run build
+        env:
+          # The build needs no real database; routes read it only when called.
+          DATABASE_URL: postgres://ci:ci@localhost:5432/ci
+          SESSION_SECRET: ci-only-secret-not-used-anywhere-else
+      - name: Security audit (production dependencies)
+        run: npm audit --omit=dev --audit-level=high

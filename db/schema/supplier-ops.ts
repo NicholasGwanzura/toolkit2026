@@ -1,4 +1,4 @@
-import { boolean, jsonb, numeric, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import { boolean, jsonb, numeric, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid, index } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
 export const supplierApplicationStatusEnum = pgEnum('supplier_application_status', [
@@ -92,7 +92,9 @@ export const supplierComplianceApplications = pgTable('supplier_compliance_appli
   notes: text('notes'),
   submittedAt: timestamp('submitted_at', { withTimezone: true }).defaultNow().notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  index('supplier_compliance_applications_supplier_email_idx').on(table.supplierEmail),
+]);
 
 // Matches SupplierLedgerEntry interface
 export const supplierLedger = pgTable('supplier_ledger', {
@@ -118,4 +120,6 @@ export const supplierLedger = pgTable('supplier_ledger', {
   clientReported: boolean('client_reported').notNull().default(false),
   notes: text('notes'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  index('supplier_ledger_supplier_email_transaction_date_idx').on(table.supplierEmail, table.transactionDate),
+]);

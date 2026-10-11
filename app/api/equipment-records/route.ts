@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { MAX_LIST_ROWS } from '@/lib/server/list-limits';
 import { eq } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { equipmentRecords } from '@/db/schema/index';
@@ -40,7 +41,7 @@ export async function GET(req: Request) {
   }
 
   const rows = isFieldWorkerRole(session.role)
-    ? await db.select().from(equipmentRecords).where(eq(equipmentRecords.technicianName, session.name))
-    : await db.select().from(equipmentRecords);
+    ? await db.select().from(equipmentRecords).where(eq(equipmentRecords.technicianName, session.name)).limit(MAX_LIST_ROWS)
+    : await db.select().from(equipmentRecords).limit(MAX_LIST_ROWS);
   return NextResponse.json(rows.map(toEquipmentRecord));
 }

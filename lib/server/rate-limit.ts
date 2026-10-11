@@ -33,6 +33,29 @@ export function checkRateLimit(key: string, limit: number, windowMs: number): bo
   return true;
 }
 
+/** True when the key has already used up its allowance. Does not count as an attempt. */
+export function isRateLimited(key: string, limit: number): boolean {
+  const bucket = buckets.get(key);
+  return !!bucket && Date.now() <= bucket.resetAt && bucket.count >= limit;
+}
+
+/** Forgets a key, for example after a successful login clears earlier failures. */
+export function resetRateLimit(key: string): void {
+  buckets.delete(key);
+}
+
+/**
+ * Limits a public lookup by visitor address. Returns a 429 response to send back when the visitor is
+ * over the limit, or null when the request may go ahead.
+ */
+export function publicLookupLimit(req: Request, name: string, limit = 60, windowMs = 60_000): Response | null {
+  if (checkRateLimit(`public:${name}:${getClientIp(req)}`, limit, windowMs)) return null;
+  return new Response(JSON.stringify({ error: 'Too many requests. Please slow down and try again shortly.' }), {
+    status: 429,
+    headers: { 'Content-Type': 'application/json', 'Retry-After': String(Math.ceil(windowMs / 1000)) },
+  });
+}
+
 /**
  * The visitor's address, for rate limiting. Behind the reverse proxy the proxy sets X-Real-IP, or
  * appends the connecting address to the END of X-Forwarded-For. Anything a visitor sends themselves
