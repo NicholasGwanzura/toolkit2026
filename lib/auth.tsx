@@ -42,6 +42,13 @@ export async function loginByEmail(email: string, password?: string): Promise<Us
 export async function logout() {
     await fetch('/api/auth/logout', { method: 'POST' });
     if (typeof window !== 'undefined') {
+        // Saved offline pages belong to the person who was signed in; do not leave them for the next user of this device.
+        if ('caches' in window) {
+            try {
+                const keys = await caches.keys();
+                await Promise.all(keys.filter((key) => key.startsWith('coolpro-pages-')).map((key) => caches.delete(key)));
+            } catch { /* the cache is not available: nothing to clear */ }
+        }
         localStorage.removeItem('coolpro_user');
         window.location.href = '/login';
     }

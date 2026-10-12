@@ -5,7 +5,10 @@ import { Camera, Clock, LoaderCircle, RotateCcw, RotateCw, ScanText, Wrench } fr
 import { extractNameplateData } from '@/lib/refrigerantIntelligence';
 import { createOcrScan, useOcrScans } from '@/lib/api';
 import { RefrigerantRiskBadge } from '@/components/RefrigerantRiskBadge';
-import { cropImage, enhanceForOcr, readBarcodes, rotateImage, type CropRect } from '@/lib/nameplateImage';
+import { binariseForOcr, cropImage, enhanceForOcr, readBarcodes, rotateImage, type CropRect } from '@/lib/nameplateImage';
+import { createOcrWorker } from '@/lib/ocr-engine';
+import { hasAnyDetails, overallConfidence, scanScore } from '@/lib/nameplate-quality';
+import { normaliseRefrigerantCode } from '@/lib/refrigerant-code';
 import { LOW_CONFIDENCE, fieldConfidence, flattenWords, reconcileSerial, type FieldConfidence, type FieldKey } from '@/lib/nameplateScan';
 import { resolveManufacturer } from '@/lib/nameplate-brands';
 import type { OcrScanRecord } from '@/types/index';
@@ -16,7 +19,7 @@ function formatScanDate(iso: string) {
 
 interface OcrNameplateScannerProps {
     /** Called when the technician chooses to carry a scanned refrigerant code into the Field Toolkit gas register. */
-    onUseRefrigerant?: (refrigerantCode: string) => void;
+    onUseRefrigerant?: (refrigerantCode: string, extra?: { amountKg?: number }) => void;
 }
 
 export function OcrNameplateScanner({ onUseRefrigerant }: OcrNameplateScannerProps = {}) {
@@ -126,13 +129,26 @@ export function OcrNameplateScanner({ onUseRefrigerant }: OcrNameplateScannerPro
 
         try {
             const region = await cropImage(source, crop);
-            const { createWorker } = await import('tesseract.js');
-            const worker = await createWorker('eng');
-            const scan = await worker.recognize(await enhanceForOcr(region), {}, { text: true, blocks: true });
-            await worker.terminate();
+            const worker = await createOcrWorker();
+            let best: { parsed: OcrScanRecord; blocks: unknown; score: number } | null = null;
+            try {
+                // First attempt: greyscale and contrast. If it finds neither a refrigerant nor a model, try a
+                // black-and-white version, which copes better with coloured, glossy or unevenly lit plates.
+                const attempts: Array<() => Promise<Blob>> = [() => enhanceForOcr(region), () => binariseForOcr(region)];
+                for (const prepare of attempts) {
+                    const scan = await worker.recognize(await prepare(), {}, { text: true, blocks: true });
+                    const parsed = await extractNameplateData(scan.data.text);
+                    const score = scanScore(parsed, scan.data.confidence ?? 0);
+                    if (!best || score > best.score) best = { parsed, blocks: scan.data.blocks, score };
+                    if (best.parsed.refrigerantCode || best.parsed.model) break;
+                }
+            } finally {
+                await worker.terminate();
+            }
+            if (!best) throw new Error('No OCR attempt completed');
 
-            const parsed = await extractNameplateData(scan.data.text);
-            const words = flattenWords(scan.data.blocks);
+            const parsed = best.parsed;
+            const words = flattenWords(best.blocks);
 
             // Tidy the maker against the brands technicians meet, or find one elsewhere on the plate.
             const brand = resolveManufacturer(parsed.manufacturer, parsed.rawText);
@@ -162,7 +178,11 @@ export function OcrNameplateScanner({ onUseRefrigerant }: OcrNameplateScannerPro
                 refrigerantCode: fieldConfidence(parsed.refrigerantCode, words),
             };
             setConfidence(next);
+            parsed.matchConfidence = overallConfidence(parsed, next);
             setResult(parsed);
+            if (!hasAnyDetails(parsed)) {
+                setError('I could not read this plate. Photograph it straight on in even light, crop to the plate, or type the details in below.');
+            }
         } catch (scanError) {
             console.error(scanError);
             setError('OCR scan failed. Try a clearer image or use a higher-contrast photo.');
@@ -291,10 +311,17 @@ export function OcrNameplateScanner({ onUseRefrigerant }: OcrNameplateScannerPro
                                     <LoaderCircle className="h-4 w-4 animate-spin" />
                                     Extracting text from the uploaded image...
                                 </div>
-                            ) : error ? (
-                                <p className="text-sm text-rose-700">{error}</p>
-                            ) : result ? (
+                            ) : result || error ? (
                                 <div className="space-y-3 text-sm text-gray-700">
+                                    {error && <p role="alert" className="text-sm font-medium text-rose-700">{error}</p>}
+                                    {result && !hasAnyDetails(result) && (
+                                        <ul className="list-inside list-disc text-xs text-gray-600">
+                                            <li>Stand square to the plate so the text is not at an angle.</li>
+                                            <li>Avoid glare from the flash or a window. Shade the plate with your body.</li>
+                                            <li>Fill the frame with the plate, then drag a box around it before scanning.</li>
+                                        </ul>
+                                    )}
+                                    {result && (<>
                                     <EditableDetail label="Manufacturer" confidence={confidence.manufacturer} value={result.manufacturer ?? ''} onChange={(value) => updateResult('manufacturer', value)} />
                                     {brandNote && <p className="text-xs text-amber-800">{brandNote}</p>}
                                     {brandSuggestions.length > 0 && (
@@ -320,20 +347,24 @@ export function OcrNameplateScanner({ onUseRefrigerant }: OcrNameplateScannerPro
                                             ))}
                                         </div>
                                     )}
-                                    <EditableDetail label="Refrigerant" confidence={confidence.refrigerantCode} value={result.refrigerantCode ?? ''} onChange={(value) => updateResult('refrigerantCode', value.toUpperCase())} />
-                                    <button type="button" onClick={confirmScan} disabled={isSaving || confirmed} className="inline-flex items-center gap-2 bg-[#D97706] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#b45309] disabled:cursor-not-allowed disabled:opacity-60">
+                                    {result.chargeKg !== undefined && (
+                                        <p className="text-xs text-gray-600">Factory charge on the plate: <strong>{result.chargeKg} kg</strong>. It will fill the amount in the gas register. Check it against the plate.</p>
+                                    )}
+                                    <EditableDetail label="Refrigerant" confidence={confidence.refrigerantCode} value={result.refrigerantCode ?? ''} onChange={(value) => updateResult('refrigerantCode', /^r[-\s]?\d/i.test(value.trim()) ? normaliseRefrigerantCode(value.trim()) : value.toUpperCase())} />
+                                    <button type="button" onClick={confirmScan} disabled={isSaving || confirmed || !hasAnyDetails(result)} title={hasAnyDetails(result) ? undefined : 'Enter at least one detail from the plate before saving'} className="inline-flex items-center gap-2 bg-[#D97706] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#b45309] disabled:cursor-not-allowed disabled:opacity-60">
                                         {isSaving ? 'Saving confirmed scan…' : confirmed ? 'Scan confirmed and saved' : 'Confirm and save scan'}
                                     </button>
                                     {result.refrigerantCode && onUseRefrigerant && (
                                         <button
                                             type="button"
-                                            onClick={() => onUseRefrigerant(result.refrigerantCode!)}
+                                            onClick={() => onUseRefrigerant(result.refrigerantCode!, { amountKg: result.chargeKg })}
                                             className="inline-flex items-center gap-2 bg-[#1C1917] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#292524]"
                                         >
                                             <Wrench className="h-4 w-4" />
                                             Use in Field Toolkit
                                         </button>
                                     )}
+                                    </>)}
                                 </div>
                             ) : (
                                 <p className="text-sm text-gray-500">No scan has been processed yet.</p>

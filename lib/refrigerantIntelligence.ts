@@ -7,9 +7,9 @@ import type {
     WhatGasRefrigerantProfile,
 } from '@/types/index';
 export { getEmergencySafetyScripts } from '@/lib/emergencySafety';
+import { extractCharge, extractRefrigerantCandidates, extractRefrigerantCode } from '@/lib/refrigerant-code';
 
 const NAMEPLATE_PATTERNS = {
-    refrigerantCode: /(R[- ]?\d{2,3}[A-Z]?)/i,
     // Tolerate OCR noise around the label and a single space inside the value (e.g. "QL11 4980907").
     serialNumber: /(serial|s\/n|\bsn)[^A-Z0-9\n]{0,4}\s*([A-Z0-9-]{3,}(?: [0-9]{4,})?)/i,
     model: /(model|mod\.?|\bmdl)[^A-Z0-9\n]{0,4}\s*([A-Z0-9-]{3,})/i,
@@ -93,17 +93,26 @@ export async function fetchWhatGasProfile(code: string | undefined | null): Prom
     if (!code) return null;
 
     try {
-        const res = await fetch(`/api/refrigerants?q=${encodeURIComponent(code)}&pageSize=1`, {
+        // Ask for several matches and keep only the record whose code is exactly the one asked for.
+        // The first fuzzy match could be a different refrigerant (R-13 also matches R-134a), and
+        // showing another gas's safety class would be worse than showing none.
+        const res = await fetch(`/api/refrigerants?q=${encodeURIComponent(code)}&pageSize=10`, {
             credentials: 'include',
         });
         if (!res.ok) return null;
 
         const body = await res.json() as { data: Refrigerant[] };
-        const record = body.data?.[0];
+        const wanted = sameCodeKey(code);
+        const record = body.data?.find((item) => sameCodeKey(item.ashraeCode ?? '') === wanted);
         return record ? toProfile(record) : null;
     } catch {
         return null;
     }
+}
+
+/** Upper case with no spaces or hyphens, so "R-134a", "R134A" and "r 134a" compare equal. */
+export function sameCodeKey(value: string): string {
+    return value.toUpperCase().replace(/[^A-Z0-9]/g, '');
 }
 
 export function classifySafetyAlert(ashraeSafetyClass: string): {
@@ -166,11 +175,23 @@ export async function buildPreJobChecklist(code: string | undefined | null) {
 }
 
 export async function extractNameplateData(rawText: string): Promise<OcrScanRecord> {
-    const refrigerantCode = rawText.match(NAMEPLATE_PATTERNS.refrigerantCode)?.[1]?.replace(' ', '-') ?? undefined;
     const serialNumber = rawText.match(NAMEPLATE_PATTERNS.serialNumber)?.[2];
     const model = rawText.match(NAMEPLATE_PATTERNS.model)?.[2]
         ?? rawText.toUpperCase().match(NAMEPLATE_PATTERNS.modelShape)?.[1];
-    const whatGasMatch = await fetchWhatGasProfile(refrigerantCode);
+
+    // Try the most likely codes in turn and keep the first one the registry knows exactly. A code the
+    // registry does not know is kept as typed text for the person to check, with no safety class attached.
+    const candidates = extractRefrigerantCandidates(rawText).slice(0, 3);
+    let refrigerantCode: string | undefined = candidates[0];
+    let whatGasMatch: WhatGasRefrigerantProfile | null = null;
+    for (const candidate of candidates) {
+        const profile = await fetchWhatGasProfile(candidate);
+        if (profile) {
+            refrigerantCode = candidate;
+            whatGasMatch = profile;
+            break;
+        }
+    }
 
     // Prefer a known brand; a loose all-caps line is too often just "SCROLL COMPRESSOR", so leave it blank.
     const manufacturerLine = KNOWN_MANUFACTURERS.find((name) => new RegExp(`\\b${name}\\b`, 'i').test(rawText));
@@ -183,13 +204,15 @@ export async function extractNameplateData(rawText: string): Promise<OcrScanReco
         manufacturer: manufacturerLine,
         model,
         serialNumber,
-        matchConfidence: whatGasMatch ? 0.86 : 0.42,
+        chargeKg: extractCharge(rawText)?.kg,
+        // Set by the scanner from how well each field was actually read; there is no fixed score here.
+        matchConfidence: undefined,
         whatGasMatch,
     };
 }
 
 export async function buildSafetyAssistantResponse(query: string, language: AppLanguage): Promise<string> {
-    const code = query.match(NAMEPLATE_PATTERNS.refrigerantCode)?.[1]?.replace(' ', '-');
+    const code = extractRefrigerantCode(query);
     const profile = code ? await fetchWhatGasProfile(code) : null;
 
     if (!profile) {

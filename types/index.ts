@@ -761,6 +761,8 @@ export interface RefrigerantLog {
 
 export interface InstallationChecklistSnapshot {
   checklistType: 'installation' | 'regassing';
+  /** Which wording of the checklist was ticked. */
+  version?: string;
   completedItems: number;
   totalItems: number;
   completedAt: string;
@@ -788,7 +790,9 @@ export interface Installation {
   ocrScanData?: OcrScanRecord | null;
   nameplateJson?: Record<string, string | number | boolean | null>;
   status: 'pending' | 'approved' | 'rejected';
+  /** Evidence photos. The list endpoint leaves this empty and reports `imageCount`; photos load one installation at a time. */
   images: string[];
+  imageCount?: number;
   checklistSnapshot?: InstallationChecklistSnapshot | null;
   cocRequested: boolean;
   cocApproved: boolean;
@@ -925,6 +929,8 @@ export interface OcrScanRecord {
   manufacturer?: string;
   model?: string;
   serialNumber?: string;
+  /** Factory refrigerant charge in kg, when the plate states one. Not saved with the scan; used to prefill the gas register. */
+  chargeKg?: number;
   matchConfidence?: number;
   whatGasMatch?: WhatGasRefrigerantProfile | null;
 }

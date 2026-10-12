@@ -278,6 +278,23 @@ function Metric({ label, value, icon: Icon, tone }: { label: string; value: numb
 
 function InstallationCard({ installation, onRequestCoc, cocRequest }: { installation: Installation; onRequestCoc: (installation: Installation) => void; cocRequest?: CocRequest }) {
   const [confirmed, setConfirmed] = useState(false);
+  const [photos, setPhotos] = useState<string[] | null>(null);
+  const [photosState, setPhotosState] = useState<'idle' | 'loading' | 'error'>('idle');
+  const photoCount = installation.imageCount ?? installation.images.length;
+
+  // Photos are loaded on request, one installation at a time, so the list itself stays small.
+  const showPhotos = async () => {
+    if (photos) { setPhotos(null); return; }
+    setPhotosState('loading');
+    try {
+      const res = await fetch(`/api/installations/${installation.id}/images`, { credentials: 'include' });
+      if (!res.ok) throw new Error('failed');
+      setPhotos(((await res.json()) as { images: string[] }).images);
+      setPhotosState('idle');
+    } catch {
+      setPhotosState('error');
+    }
+  };
   const statusClass = installation.status === 'approved' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : installation.status === 'rejected' ? 'border-red-200 bg-red-50 text-red-700' : 'border-amber-200 bg-amber-50 text-amber-700';
   const coc = installation.cocApproved
     ? { label: 'COC ready', className: 'border-emerald-200 bg-emerald-50 text-emerald-700', icon: CheckCircle2 }
@@ -303,15 +320,23 @@ function InstallationCard({ installation, onRequestCoc, cocRequest }: { installa
             <span className="inline-flex items-center gap-1.5"><PackageCheck className="h-3.5 w-3.5" aria-hidden="true" />{JobTypeLabels[installation.jobType as JobType]}</span>
             {installation.floorSpace && <span className="inline-flex items-center gap-1.5"><Ruler className="h-3.5 w-3.5" aria-hidden="true" />{installation.floorSpace} m²</span>}
             <span className="inline-flex items-center gap-1.5"><User className="h-3.5 w-3.5" aria-hidden="true" />{installation.technicianName}</span>
-            {installation.images.length > 0 && <span className="inline-flex items-center gap-1.5"><Camera className="h-3.5 w-3.5" aria-hidden="true" />{installation.images.length} photo{installation.images.length === 1 ? '' : 's'}</span>}
+            {photoCount > 0 && <span className="inline-flex items-center gap-1.5"><Camera className="h-3.5 w-3.5" aria-hidden="true" />{photoCount} photo{photoCount === 1 ? '' : 's'}</span>}
             {snapshot && <span className={`inline-flex items-center gap-1.5 ${checklistComplete ? 'text-emerald-700' : 'text-amber-700'}`}><CheckSquare className="h-3.5 w-3.5" aria-hidden="true" />Checklist {snapshot.completedItems}/{snapshot.totalItems}</span>}
           </div>
-          {installation.images.length > 0 && (
-            <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-              {installation.images.slice(0, 5).map((image, index) => (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img key={`${installation.id}-${index}`} src={image} alt={`Evidence photo ${index + 1} for ${installation.clientName}`} className="h-14 w-20 shrink-0 rounded-lg border border-stone-200 object-cover" />
-              ))}
+          {photoCount > 0 && (
+            <div className="mt-3">
+              <button type="button" onClick={showPhotos} disabled={photosState === 'loading'} className="text-xs font-semibold text-[#b45309] underline disabled:opacity-60">
+                {photosState === 'loading' ? 'Loading photos…' : photos ? 'Hide photos' : `Show ${photoCount} photo${photoCount === 1 ? '' : 's'}`}
+              </button>
+              {photosState === 'error' && <p role="alert" className="mt-1 text-xs text-rose-700">Could not load the photos. Check your connection and try again.</p>}
+              {photos && (
+                <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+                  {photos.map((image, index) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img key={`${installation.id}-${index}`} src={image} alt={`Evidence photo ${index + 1} for ${installation.clientName}`} className="h-20 w-28 shrink-0 rounded-lg border border-stone-200 object-cover" />
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

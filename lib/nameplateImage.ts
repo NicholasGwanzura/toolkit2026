@@ -113,3 +113,55 @@ export async function readBarcodes(source: Blob): Promise<string[]> {
 
     return [...found];
 }
+
+/**
+ * A black-and-white version for plates the normal cleanup cannot read (coloured, glossy or uneven light).
+ * Otsu's method picks the cut-off from the picture itself, and the image is doubled in size first.
+ */
+export async function binariseForOcr(file: Blob): Promise<Blob> {
+    try {
+        const bitmap = await createImageBitmap(file);
+        const scale = bitmap.width < 1600 ? 2 : 1;
+        const canvas = document.createElement('canvas');
+        canvas.width = bitmap.width * scale;
+        canvas.height = bitmap.height * scale;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return file;
+        ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+        const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const d = img.data;
+        const histogram = new Array<number>(256).fill(0);
+        for (let i = 0; i < d.length; i += 4) {
+            const g = Math.round(0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]);
+            d[i] = g;
+            histogram[g]++;
+        }
+        const total = d.length / 4;
+        let sumAll = 0;
+        for (let t = 0; t < 256; t++) sumAll += t * histogram[t];
+        let sumBack = 0;
+        let weightBack = 0;
+        let best = 0;
+        let threshold = 128;
+        for (let t = 0; t < 256; t++) {
+            weightBack += histogram[t];
+            if (weightBack === 0) continue;
+            const weightFront = total - weightBack;
+            if (weightFront === 0) break;
+            sumBack += t * histogram[t];
+            const meanBack = sumBack / weightBack;
+            const meanFront = (sumAll - sumBack) / weightFront;
+            const between = weightBack * weightFront * (meanBack - meanFront) ** 2;
+            if (between > best) { best = between; threshold = t; }
+        }
+        for (let i = 0; i < d.length; i += 4) {
+            const v = d[i] > threshold ? 255 : 0;
+            d[i] = d[i + 1] = d[i + 2] = v;
+            d[i + 3] = 255;
+        }
+        ctx.putImageData(img, 0, 0);
+        return await toBlob(canvas, file);
+    } catch {
+        return file;
+    }
+}

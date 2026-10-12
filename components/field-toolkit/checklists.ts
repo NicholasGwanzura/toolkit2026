@@ -16,6 +16,22 @@ export interface ChecklistCategory {
 
 export type ChecklistType = 'installation' | 'regassing';
 
+/**
+ * Bump this whenever the wording or the items change, so a saved checklist records which version
+ * the technician actually ticked.
+ */
+export const CHECKLIST_VERSION = '2026-10-12';
+
+const FLAMMABLE_CONTROLS: ChecklistCategory = {
+  category: 'Flammable refrigerants (R-290, A2L and A3). Tick each line as done, or as not applicable for a non-flammable gas',
+  items: [
+    { text: 'Ignition sources identified, and removed or isolated from the work area', source: 'Manufacturer instructions and the refrigerant safety data sheet', url: null },
+    { text: 'Flammable-gas leak detector available and tested before work starts', source: 'Manufacturer instructions and the refrigerant safety data sheet', url: null },
+    { text: 'Work area ventilated, with no pits, drains or low spaces where gas can collect', source: 'Manufacturer instructions and the refrigerant safety data sheet', url: null },
+    { text: 'Charge quantity checked against the maximum charge stated for this equipment and room', source: 'Nameplate and manufacturer instructions', url: null },
+  ],
+};
+
 const resourceUrl = (id: string) => TOOLKIT_RESOURCES.find((r) => r.id === id)?.url ?? null;
 const SABS = resourceUrl('sans-sabs');
 const FGAS = resourceUrl('fgas');
@@ -48,6 +64,7 @@ export const INSTALLATION_CHECKLIST: ChecklistCategory[] = [
     item('Vacuum hold test: 30 minutes minimum', 'Manufacturer Guidelines'),
     item('Triple evacuation performed for systems >5m line set', 'Best Practice'),
   ] },
+  FLAMMABLE_CONTROLS,
   { category: 'Charging the system', items: [
     item('Weighed charging method used (for HFC systems)', 'SANS 5001-1', SABS),
     item('Manufacturer-specified charge quantity verified', 'Nameplate Data'),
@@ -69,6 +86,7 @@ export const REGASSING_CHECKLIST: ChecklistCategory[] = [
     item('Refrigerant recovered to 80% cylinder capacity', 'Best Practice'),
     item('Recovery log completed with weight recovered', 'Compliance Record'),
   ] },
+  FLAMMABLE_CONTROLS,
   { category: 'Vacuum and recharge', items: [
     item('System evacuated to 500 microns', 'SANS 5001-1', SABS),
     item('Leak check performed after vacuum', 'Manufacturer Guidelines'),

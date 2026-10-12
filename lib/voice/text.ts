@@ -1,14 +1,7 @@
 // Pure text helpers for the voice assistant: no browser or network access, so they can be tested.
 import type { AppLanguage } from '@/types/index';
 
-/**
- * Finds a refrigerant code in free speech or typing ("R-290", "r290", "R 32", "R-1234yf") and returns it
- * in the registry's form ("R-290"). Returns undefined when the text names no refrigerant.
- */
-export function extractRefrigerantCode(text: string): string | undefined {
-  const match = text.match(/\bR[-\s]?(\d{2,4}[a-z]{0,2})\b/i);
-  return match ? `R-${match[1].toUpperCase()}` : undefined;
-}
+export { extractRefrigerantCode } from '@/lib/refrigerant-code';
 
 /** Remove markdown so a speech engine does not read "asterisk asterisk" aloud. */
 export function stripMarkdown(text: string): string {

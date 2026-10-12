@@ -5,6 +5,7 @@ import { installations } from '@/db/schema/index';
 import { requireRole } from '@/lib/server/auth';
 import type { Installation } from '@/types/index';
 import { isFieldWorkerRole } from '@/lib/field-worker';
+import { checklistSchema } from '@/lib/server/installation-checklist';
 
 function toInstallation(row: typeof installations.$inferSelect): Installation {
   return {
@@ -67,9 +68,25 @@ export async function PATCH(
     return NextResponse.json({ error: 'COC approval requires a technician request first.' }, { status: 409 });
   }
 
+  // A COC request is made only through the COC request endpoint, which checks the checklist and site.
+  // Setting the flag here would skip those checks.
+  if (isFieldWorkerRole(session.role) && body.cocRequested !== undefined) {
+    return NextResponse.json({ error: 'Request a COC from the installation card, not by editing the record.' }, { status: 403 });
+  }
+  // The saved checklist is evidence. It can be replaced until a COC is requested, never afterwards,
+  // and always has to pass the same checks as when it was first saved.
+  if (body.checklistSnapshot !== undefined) {
+    if (isFieldWorkerRole(session.role) && existing.cocRequested) {
+      return NextResponse.json({ error: 'The checklist is locked once a COC has been requested.' }, { status: 409 });
+    }
+    if (!checklistSchema.safeParse(body.checklistSnapshot).success) {
+      return NextResponse.json({ error: 'Invalid checklist snapshot' }, { status: 400 });
+    }
+  }
+
   const updateFields: Record<string, unknown> = {};
   if (session.role === 'org_admin' && body.status) updateFields.status = body.status;
-  if (body.cocRequested !== undefined) updateFields.cocRequested = body.cocRequested;
+  if (session.role === 'org_admin' && body.cocRequested !== undefined) updateFields.cocRequested = body.cocRequested;
   if (body.checklistSnapshot !== undefined) updateFields.checklistSnapshot = body.checklistSnapshot;
   if (session.role === 'org_admin' && body.cocApproved !== undefined) updateFields.cocApproved = body.cocApproved;
   if (session.role === 'org_admin' && body.cocApprovalDate !== undefined) updateFields.cocApprovalDate = body.cocApprovalDate ? new Date(body.cocApprovalDate) : null;

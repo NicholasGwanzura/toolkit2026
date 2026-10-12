@@ -1,9 +1,10 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useAuth } from '@/lib/auth';
 import { Check, ExternalLink, Save } from 'lucide-react';
 import type { InstallationChecklistSnapshot } from '@/types/index';
-import { checklistFor, checklistItemId, type ChecklistType } from './checklists';
+import { CHECKLIST_VERSION, checklistFor, checklistItemId, type ChecklistType } from './checklists';
 
 interface ChecklistTabProps {
   saved: InstallationChecklistSnapshot | null;
@@ -12,9 +13,33 @@ interface ChecklistTabProps {
 }
 
 export default function ChecklistTab({ saved, onSave, onGoToInstallations }: ChecklistTabProps) {
+  const { user } = useAuth();
+  const draftKey = user?.id ? `coolpro_checklist_draft:${user.id}` : null;
   const [type, setType] = useState<ChecklistType>('installation');
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [notice, setNotice] = useState('');
+  const [restoredFor, setRestoredFor] = useState<string | null>(null);
+
+  // Ticks survive a reload or a dropped connection: they are kept on this device until the checklist is saved.
+  useEffect(() => {
+    if (!draftKey || restoredFor === draftKey) return;
+    try {
+      const stored = JSON.parse(window.localStorage.getItem(draftKey) ?? 'null') as { version?: string; type?: ChecklistType; checked?: string[] } | null;
+      // A draft made against older wording is dropped, because its item ids may no longer mean the same lines.
+      if (stored && stored.version === CHECKLIST_VERSION && (stored.type === 'installation' || stored.type === 'regassing')) {
+        setType(stored.type);
+        setChecked(new Set(stored.checked ?? []));
+      }
+    } catch { /* unreadable draft: start fresh */ }
+    setRestoredFor(draftKey);
+  }, [draftKey, restoredFor]);
+
+  useEffect(() => {
+    if (!draftKey || restoredFor !== draftKey) return;
+    try {
+      window.localStorage.setItem(draftKey, JSON.stringify({ version: CHECKLIST_VERSION, type, checked: [...checked] }));
+    } catch { /* storage full or blocked: ticks are kept in memory only */ }
+  }, [draftKey, restoredFor, type, checked]);
 
   const categories = checklistFor(type);
   const totalItems = useMemo(() => categories.reduce((sum, category) => sum + category.items.length, 0), [categories]);
@@ -45,7 +70,7 @@ export default function ChecklistTab({ saved, onSave, onGoToInstallations }: Che
         return { id, category: category.category, text: entry.text, checked: checked.has(id), source: entry.source };
       }),
     );
-    onSave({ checklistType: type, completedItems: doneItems, totalItems, completedAt: new Date().toISOString(), items });
+    onSave({ checklistType: type, version: CHECKLIST_VERSION, completedItems: doneItems, totalItems, completedAt: new Date().toISOString(), items });
     setNotice(
       doneItems === totalItems
         ? 'Checklist saved and complete. It will attach to the next installation you save.'

@@ -1,29 +1,12 @@
 import { NextResponse } from 'next/server';
 import { MAX_LIST_ROWS } from '@/lib/server/list-limits';
-import { z } from 'zod';
 import { desc, eq } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { installations } from '@/db/schema/index';
 import { requireRole } from '@/lib/server/auth';
 import type { Installation } from '@/types/index';
-
-const checklistSchema = z.object({
-  checklistType: z.enum(['installation', 'regassing']),
-  completedItems: z.number().int().nonnegative(),
-  totalItems: z.number().int().positive().max(100),
-  completedAt: z.iso.datetime(),
-  items: z.array(z.object({
-    id: z.string().min(1).max(200),
-    text: z.string().min(1).max(500),
-    category: z.string().min(1).max(100),
-    checked: z.boolean(),
-    source: z.string().max(200).nullable().optional(),
-  })).min(1).max(100),
-}).refine((snapshot) =>
-  snapshot === null || snapshot === undefined ||
-  (snapshot.totalItems === snapshot.items.length && snapshot.completedItems === snapshot.items.filter((item) => item.checked).length),
-  'Checklist counts must match the recorded items and checked states',
-).nullable().optional();
+import { checklistSchema } from '@/lib/server/installation-checklist';
+import { getTableColumns, sql } from 'drizzle-orm';
 
 function toInstallation(row: typeof installations.$inferSelect): Installation {
   return {
@@ -47,6 +30,15 @@ function toInstallation(row: typeof installations.$inferSelect): Installation {
   };
 }
 
+// The list never carries the photos: each can be megabytes, and a list of every installation would
+// download them all. The photos are fetched one installation at a time from /api/installations/[id]/images.
+const { images: _images, ...summaryColumns } = getTableColumns(installations);
+const summarySelect = { ...summaryColumns, imageCount: sql<number>`jsonb_array_length(${installations.images})`.mapWith(Number) };
+
+function toInstallationSummary(row: Omit<typeof installations.$inferSelect, 'images'> & { imageCount: number }): Installation {
+  return { ...toInstallation({ ...row, images: [] }), images: [], imageCount: row.imageCount };
+}
+
 export async function GET(req: Request) {
   let session;
   try {
@@ -57,15 +49,15 @@ export async function GET(req: Request) {
 
   const rows =
     session.role === 'org_admin'
-      ? await db.select().from(installations).orderBy(desc(installations.createdAt)).limit(MAX_LIST_ROWS)
+      ? await db.select(summarySelect).from(installations).orderBy(desc(installations.createdAt)).limit(MAX_LIST_ROWS)
       : await db
-          .select()
+          .select(summarySelect)
           .from(installations)
           .where(eq(installations.technicianId, session.id))
           .orderBy(desc(installations.createdAt))
           .limit(MAX_LIST_ROWS);
 
-  return NextResponse.json(rows.map(toInstallation));
+  return NextResponse.json(rows.map(toInstallationSummary));
 }
 
 export async function POST(req: Request) {

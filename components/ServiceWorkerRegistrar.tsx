@@ -2,12 +2,10 @@
 
 import { useEffect } from 'react';
 
+/** Registers the service worker that keeps the field tools working offline. Production only. */
 export function ServiceWorkerRegistrar() {
     useEffect(() => {
-        if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
-            return;
-        }
-
+        if (process.env.NODE_ENV !== 'production' || !('serviceWorker' in navigator)) return;
         navigator.serviceWorker.register('/sw.js').catch((error) => {
             console.error('Service worker registration failed', error);
         });

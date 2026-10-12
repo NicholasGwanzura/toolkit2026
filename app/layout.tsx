@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { GeistSans } from 'geist/font/sans';
 import './globals.css';
 import { OfflineBanner } from '@/components/OfflineBanner';
+import { ServiceWorkerRegistrar } from '@/components/ServiceWorkerRegistrar';
 import { AuthProvider } from '@/lib/auth';
 import { EmergencyModeProvider } from '@/lib/emergencyMode';
 import { I18nProvider } from '@/lib/i18n';
@@ -33,6 +34,7 @@ export default function RootLayout({
             <AuthProvider>
               <ToastProvider>
                 <OfflineBanner />
+                <ServiceWorkerRegistrar />
                 {children}
               </ToastProvider>
             </AuthProvider>

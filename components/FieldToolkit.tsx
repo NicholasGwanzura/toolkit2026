@@ -33,7 +33,7 @@ export default function FieldToolkit() {
 
   // Work that has to travel between tabs lives here: the saved checklist and the scanned refrigerant.
   const [checklist, setChecklist] = useState<InstallationChecklistSnapshot | null>(null);
-  const [scannedCode, setScannedCode] = useState<string | undefined>();
+  const [scanned, setScanned] = useState<{ code: string; amountKg?: number } | undefined>();
 
   // A voice command opens the register with details in the address. They are read once, checked, and cleared.
   const voicePrefill = useMemo<GasRegisterPrefill | undefined>(() => {
@@ -45,7 +45,7 @@ export default function FieldToolkit() {
     if (!(amount > 0 && amount <= 10000) && !action && !code && !client) return undefined;
     return { source: 'voice', code, action, client, amount: amount > 0 && amount <= 10000 ? String(amount) : undefined };
   }, [searchParams]);
-  const prefill: GasRegisterPrefill | undefined = voicePrefill ?? (scannedCode ? { source: 'scan', code: scannedCode } : undefined);
+  const prefill: GasRegisterPrefill | undefined = voicePrefill ?? (scanned ? { source: 'scan', code: scanned.code, amount: scanned.amountKg ? String(scanned.amountKg) : undefined } : undefined);
 
   const go = useCallback((tab: ToolkitTab) => {
     router.replace(`${pathname}?tab=${tab}`, { scroll: false });
@@ -91,8 +91,8 @@ export default function FieldToolkit() {
       <div id={`toolkit-panel-${active}`} role="tabpanel" aria-labelledby={`toolkit-tab-${active}`} className="p-4 sm:p-6">
         {active === 'scan' && (
           <OcrNameplateScanner
-            onUseRefrigerant={code => {
-              setScannedCode(code);
+            onUseRefrigerant={(code, extra) => {
+              setScanned({ code, amountKg: extra?.amountKg });
               go('register');
             }}
           />
@@ -107,7 +107,7 @@ export default function FieldToolkit() {
           <GasRegisterTab
             prefill={prefill}
             onPrefillConsumed={() => {
-              setScannedCode(undefined);
+              setScanned(undefined);
               if (voicePrefill) router.replace(`${pathname}?tab=register`, { scroll: false });
             }}
           />

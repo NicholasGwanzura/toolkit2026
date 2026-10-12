@@ -94,6 +94,9 @@ export default function GasRegisterTab({ prefill, onPrefillConsumed }: GasRegist
   const [notice, setNotice] = useState('');
   const [prefillNotice, setPrefillNotice] = useState('');
 
+  // Only technicians and contractors can record logs; administrators can look at them.
+  const canLog = user?.role === 'technician' || user?.role === 'contractor';
+
   const openJobs = useMemo(() => plannerJobs.filter(job => job.status !== 'completed' && job.status !== 'cancelled'), [plannerJobs]);
 
   // Apply details from a nameplate scan or a voice command. Nothing is saved: the person reviews and presses Save.
@@ -151,7 +154,8 @@ export default function GasRegisterTab({ prefill, onPrefillConsumed }: GasRegist
   const validate = () => {
     const next: Record<string, string> = {};
     if (!form.clientName.trim()) next.clientName = 'Enter the client name.';
-    if (!form.refrigerantType.trim()) next.refrigerant = 'Choose the refrigerant.';
+    // It must come from the registry list, so the safety class, GWP and ODP are recorded with the log.
+    if (!form.refrigerant) next.refrigerant = form.refrigerantType.trim() ? 'That refrigerant is not in the registry list. Search for it and pick it from the list.' : 'Choose the refrigerant from the list.';
     const amount = Number(form.amount);
     if (!form.amount.trim() || !Number.isFinite(amount) || amount <= 0) next.amount = 'Enter a weight greater than zero.';
     else if (amount > 10000) next.amount = 'That is more than 10,000 kg. Check the figure.';
@@ -201,7 +205,13 @@ export default function GasRegisterTab({ prefill, onPrefillConsumed }: GasRegist
 
       <SyncBanner isOnline={isOnline} syncing={syncing} pending={pendingCount} failedCount={failedLogs.length} onRetry={retry} />
 
-      <form onSubmit={handleSubmit} noValidate className="space-y-5 border border-stone-200 bg-stone-50/60 p-4 sm:p-6" aria-label="New log entry">
+      {!canLog && (
+        <p role="note" className="border border-stone-200 bg-stone-50 p-4 text-sm text-stone-700">
+          Gas logs are recorded by technicians and contractors under their own login. As an administrator you can review the activity below.
+        </p>
+      )}
+
+      {canLog && <form onSubmit={handleSubmit} noValidate className="space-y-5 border border-stone-200 bg-stone-50/60 p-4 sm:p-6" aria-label="New log entry">
         <h3 className="flex items-center gap-2 font-semibold text-[#b45309]"><PlusCircle className="h-5 w-5" aria-hidden="true" />New log entry</h3>
 
         <fieldset>
@@ -278,7 +288,7 @@ export default function GasRegisterTab({ prefill, onPrefillConsumed }: GasRegist
           </button>
           {notice && <p role="status" className="text-sm font-medium text-emerald-700">{notice}</p>}
         </div>
-      </form>
+      </form>}
 
       {failedLogs.length > 0 && (
         <section aria-label="Logs the server refused" className="space-y-2 border border-rose-200 bg-rose-50 p-4">
