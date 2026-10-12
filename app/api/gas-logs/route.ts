@@ -2,7 +2,7 @@ import { and, eq, gte, lte, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { NextResponse } from 'next/server';
 import { db } from '@/db/client';
-import { gasUsageLogs, refrigerants, supplierApplications } from '@/db/schema/index';
+import { gasUsageLogs, plannerJobs, refrigerants, supplierApplications } from '@/db/schema/index';
 import { requireRole } from '@/lib/server/auth';
 import type { RefrigerantLog } from '@/types/index';
 import { isFieldWorkerRole } from '@/lib/field-worker';
@@ -84,6 +84,18 @@ export async function POST(req: Request) {
   const refrigerantById = new Map(refrigerantRows.map((row) => [row.id, row]));
   if (logs.some((log) => log.refrigerantId && !refrigerantById.has(log.refrigerantId))) {
     return NextResponse.json({ error: 'One or more refrigerant IDs do not exist' }, { status: 400 });
+  }
+  // A log can only be linked to a planner job that belongs to the person logging it.
+  const jobIds = [...new Set(logs.flatMap((log) => log.plannerJobId ? [log.plannerJobId] : []))];
+  if (jobIds.length > 0) {
+    const ownJobs = await db.select({ id: plannerJobs.id }).from(plannerJobs).where(and(
+      sql`${plannerJobs.id} in (${sql.join(jobIds.map((id) => sql`${id}`), sql`, `)})`,
+      eq(plannerJobs.technicianId, session.id),
+    ));
+    const ownIds = new Set(ownJobs.map((job) => job.id));
+    if (jobIds.some((id) => !ownIds.has(id))) {
+      return NextResponse.json({ error: 'A linked planner job was not found among your jobs' }, { status: 400 });
+    }
   }
   const supplierIds = [...new Set(logs.flatMap((log) => log.approvedSupplierId ? [log.approvedSupplierId] : []))];
   const supplierRows = supplierIds.length
