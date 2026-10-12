@@ -2,6 +2,7 @@
 
 import type { ApplicationCounts } from '@/lib/application-counts';
 import type { ReportRange, ReportingSummary } from '@/lib/reporting-summary';
+import { handleUnauthorized } from '@/lib/session-expiry';
 import useSWR, { mutate } from 'swr';
 import useSWRInfinite from 'swr/infinite';
 import type {
@@ -62,6 +63,7 @@ export class ApiError extends Error {
 async function fetcher<T>(url: string): Promise<T> {
   const res = await fetch(url, { credentials: 'include' });
   if (!res.ok) {
+    if (res.status === 401) void handleUnauthorized();
     const body = await res.json().catch(() => ({})) as { error?: string };
     throw new Error(body.error ?? `Request failed: ${res.status}`);
   }
