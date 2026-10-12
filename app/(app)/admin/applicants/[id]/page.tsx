@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useTechnicianApplications, useMemberships, approveTechnicianApplication, rejectTechnicianApplication } from '@/lib/api';
+import { RegistryMatchPrompt, registryMatchFrom, type RegistryMatch } from '@/components/admin/RegistryMatchPrompt';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { useToast } from '@/components/ui/Toast';
 import { AuditTrail } from '@/components/admin/AuditTrail';
@@ -80,6 +81,7 @@ export default function ApplicantDrilldownPage() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [acting, setActing] = useState(false);
   const [showApprove, setShowApprove] = useState(false);
+  const [registryMatch, setRegistryMatch] = useState<RegistryMatch | null>(null);
   const [showReject, setShowReject] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [rejectInternalNotes, setRejectInternalNotes] = useState('');
@@ -124,14 +126,21 @@ export default function ApplicantDrilldownPage() {
 
   const canReview = app.status === 'submitted' || app.status === 'under-review';
 
-  const handleApprove = async () => {
+  const handleApprove = async (linkToExisting = false) => {
     setActing(true);
     try {
-      await approveTechnicianApplication(app.id);
-      success('Application approved and membership created.');
+      await approveTechnicianApplication(app.id, { linkToExisting });
+      success(linkToExisting ? 'Application approved and linked to the existing registry record.' : 'Application approved and membership created.');
       setShowApprove(false);
+      setRegistryMatch(null);
     } catch (err) {
-      toastError(err instanceof Error ? err.message : 'Failed to approve application.');
+      const match = registryMatchFrom(err);
+      if (match) {
+        setShowApprove(false);
+        setRegistryMatch(match);
+      } else {
+        toastError(err instanceof Error ? err.message : 'Failed to approve application.');
+      }
     } finally {
       setActing(false);
     }
@@ -355,9 +364,13 @@ export default function ApplicantDrilldownPage() {
         description={`Approve ${app.name}'s application? This creates their technician registry record and an active HEVACRAZ membership (valid through 31 December ${new Date().getFullYear()}).`}
         confirmLabel={acting ? 'Approving…' : 'Approve'}
         variant="default"
-        onConfirm={handleApprove}
+        onConfirm={() => handleApprove(false)}
         onCancel={() => setShowApprove(false)}
       />
+
+      {registryMatch && (
+        <RegistryMatchPrompt match={registryMatch} busy={acting} onConfirm={() => handleApprove(true)} onCancel={() => setRegistryMatch(null)} />
+      )}
 
       {showReject && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">

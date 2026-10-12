@@ -15,6 +15,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
+import { RegistryMatchPrompt, registryMatchFrom, type RegistryMatch } from '@/components/admin/RegistryMatchPrompt';
 import {
   approveRegistrationApplication,
   approveStudentApplication,
@@ -176,6 +177,7 @@ export default function ApplicationsAdminPage() {
   const [active, setActive] = useState<Lane>('students');
   const [acting, setActing] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [registryMatch, setRegistryMatch] = useState<{ id: string; match: RegistryMatch } | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('open');
   const [search, setSearch] = useState('');
   const [rejectTarget, setRejectTarget] = useState<{
@@ -217,16 +219,19 @@ export default function ApplicationsAdminPage() {
     );
   }
 
-  const handleApprove = async (lane: Lane, id: string) => {
+  const handleApprove = async (lane: Lane, id: string, linkToExisting = false) => {
     setActing(true);
     setActionError(null);
+    setRegistryMatch(null);
     try {
       if (lane === 'students') await approveStudentApplication(id);
-      else if (lane === 'technicians') await approveTechnicianApplication(id);
+      else if (lane === 'technicians') await approveTechnicianApplication(id, { linkToExisting });
       else if (lane === 'professionals') await approveRegistrationApplication(id);
       else await approveSupplierApplication(id);
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Could not approve this application.');
+      const match = lane === 'technicians' ? registryMatchFrom(err) : null;
+      if (match) setRegistryMatch({ id, match });
+      else setActionError(err instanceof Error ? err.message : 'Could not approve this application.');
     } finally {
       setActing(false);
     }
@@ -263,6 +268,15 @@ export default function ApplicationsAdminPage() {
           message for them to read.
         </p>
       </div>
+
+      {registryMatch && (
+        <RegistryMatchPrompt
+          match={registryMatch.match}
+          busy={acting}
+          onConfirm={() => handleApprove('technicians', registryMatch.id, true)}
+          onCancel={() => setRegistryMatch(null)}
+        />
+      )}
 
       {actionError && (
         <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">

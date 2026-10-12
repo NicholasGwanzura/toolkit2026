@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 import { NextResponse } from 'next/server';
-import { eq, or } from 'drizzle-orm';
+import { and, eq, or } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { technicianApplications, technicians, memberships, users } from '@/db/schema/index';
 import { requireRole } from '@/lib/server/auth';
@@ -8,6 +8,7 @@ import { sendMembershipConfirmationEmail } from '@/lib/server/email';
 import { afterApplicationApproved, reviewBlockedReason } from '@/lib/server/application-flow';
 import { recordAuditEvent } from '@/lib/server/audit';
 import { generateMembershipNumber } from '@/lib/server/membership-number';
+import { provisionUserFromApplication, ProvisionConflictError } from '@/lib/server/provision-user';
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   let session;
@@ -39,12 +40,25 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const blocked = await reviewBlockedReason('technician_application', app.id, app.status, 'approve');
   if (blocked) return NextResponse.json({ error: blocked }, { status: 409 });
 
-  const [existingTechnician] = await db.select({ id: technicians.id, registrationNumber: technicians.registrationNumber })
+  const body = await req.json().catch(() => ({})) as { linkToExisting?: unknown };
+  const [existingTechnician] = await db.select({ id: technicians.id, registrationNumber: technicians.registrationNumber, name: technicians.name, email: technicians.email })
     .from(technicians)
     .where(or(eq(technicians.email, app.email), eq(technicians.nationalId, app.nationalId), eq(technicians.registrationNumber, app.registrationNumber)))
     .limit(1);
   if (existingTechnician) {
-    return NextResponse.json({ error: `A technician record already exists for this applicant (${existingTechnician.registrationNumber}). Use the registry management workflow instead.` }, { status: 409 });
+    // The same person, already on the registry (for example from the census import), applied again.
+    // The applicant's confirmed email matching the record is what proves it is the same person.
+    const sameEmail = !!existingTechnician.email && existingTechnician.email.trim().toLowerCase() === app.email.trim().toLowerCase();
+    if (body.linkToExisting === true && sameEmail) {
+      return linkToExistingRecord({ app, existing: existingTechnician, reviewer: { name: session.name, role: session.role } });
+    }
+    return NextResponse.json({
+      error: `${existingTechnician.name} is already on the registry as ${existingTechnician.registrationNumber}. ${sameEmail
+        ? 'Approve and link this application to that record, so no duplicate is created.'
+        : 'The email on that record is different, so it cannot be linked automatically. Check the details, then update the registry record.'}`,
+      code: sameEmail ? 'registry-match' : 'registry-conflict',
+      existing: { id: existingTechnician.id, registrationNumber: existingTechnician.registrationNumber, name: existingTechnician.name },
+    }, { status: 409 });
   }
 
   const [existingUser] = await db.select({ id: users.id, role: users.role }).from(users).where(eq(users.email, app.email)).limit(1);
@@ -144,5 +158,87 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     membershipId,
     membershipNumber,
     membershipExpiryDate: membershipExpiry,
+  });
+}
+
+/**
+ * Approves an application for someone who is already on the registry: their login is created with the
+ * password they chose, the application is linked to the existing record, and an active membership is
+ * added if they have none. The registry record itself is left as it is, so no duplicate appears.
+ */
+async function linkToExistingRecord(input: {
+  app: typeof technicianApplications.$inferSelect;
+  existing: { id: string; registrationNumber: string; name: string };
+  reviewer: { name: string; role: string };
+}): Promise<Response> {
+  const { app, existing, reviewer } = input;
+  try {
+    await provisionUserFromApplication({ name: app.name, email: app.email, passwordHash: app.passwordHash, role: 'technician', region: app.region });
+  } catch (error) {
+    if (error instanceof ProvisionConflictError) return NextResponse.json({ error: error.message }, { status: 409 });
+    throw error;
+  }
+
+  const today = new Date();
+  const [activeMembership] = await db.select({ id: memberships.id }).from(memberships)
+    .where(and(eq(memberships.technicianId, existing.id), eq(memberships.status, 'active'))).limit(1);
+  let membershipNumber: string | undefined;
+  const membershipExpiry = `${today.getFullYear()}-12-31`;
+  if (!activeMembership) membershipNumber = await generateMembershipNumber();
+
+  await db.transaction(async (tx) => {
+    await tx.update(technicianApplications).set({
+      status: 'approved',
+      reviewedBy: reviewer.name,
+      reviewedAt: today,
+      approvedTechnicianId: existing.id,
+    }).where(eq(technicianApplications.id, app.id));
+    if (membershipNumber) {
+      await tx.insert(memberships).values({
+        technicianId: existing.id,
+        applicationId: app.id,
+        membershipNumber,
+        membershipType: 'standard',
+        province: app.province,
+        status: 'active',
+        startDate: today.toISOString().split('T')[0],
+        expiryDate: membershipExpiry,
+        approvedBy: reviewer.name,
+        approvedAt: today,
+      });
+    }
+  });
+
+  await recordAuditEvent({
+    entityType: 'technician_application',
+    entityId: app.id,
+    action: 'linked_to_registry_record',
+    previousStatus: app.status,
+    newStatus: 'approved',
+    performedBy: reviewer.name,
+    performedByRole: reviewer.role,
+    notes: `Linked to existing registry record ${existing.registrationNumber}`,
+  }).catch(() => {});
+
+  await afterApplicationApproved(
+    { entityType: 'technician_application', entityId: app.id, role: 'technician', name: app.name, email: app.email },
+    reviewer,
+    app.status,
+  );
+  if (membershipNumber) {
+    await sendMembershipConfirmationEmail({
+      email: app.email, name: app.name, membershipNumber, expiryDate: membershipExpiry,
+      log: { entityType: 'technician_application', entityId: app.id, label: app.name },
+    });
+  }
+
+  return NextResponse.json({
+    id: app.id,
+    status: 'approved',
+    approvedTechnicianId: existing.id,
+    linkedExisting: true,
+    registrationNumber: existing.registrationNumber,
+    reviewedAt: today.toISOString(),
+    reviewedBy: reviewer.name,
   });
 }

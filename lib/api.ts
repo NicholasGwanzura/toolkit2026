@@ -53,10 +53,15 @@ import type { TechnicianRewardSummary } from '@/lib/server/rewards';
 /** An error from the API that keeps the HTTP status, so callers can tell "try again later" from "this was refused". */
 export class ApiError extends Error {
   status: number;
-  constructor(message: string, status: number) {
+  /** A short machine-readable reason some routes add, and any extra detail they return. */
+  code?: string;
+  data?: Record<string, unknown>;
+  constructor(message: string, status: number, data?: Record<string, unknown>) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
+    this.data = data;
+    this.code = typeof data?.code === 'string' ? data.code : undefined;
   }
 }
 
@@ -79,7 +84,7 @@ async function post<T>(url: string, body?: unknown): Promise<T> {
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({})) as { error?: string };
-    throw new ApiError(data.error ?? `Request failed: ${res.status}`, res.status);
+    throw new ApiError(data.error ?? `Request failed: ${res.status}`, res.status, data as Record<string, unknown>);
   }
   return res.json() as Promise<T>;
 }
@@ -724,8 +729,8 @@ export async function createTechnicianApplication(
   return result;
 }
 
-export async function approveTechnicianApplication(id: string): Promise<TechnicianApplication> {
-  const result = await post<TechnicianApplication>(`/api/technician-applications/${id}/approve`);
+export async function approveTechnicianApplication(id: string, options?: { linkToExisting?: boolean }): Promise<TechnicianApplication> {
+  const result = await post<TechnicianApplication>(`/api/technician-applications/${id}/approve`, options?.linkToExisting ? { linkToExisting: true } : undefined);
   await mutate('/api/technician-applications');
   await mutate('/api/technicians');
   await mutate((key) => typeof key === 'string' && key.startsWith('/api/memberships'));
