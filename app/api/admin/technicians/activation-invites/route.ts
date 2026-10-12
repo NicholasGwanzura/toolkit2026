@@ -17,7 +17,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function classify() {
   const since = new Date(Date.now() - RECENT_DAYS * 24 * 60 * 60 * 1000);
-  const [techs, accounts, recent] = await Promise.all([
+  const [techs, accounts, recent, failedRows] = await Promise.all([
     db.select({ id: technicians.id, name: technicians.name, email: technicians.email, region: technicians.region })
       .from(technicians).orderBy(asc(technicians.registrationNumber)),
     db.select({ email: users.email }).from(users).where(sql`${users.passwordHash} IS NOT NULL`),
@@ -26,18 +26,24 @@ async function classify() {
       inArray(emailLog.status, ['sent', 'delivered', 'delayed']),
       gte(emailLog.sentAt, since),
     )),
+    db.select({ email: emailLog.recipientEmail }).from(emailLog).where(and(
+      eq(emailLog.emailType, 'account_activation'),
+      eq(emailLog.status, 'failed'),
+      gte(emailLog.sentAt, since),
+    )),
   ]);
+  const failedBefore = new Set(failedRows.map((r) => r.email.trim().toLowerCase()));
   const withAccount = new Set(accounts.map((a) => a.email.toLowerCase()));
   const recentlyEmailed = new Set(recent.map((r) => r.email.trim().toLowerCase()));
   let awaiting = 0;
   const counts: Record<ActivationEligibility, number> = { eligible: 0, 'has-account': 0, 'no-email': 0, undeliverable: 0 };
-  const eligible: typeof techs = [];
+  const eligible: Array<(typeof techs)[number] & { failedBefore: boolean }> = [];
   for (const t of techs) {
     const state = activationEligibility({ email: t.email, hasWorkingAccount: !!t.email && withAccount.has(t.email.trim().toLowerCase()) });
     counts[state] += 1;
     if (state === 'eligible') {
       if (t.email && recentlyEmailed.has(t.email.trim().toLowerCase())) awaiting += 1;
-      else eligible.push(t);
+      else eligible.push({ ...t, failedBefore: !!t.email && failedBefore.has(t.email.trim().toLowerCase()) });
     }
   }
   return { total: techs.length, counts, eligible, awaiting };
@@ -54,6 +60,7 @@ export async function GET(req: Request) {
     total,
     waiting: eligible.length,
     emailedAwaiting: awaiting,
+    failedToResend: eligible.filter((t) => t.failedBefore).length,
     hasAccount: counts['has-account'],
     noEmail: counts['no-email'],
     undeliverable: counts.undeliverable,
@@ -68,12 +75,14 @@ export async function POST(req: Request) {
     return e as Response;
   }
 
-  const body = await req.json().catch(() => ({})) as { ids?: unknown };
+  const body = await req.json().catch(() => ({})) as { ids?: unknown; failedOnly?: unknown };
   const ids = Array.isArray(body.ids) ? body.ids.filter((v): v is string => typeof v === 'string').slice(0, BATCH_SIZE) : null;
 
   try {
     const { eligible } = await classify();
-    const pool = ids ? eligible.filter((t) => ids.includes(t.id)) : eligible;
+    // failedOnly: just the people whose last activation email failed, nobody else.
+    const base = body.failedOnly === true ? eligible.filter((t) => t.failedBefore) : eligible;
+    const pool = ids ? base.filter((t) => ids.includes(t.id)) : base;
     const batch = pool.slice(0, BATCH_SIZE);
 
     let sent = 0;
