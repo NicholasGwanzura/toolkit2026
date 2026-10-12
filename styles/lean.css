@@ -1,0 +1,74 @@
+/* BoardUI, lean integration: tokens, type scale, the table primitive, and our brand on top.
+ * Not imported: BoardUI's own globals.css, which carries page-level resets and demo styles. */
+@import "./theme.css";
+@import "./typography.css";
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------------------------------------------------------------------------
+ * Table primitive (components/base/table)
+ *
+ * React Aria's collection components (Column/Row/Cell/…) can't be wrapped in
+ * custom components without losing collection behaviour, so the primitive
+ * re-exports them untouched and styling lives here, scoped to `.bui-table`.
+ * React Aria renders real <table>/<thead>/<th>/<tr>/<td> elements.
+ * --------------------------------------------------------------------------- */
+.bui-table {
+  @apply w-full border-collapse text-start;
+}
+/* Header background + border-y live on the cells: with border-collapse the
+ * browser doesn't paint backgrounds/borders set on the <thead> row group.
+ * Backgrounds/borders are set with explicit CSS (theme vars) rather than
+ * @apply, which drops border-width/bg on these row-group cells. */
+.bui-table th {
+  @apply px-3 py-2.5 text-start align-middle text-body-medium text-text-tertiary whitespace-nowrap outline-none;
+  background-color: var(--color-background-secondary-default);
+  border-top: 1px solid var(--color-separator-border);
+  border-bottom: 1px solid var(--color-separator-border);
+  transition: padding 200ms ease, font-size 200ms ease;
+}
+.bui-table td {
+  @apply px-3 py-2.5 align-middle text-body-medium text-text-primary outline-none;
+  transition: padding 200ms ease, font-size 200ms ease;
+}
+/* Separators sit *between* rows only: the trailing row's boundary is drawn by
+ * whatever follows the table (the container's bottom edge, or the pagination
+ * footer's own border-top), so a filtered-down table never doubles up lines. */
+.bui-table tbody tr:not(:last-child) {
+  border-bottom: 1px solid var(--color-separator-border);
+}
+.bui-table tbody tr {
+  @apply transition-colors duration-150;
+}
+.bui-table tbody tr[data-focus-visible] {
+  @apply ring-2 ring-inset ring-border-focus-ring;
+}
+.bui-table.bui-table-sm th,
+.bui-table.bui-table-sm td {
+  @apply px-2.5 py-1.5 text-body-2-medium;
+}
+
+
+/* Brand: BoardUI's blue accent becomes our amber (#D97706 is amber-600). */
+@theme {
+  --color-accent-50:  var(--color-amber-50);
+  --color-accent-100: var(--color-amber-100);
+  --color-accent-200: var(--color-amber-200);
+  --color-accent-300: var(--color-amber-300);
+  --color-accent-400: var(--color-amber-500);
+  --color-accent-500: var(--color-amber-600);
+  --color-accent-600: var(--color-amber-700);
+  --color-accent-700: var(--color-amber-800);
+  --color-accent-800: var(--color-amber-900);
+  --color-accent-900: var(--color-amber-950);
+  --color-accent-950: var(--color-amber-950);
+
+  /* BoardUI also changes two colours our pages already use (slate-200, blue-400). Put them back so nothing shifts. */
+  --color-slate-200: oklch(92.9% 0.013 255.508);
+  --color-blue-400: oklch(70.7% 0.165 254.624);
+
+  /* BoardUI redefines the shadow scale. Keep ours as Tailwind's defaults so existing pages do not shift. */
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+}

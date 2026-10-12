@@ -1,8 +1,9 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Camera, CheckSquare, ClipboardCheck, FileText, ScanText, type LucideIcon } from 'lucide-react';
+import { Tab, TabList, TabPanel, Tabs } from '@/components/base/tabs/tabs';
 import type { InstallationChecklistSnapshot } from '@/types/index';
 import { OcrNameplateScanner } from '@/components/OcrNameplateScanner';
 import { ImageAnnotationWorkbench } from '@/components/ImageAnnotationWorkbench';
@@ -12,12 +13,12 @@ import GasRegisterTab, { ACTIONS, type GasRegisterPrefill } from '@/components/f
 
 type ToolkitTab = 'scan' | 'checklist' | 'installations' | 'register' | 'photos';
 
-const TABS: Array<{ id: ToolkitTab; label: string; hint: string; icon: LucideIcon }> = [
-  { id: 'scan', label: 'Scan', hint: 'Read a nameplate', icon: ScanText },
-  { id: 'checklist', label: 'Checklist', hint: 'Install or service', icon: CheckSquare },
-  { id: 'installations', label: 'Installations', hint: 'Evidence and COC', icon: ClipboardCheck },
-  { id: 'register', label: 'Gas register', hint: 'Charge and recovery', icon: FileText },
-  { id: 'photos', label: 'Photo notes', hint: 'Mark up a photo', icon: Camera },
+const TABS: Array<{ id: ToolkitTab; label: string; icon: LucideIcon }> = [
+  { id: 'scan', label: 'Scan', icon: ScanText },
+  { id: 'checklist', label: 'Checklist', icon: CheckSquare },
+  { id: 'installations', label: 'Installations', icon: ClipboardCheck },
+  { id: 'register', label: 'Gas register', icon: FileText },
+  { id: 'photos', label: 'Photo notes', icon: Camera },
 ];
 
 function parseTab(value: string | null): ToolkitTab {
@@ -51,59 +52,39 @@ export default function FieldToolkit() {
     router.replace(`${pathname}?tab=${tab}`, { scroll: false });
   }, [pathname, router]);
 
-  const onTabKeyDown = (event: React.KeyboardEvent, index: number) => {
-    if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
-    event.preventDefault();
-    const next = TABS[(index + (event.key === 'ArrowRight' ? 1 : TABS.length - 1)) % TABS.length];
-    go(next.id);
-    document.getElementById(`toolkit-tab-${next.id}`)?.focus();
-  };
+  // Keep the selected tab in view on a narrow screen where the strip scrolls sideways.
+  useEffect(() => {
+    document.querySelector<HTMLElement>('[role="tab"][data-selected]')?.scrollIntoView({ inline: 'center', block: 'nearest' });
+  }, [active]);
 
   return (
     <div className="border border-stone-200 bg-white shadow-sm">
-      <div role="tablist" aria-label="Field toolkit" className="flex overflow-x-auto border-b border-stone-200 bg-stone-50">
-        {TABS.map((tab, index) => {
-          const Icon = tab.icon;
-          const selected = tab.id === active;
-          return (
-            <button
-              key={tab.id}
-              id={`toolkit-tab-${tab.id}`}
-              role="tab"
-              type="button"
-              aria-selected={selected}
-              aria-controls={`toolkit-panel-${tab.id}`}
-              tabIndex={selected ? 0 : -1}
-              onClick={() => go(tab.id)}
-              onKeyDown={event => onTabKeyDown(event, index)}
-              className={`flex min-h-14 shrink-0 flex-1 items-center justify-center gap-2 whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold transition-colors ${selected ? 'border-[#D97706] bg-white text-[#b45309]' : 'border-transparent text-stone-600 hover:bg-stone-100 hover:text-stone-900'}`}
-            >
-              <Icon className="h-4 w-4" aria-hidden="true" />
-              <span className="text-left">
+      <Tabs selectedKey={active} onSelectionChange={(key) => go(parseTab(String(key)))} className="gap-0">
+        <div className="overflow-x-auto bg-stone-50 px-2">
+          <TabList aria-label="Field toolkit" className="min-w-max">
+            {TABS.map((tab) => (
+              <Tab key={tab.id} id={tab.id} icon={tab.icon} className="min-h-12 px-3">
                 {tab.label}
-                <span className="hidden text-[11px] font-normal text-stone-500 lg:block">{tab.hint}</span>
-              </span>
-            </button>
-          );
-        })}
-      </div>
+              </Tab>
+            ))}
+          </TabList>
+        </div>
 
-      <div id={`toolkit-panel-${active}`} role="tabpanel" aria-labelledby={`toolkit-tab-${active}`} className="p-4 sm:p-6">
-        {active === 'scan' && (
+        <TabPanel id="scan" className="p-4 sm:p-6">
           <OcrNameplateScanner
             onUseRefrigerant={(code, extra) => {
               setScanned({ code, amountKg: extra?.amountKg });
               go('register');
             }}
           />
-        )}
-        {active === 'checklist' && (
+        </TabPanel>
+        <TabPanel id="checklist" className="p-4 sm:p-6">
           <ChecklistTab saved={checklist} onSave={setChecklist} onGoToInstallations={() => go('installations')} />
-        )}
-        {active === 'installations' && (
+        </TabPanel>
+        <TabPanel id="installations" className="p-4 sm:p-6">
           <InstallationsTab checklist={checklist} onChecklistUsed={() => setChecklist(null)} onGoToChecklist={() => go('checklist')} />
-        )}
-        {active === 'register' && (
+        </TabPanel>
+        <TabPanel id="register" className="p-4 sm:p-6">
           <GasRegisterTab
             prefill={prefill}
             onPrefillConsumed={() => {
@@ -111,14 +92,14 @@ export default function FieldToolkit() {
               if (voicePrefill) router.replace(`${pathname}?tab=register`, { scroll: false });
             }}
           />
-        )}
-        {active === 'photos' && (
+        </TabPanel>
+        <TabPanel id="photos" className="p-4 sm:p-6">
           <div className="space-y-3">
             <p className="border border-stone-200 bg-stone-50 px-3 py-2 text-sm text-stone-600">Photo notes are saved on this device only. To keep a photo with a job record, attach it to an installation.</p>
             <ImageAnnotationWorkbench />
           </div>
-        )}
-      </div>
+        </TabPanel>
+      </Tabs>
     </div>
   );
 }
