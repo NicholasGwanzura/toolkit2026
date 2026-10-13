@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { BookOpen, Plus, Search, Trash2 } from 'lucide-react';
+import { BookOpen, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { Button } from '@/components/base/buttons/button';
 import { Pagination } from '@/components/base/pagination/pagination';
 import { SegmentedControl, SegmentedControlItem } from '@/components/base/segmented-control/segmented-control';
@@ -135,7 +135,7 @@ export function CourseList() {
               <TableColumn>Content</TableColumn>
               <TableColumn>Learners</TableColumn>
               <TableColumn>Updated</TableColumn>
-              <TableColumn>{' '}</TableColumn>
+              <TableColumn>Actions</TableColumn>
             </TableHeader>
             <TableBody>
               {rows.map((course) => {
@@ -161,11 +161,17 @@ export function CourseList() {
                     </TableCell>
                     <TableCell><span className="whitespace-nowrap text-xs text-stone-600">{formatDate(course.updatedAt)}</span></TableCell>
                     <TableCell>
+                      <div className="flex items-center gap-1">
+                      <button type="button" aria-label={`${isEditable(course.status) ? 'Edit' : 'Open'} ${course.title}`} onClick={(event) => { event.stopPropagation(); router.push(`/learn/manage/${course.id}`); }} className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-800 transition hover:border-[#D97706] hover:text-[#B45309]">
+                        <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                        {isEditable(course.status) ? 'Edit' : 'Open'}
+                      </button>
                       {isEditable(course.status) && (
                         <button type="button" aria-label={`Delete ${course.title}`} onClick={() => { setDeleteError(''); setToDelete(course); }} className="rounded p-2 text-stone-400 transition hover:bg-rose-50 hover:text-rose-700">
                           <Trash2 className="h-4 w-4" aria-hidden="true" />
                         </button>
                       )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
