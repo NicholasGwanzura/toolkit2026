@@ -10,20 +10,22 @@ import { Slider } from '@/components/base/slider/slider';
 import { Tab, TabList, TabPanel, Tabs } from '@/components/base/tabs/tabs';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { deleteCourse, deleteCourseMaterial, submitCourse, updateCourse, useCourse } from '@/lib/api';
-import { MAX_DESCRIPTION, MAX_TITLE, basicsProblem, courseReadiness, formatMinutes, isDirty, moduleProblem, totalMinutes, type CourseDraft } from '@/lib/course-readiness';
+import { MAX_DESCRIPTION, MAX_TITLE, basicsProblem, courseReadiness, examProblem, formatMinutes, isDirty, moduleProblem, totalMinutes, type CourseDraft } from '@/lib/course-readiness';
 import type { CourseAttachment, CourseModule, ManagedCourse } from '@/lib/platformStore';
 import { ModuleEditor } from './ModuleEditor';
+import { ExamEditor } from './ExamEditor';
+import type { ExamQuestion } from '@/lib/exam';
 import { STATUS_META, StatusPill, isEditable } from './status';
 
-type Section = 'details' | 'modules' | 'review';
+type Section = 'details' | 'modules' | 'exam' | 'review';
 type SaveState =
   | { kind: 'saved'; at: Date }
   | { kind: 'saving' }
   | { kind: 'waiting'; reason: string }
   | { kind: 'error'; message: string };
 
-type Draft = Omit<CourseDraft, 'modules'> & { modules: CourseModule[] };
-const toDraft = (course: ManagedCourse): Draft => ({ title: course.title, description: course.description, passMark: course.passMark, cpdCredits: course.cpdCredits, modules: course.modules });
+type Draft = Omit<CourseDraft, 'modules' | 'examQuestions'> & { modules: CourseModule[]; examQuestions: ExamQuestion[] };
+const toDraft = (course: ManagedCourse): Draft => ({ title: course.title, description: course.description, passMark: course.passMark, cpdCredits: course.cpdCredits, modules: course.modules, examQuestions: course.examQuestions ?? [] });
 const AUTOSAVE_MS = 1500;
 
 export function CourseEditor({ courseId }: { courseId: string }) {
@@ -41,6 +43,7 @@ export function CourseEditor({ courseId }: { courseId: string }) {
   const [savedDraft, setSavedDraft] = useState<Draft | null>(null);
   const pendingFileDeletes = useRef<string[]>([]);
   const saving = useRef(false);
+  const savedDraftRef = useRef<Draft | null>(null);
 
   // Load the course into an editable copy once; after that the copy is what the person is editing.
   if (course && draft === null) {
@@ -51,6 +54,7 @@ export function CourseEditor({ courseId }: { courseId: string }) {
 
   const editable = course ? isEditable(course.status) : false;
   const dirty = draft && savedDraft ? isDirty(draft, savedDraft) : false;
+  useEffect(() => { savedDraftRef.current = savedDraft; }, [savedDraft]);
   const readiness = useMemo(() => (draft ? courseReadiness(draft) : null), [draft]);
 
   const persist = useCallback(async (next: Draft): Promise<boolean> => {
@@ -58,10 +62,15 @@ export function CourseEditor({ courseId }: { courseId: string }) {
     saving.current = true;
     setSaveState({ kind: 'saving' });
     try {
-      const updated = await updateCourse(courseId, { title: next.title.trim(), description: next.description.trim(), passMark: next.passMark, cpdCredits: next.cpdCredits, modules: next.modules });
-      setSavedDraft(next);
+      // The exam is saved only when its questions are complete, so a half-written question never blocks saving the rest.
+      const examOk = examProblem(next.examQuestions) === '' || next.examQuestions.length === 0;
+      const updated = await updateCourse(courseId, {
+        title: next.title.trim(), description: next.description.trim(), passMark: next.passMark, cpdCredits: next.cpdCredits, modules: next.modules,
+        ...(examOk ? { examQuestions: next.examQuestions } : {}),
+      });
+      setSavedDraft(examOk ? next : { ...next, examQuestions: savedDraftRef.current?.examQuestions ?? [] });
       void mutate(updated, { revalidate: false });
-      setSaveState({ kind: 'saved', at: new Date() });
+      setSaveState(examOk ? { kind: 'saved', at: new Date() } : { kind: 'waiting', reason: `Saved, except the exam. ${examProblem(next.examQuestions)}` });
       // Files the person removed are deleted from storage only once the course no longer lists them.
       const keys = pendingFileDeletes.current.splice(0);
       for (const key of keys) deleteCourseMaterial(courseId, key).catch(() => undefined);
@@ -82,9 +91,15 @@ export function CourseEditor({ courseId }: { courseId: string }) {
       setSaveState({ kind: 'waiting', reason: `Not saved yet. ${problem}` });
       return;
     }
+    // Only the exam changed and it is incomplete: wait, and say so, instead of saving in a loop.
+    const examChangedOnly = savedDraft && !isDirty({ ...draft, examQuestions: savedDraft.examQuestions }, savedDraft);
+    if (examChangedOnly && examProblem(draft.examQuestions) !== '' && draft.examQuestions.length > 0) {
+      setSaveState({ kind: 'waiting', reason: `Exam not saved yet. ${examProblem(draft.examQuestions)}` });
+      return;
+    }
     const timer = setTimeout(() => { void persist(draft); }, AUTOSAVE_MS);
     return () => clearTimeout(timer);
-  }, [draft, editable, dirty, persist]);
+  }, [draft, editable, dirty, persist, savedDraft]);
 
   // Warn before leaving with changes that are not saved.
   useEffect(() => {
@@ -210,6 +225,7 @@ export function CourseEditor({ courseId }: { courseId: string }) {
         <TabList aria-label="Course sections">
           <Tab id="details">Details</Tab>
           <Tab id="modules" count={draft.modules.length}>Modules</Tab>
+          <Tab id="exam" count={draft.examQuestions.length}>Exam</Tab>
           <Tab id="review" count={readiness.missing.length || undefined}>Review</Tab>
         </TabList>
 
@@ -254,6 +270,10 @@ export function CourseEditor({ courseId }: { courseId: string }) {
             </ul>
             {!readOnly && <Button variant="secondary" leadingIcon={Plus} onClick={addModule}>Add module</Button>}
           </div>
+        </TabPanel>
+
+        <TabPanel id="exam" className="pt-5">
+          <ExamEditor questions={draft.examQuestions} readOnly={readOnly} onChange={(examQuestions) => update({ examQuestions })} />
         </TabPanel>
 
         <TabPanel id="review" className="pt-5">

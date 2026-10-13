@@ -46,6 +46,8 @@ export interface CourseModule {
 
 export type CourseStatus = 'draft' | 'pending_nou' | 'approved' | 'rejected';
 
+import type { ExamQuestion } from '@/lib/exam';
+
 export interface ManagedCourse {
     id: string;
     lecturerId: string;
@@ -53,6 +55,10 @@ export interface ManagedCourse {
     title: string;
     description: string;
     modules: CourseModule[];
+    /** How many exam questions the course has. Safe for everyone to see. */
+    examQuestionCount: number;
+    /** The questions with their answer key. Only sent to the course's author and administrators. */
+    examQuestions?: ExamQuestion[];
     status: CourseStatus;
     rejectionReason?: string;
     passMark: number;
@@ -66,6 +72,8 @@ export type ExamSubmissionStatus = 'pending' | 'graded';
 export interface ExamAnswer {
     question: string;
     answer: string;
+    /** Set when the answer was marked automatically (multiple choice). */
+    correct?: boolean;
 }
 
 export interface ExamSubmission {

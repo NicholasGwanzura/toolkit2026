@@ -49,6 +49,7 @@ import type {
 	  ContractorApplication,
 } from '@/types/index';
 import type { TechnicianRewardSummary } from '@/lib/server/rewards';
+import type { LearnerQuestion, SubmittedAnswer } from '@/lib/exam';
 
 /** An error from the API that keeps the HTTP status, so callers can tell "try again later" from "this was refused". */
 export class ApiError extends Error {
@@ -128,7 +129,7 @@ export function useCourse(id: string | undefined) {
 }
 
 export async function createCourse(
-  body: Omit<ManagedCourse, 'id' | 'status' | 'createdAt' | 'updatedAt' | 'passMark' | 'cpdCredits'> &
+  body: Omit<ManagedCourse, 'id' | 'status' | 'createdAt' | 'updatedAt' | 'passMark' | 'cpdCredits' | 'examQuestionCount' | 'examQuestions'> &
     Partial<Pick<ManagedCourse, 'passMark' | 'cpdCredits'>>
 ): Promise<ManagedCourse> {
   const result = await post<ManagedCourse>('/api/courses', body);
@@ -138,7 +139,7 @@ export async function createCourse(
 
 export async function updateCourse(
   id: string,
-  body: Partial<Pick<ManagedCourse, 'title' | 'description' | 'modules' | 'passMark' | 'cpdCredits'>>
+  body: Partial<Pick<ManagedCourse, 'title' | 'description' | 'modules' | 'passMark' | 'cpdCredits' | 'examQuestions'>>
 ): Promise<ManagedCourse> {
   const result = await patch<ManagedCourse>(`/api/courses/${id}`, body);
   await mutate('/api/courses');
@@ -233,6 +234,42 @@ export async function deleteCourseMaterial(courseId: string, r2Key: string): Pro
 // ---------------------------------------------------------------------------
 // Exam submissions
 // ---------------------------------------------------------------------------
+
+export interface CourseExamState {
+  courseId: string;
+  courseTitle: string;
+  passMark: number;
+  hasExam: boolean;
+  maxAttempts: number;
+  attemptsLeft: number;
+  passed: boolean;
+  waitingForGrading: boolean;
+  last?: { status: 'pending' | 'graded'; score?: number; passed?: boolean; feedback?: string };
+  canAttempt: boolean;
+  /** The questions, without the answer key. Empty unless an attempt can be made. */
+  questions: LearnerQuestion[];
+}
+
+export interface CourseExamResult {
+  submissionId: string;
+  status: 'graded' | 'pending';
+  score?: number;
+  passed?: boolean;
+  passMark: number;
+  needsTrainer: boolean;
+}
+
+/** The exam for a course the learner has started: the questions, and where they stand with their attempts. */
+export function useCourseExam(courseId: string, enabled = true) {
+  return useSWR<CourseExamState>(enabled ? `/api/courses/${courseId}/exam` : null, fetcher);
+}
+
+export async function submitCourseExam(courseId: string, answers: SubmittedAnswer[]): Promise<CourseExamResult> {
+  const result = await post<CourseExamResult>(`/api/courses/${courseId}/exam`, { answers });
+  await mutate(`/api/courses/${courseId}/exam`);
+  await mutate('/api/exam-submissions');
+  return result;
+}
 
 export function useExamSubmissions(enabled = true) {
   return useSWR<ExamSubmission[]>(enabled ? '/api/exam-submissions' : null, fetcher);

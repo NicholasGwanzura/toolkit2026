@@ -1,92 +1,23 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import {
   ArrowRight,
   Award,
   BookOpen,
-  CheckCircle,
   Clock,
   FileText,
   Search,
   Send,
   ShieldCheck,
   UserCheck,
-  X,
 } from 'lucide-react';
 import { CertificateQRCode } from '@/components/CertificateQRCode';
 import { useAuth } from '@/lib/auth';
 import { ZIMBABWE_PROVINCES } from '@/constants/registry';
-import { useTechnicians, useCertificateRequests, createCertificateRequest, reviewCertificateRequest, useExamSubmissions } from '@/lib/api';
-import type { TrainerCertificateRequest } from '@/types/index';
+import { useTechnicians, useCertificateRequests, createCertificateRequest, reviewCertificateRequest, useExamSubmissions, useCourses } from '@/lib/api';
 
-// ---------------------------------------------------------------------------
-// Exam question banks
-// ---------------------------------------------------------------------------
-
-type ExamQuestion = {
-  id: string;
-  question: string;
-  options: string[];
-  correctIndex: number;
-};
-
-type ExamBank = {
-  id: string;
-  title: string;
-  description: string;
-  duration: string;
-  level: string;
-  questions: ExamQuestion[];
-};
-
-const EXAM_BANKS: ExamBank[] = [
-  {
-    id: 'gwp-basic',
-    title: 'Low GWP Refrigerants Safety',
-    description: 'Essential safety protocols for handling flammable and high-pressure low GWP refrigerants.',
-    duration: '45 mins',
-    level: 'Basic',
-    questions: [
-      { id: 'gwp-1', question: 'What does GWP stand for?', options: ['Global Warming Potential', 'Gas Working Pressure', 'General Waste Protocol', 'Greenhouse Water Pollution'], correctIndex: 0 },
-      { id: 'gwp-2', question: 'Which of the following is a low GWP refrigerant?', options: ['R-404A', 'R-290 (Propane)', 'R-134a', 'R-410A'], correctIndex: 1 },
-      { id: 'gwp-3', question: 'What safety class does R-290 belong to?', options: ['A1', 'A2L', 'A3', 'B1'], correctIndex: 2 },
-      { id: 'gwp-4', question: 'When handling flammable refrigerants, what must be present?', options: ['Open flame', 'Leak detection equipment', 'Oxygen tank', 'Wooden tools'], correctIndex: 1 },
-      { id: 'gwp-5', question: 'What is the maximum charge for R-290 in an occupied space?', options: ['No limit', '150g', '500g', 'Depends on room size'], correctIndex: 3 },
-    ],
-  },
-  {
-    id: 'co2-advanced',
-    title: 'R-744 (CO2) System Specialist',
-    description: 'Advanced transcritical and subcritical CO2 system design, installation, and maintenance.',
-    duration: '90 mins',
-    level: 'Advanced',
-    questions: [
-      { id: 'co2-1', question: 'What is the critical point of CO2 (R-744)?', options: ['31.1°C / 73.8 bar', '100°C / 10 bar', '0°C / 50 bar', '50°C / 100 bar'], correctIndex: 0 },
-      { id: 'co2-2', question: 'In transcritical CO2 systems, the gas cooler replaces which component?', options: ['Evaporator', 'Condenser', 'Compressor', 'Expansion valve'], correctIndex: 1 },
-      { id: 'co2-3', question: 'What is a key safety concern with CO2 systems?', options: ['Flammability', 'Toxicity at high concentrations', 'Ozone depletion', 'Corrosion'], correctIndex: 1 },
-      { id: 'co2-4', question: 'What GWP value does R-744 have?', options: ['1430', '1', '675', '0'], correctIndex: 1 },
-      { id: 'co2-5', question: 'What material is commonly used for CO2 system piping?', options: ['Copper', 'Stainless steel', 'PVC', 'Aluminum'], correctIndex: 1 },
-    ],
-  },
-  {
-    id: 'hc-safety',
-    title: 'Hydrocarbon Refrigerant Handling',
-    description: 'Safe handling and service practices for R-290 and R-600a systems.',
-    duration: '60 mins',
-    level: 'Specialist',
-    questions: [
-      { id: 'hc-1', question: 'Hydrocarbon refrigerants are classified as which safety group?', options: ['A1', 'A2', 'A3', 'B2'], correctIndex: 2 },
-      { id: 'hc-2', question: 'What is the LFL of R-290 in air?', options: ['1.5%', '2.1%', '5.0%', '15%'], correctIndex: 1 },
-      { id: 'hc-3', question: 'What type of ventilation is required when servicing hydrocarbon systems?', options: ['Natural ventilation', 'Forced/mechanical ventilation', 'No ventilation needed', 'Recirculating fan'], correctIndex: 1 },
-      { id: 'hc-4', question: 'Can hydrocarbon refrigerants be used in existing R-134a systems?', options: ['Yes, without modification', 'Only with certified retrofit kit', 'Never', 'Only if the compressor is changed'], correctIndex: 2 },
-      { id: 'hc-5', question: 'What is the maximum allowable charge for R-290 in commercial refrigeration?', options: ['150g', '500g', 'No limit with proper ventilation', '1000g'], correctIndex: 2 },
-    ],
-  },
-];
-
-// Compat alias — AVAILABLE_EXAMS is referenced in the JSX below
-const AVAILABLE_EXAMS = EXAM_BANKS;
 
 type TrainerFormState = {
   /** Empty means a manual entry (for example an in-person practical). */
@@ -120,15 +51,13 @@ export default function CertificationsPage() {
   const { data: techniciansData } = useTechnicians(undefined, isAdminOrTrainer);
   const { data: requestsData, isLoading: requestsLoading } = useCertificateRequests();
   const { data: examSubmissionsData } = useExamSubmissions(isTrainer);
+  const { data: coursesData } = useCourses(isAdminOrTrainer);
+  const courseTitles = useMemo(() => (coursesData ?? []).filter(course => course.status === 'approved').map(course => course.title), [coursesData]);
   const passedExams = useMemo(
     () => (examSubmissionsData ?? []).filter(exam => exam.status === 'graded' && exam.passed),
     [examSubmissionsData],
   );
   const [nowRef] = useState(() => Date.now());
-  const [examModal, setExamModal] = useState<ExamBank | null>(null);
-  const [examTaking, setExamTaking] = useState<string | null>(null);
-  const [examAnswers, setExamAnswers] = useState<Record<string, number>>({});
-  const [submittingExam, setSubmittingExam] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRegion, setSelectedRegion] = useState('');
   const [dateFilter, setDateFilter] = useState('');
@@ -136,7 +65,7 @@ export default function CertificationsPage() {
   const [trainerForm, setTrainerForm] = useState<TrainerFormState>({
     examSubmissionId: '',
     technicianId: '',
-    courseTitle: AVAILABLE_EXAMS[0].title,
+    courseTitle: '',
     examDate: '2026-04-05',
     theoryScore: '78',
     practicalScore: '84',
@@ -242,62 +171,6 @@ export default function CertificationsPage() {
       }));
     } catch (err) {
       setNotice(err instanceof Error ? err.message : 'Failed to submit the assessment.');
-    }
-  };
-
-  const handleStartExam = (id: string) => {
-    const bank = EXAM_BANKS.find(e => e.id === id);
-    if (bank) {
-      setExamModal(bank);
-      setExamTaking(id);
-      setExamAnswers({});
-    }
-  };
-
-  const handleAnswerSelect = (questionId: string, optionIndex: number) => {
-    setExamAnswers(prev => ({ ...prev, [questionId]: optionIndex }));
-  };
-
-  const handleSubmitExam = async () => {
-    if (!examModal || !session) return;
-    const allAnswered = examModal.questions.every(q => examAnswers[q.id] !== undefined);
-    if (!allAnswered) {
-      setNotice('Please answer all questions before submitting.');
-      return;
-    }
-    setSubmittingExam(true);
-    try {
-      const total = examModal.questions.length;
-      const correct = examModal.questions.filter(q => examAnswers[q.id] === q.correctIndex).length;
-      const score = Math.round((correct / total) * 100);
-
-      // Submit to exam-submissions API
-      const res = await fetch('/api/exam-submissions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          courseId: examModal.id,
-          courseTitle: examModal.title,
-          studentId: session.id,
-          studentName: session.name,
-          answers: examModal.questions.map(q => ({
-            question: q.question,
-            answer: q.options[examAnswers[q.id] ?? 0],
-          })),
-        }),
-      });
-
-      if (!res.ok) throw new Error((await res.json()).error ?? 'Submission failed');
-
-      setNotice(`Exam submitted! Score: ${score}% (${correct}/${total} correct). Awaiting trainer marking.`);
-      setExamModal(null);
-      setExamTaking(null);
-      setExamAnswers({});
-    } catch (err) {
-      setNotice(err instanceof Error ? err.message : 'Failed to submit exam.');
-    } finally {
-      setSubmittingExam(false);
     }
   };
 
@@ -486,8 +359,9 @@ export default function CertificationsPage() {
                 onChange={(event) => setTrainerForm((current) => ({ ...current, courseTitle: event.target.value }))}
                 className="rounded-lg border border-gray-200 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
               >
-                {AVAILABLE_EXAMS.map((exam) => (
-                  <option key={exam.id} value={exam.title}>{exam.title}</option>
+                <option value="">{courseTitles.length === 0 ? 'No approved courses yet' : 'Choose the course'}</option>
+                {courseTitles.map((title) => (
+                  <option key={title} value={title}>{title}</option>
                 ))}
               </select>
 
@@ -709,112 +583,19 @@ export default function CertificationsPage() {
         )}
       </div>
 
-      {/* Available Assessments */}
+      {/* Exams */}
       <div>
         <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-4">
           <FileText className="h-5 w-5 text-gray-500" />
-          Available Assessments
+          Exams
         </h2>
-        <div className="grid gap-4">
-          {AVAILABLE_EXAMS.map((exam) => (
-            <div key={exam.id} className="bg-white border border-gray-200 p-6 shadow-sm hover:border-blue-300 transition-all group">
-              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
-                      exam.level === 'Advanced'
-                        ? 'bg-purple-100 text-purple-700'
-                        : exam.level === 'Specialist'
-                          ? 'bg-amber-100 text-amber-700'
-                          : 'bg-blue-100 text-blue-700'
-                    }`}>
-                      {exam.level}
-                    </span>
-                    <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{exam.title}</h3>
-                  </div>
-                  <p className="text-sm text-gray-500 line-clamp-2">{exam.description}</p>
-                  <div className="flex items-center gap-4 pt-2 text-xs text-gray-400 font-medium">
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-3.5 w-3.5" />
-                      {exam.duration}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <FileText className="h-3.5 w-3.5" />
-                      {exam.questions.length} Questions
-                    </div>
-                  </div>
-                </div>
-                <div className="flex-shrink-0">
-                  <button
-                    onClick={() => handleStartExam(exam.id)}
-                    disabled={examTaking !== null}
-                    className="rounded-lg flex items-center gap-2 bg-gray-900 text-white px-6 py-2.5 font-bold text-sm hover:bg-blue-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Start Exam
-                    <ArrowRight className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
+        <div className="border border-gray-200 bg-white p-6 shadow-sm">
+          <p className="text-sm leading-6 text-gray-700">Each course has its own exam, set by your trainer. Start a course in the Learning Hub, work through its modules, then choose <strong>Take the exam</strong> on the course card. Multiple-choice answers are marked straight away.</p>
+          <Link href="/learn" className="mt-4 inline-flex items-center gap-2 bg-[#1C1917] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#292524]">
+            Open the Learning Hub
+            <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
-
-        {/* Exam Modal */}
-        {examModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-8">
-            <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto border border-gray-200 bg-white rounded-xl shadow-2xl">
-              <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-                <div>
-                  <h2 className="text-lg font-bold text-gray-900">{examModal.title}</h2>
-                  <p className="text-sm text-gray-500">{examModal.questions.length} questions</p>
-                </div>
-                <button onClick={() => { setExamModal(null); setExamTaking(null); }} className="p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700">
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-              <div className="px-6 py-5 space-y-6">
-                {examModal.questions.map((q, i) => (
-                  <div key={q.id} className="border border-gray-100 bg-gray-50 p-4">
-                    <p className="text-sm font-semibold text-gray-900 mb-3">
-                      {i + 1}. {q.question}
-                    </p>
-                    <div className="space-y-2">
-                      {q.options.map((opt, oi) => (
-                        <label key={oi} className={`flex items-center gap-3 p-3 border cursor-pointer transition-colors ${
-                          examAnswers[q.id] === oi
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-gray-200 bg-white hover:bg-gray-50'
-                        }`}>
-                          <input
-                            type="radio"
-                            name={q.id}
-                            checked={examAnswers[q.id] === oi}
-                            onChange={() => handleAnswerSelect(q.id, oi)}
-                            className="h-4 w-4 text-blue-600"
-                          />
-                          <span className="text-sm text-gray-700">{opt}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="flex items-center justify-between border-t border-gray-100 px-6 py-4">
-                <p className="text-sm text-gray-500">
-                  {Object.keys(examAnswers).length} of {examModal.questions.length} answered
-                </p>
-                <button
-                  onClick={handleSubmitExam}
-                  disabled={submittingExam || Object.keys(examAnswers).length !== examModal.questions.length}
-                  className="inline-flex items-center gap-2 bg-[#D97706] px-6 py-2.5 text-sm font-semibold text-white hover:bg-[#b45309] disabled:opacity-50 transition-colors"
-                >
-                  {submittingExam ? 'Submitting…' : 'Submit Exam'}
-                  <Send className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {notice && (
           <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">

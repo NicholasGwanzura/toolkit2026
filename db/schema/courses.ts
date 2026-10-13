@@ -22,6 +22,8 @@ export const courses = pgTable('courses', {
   description: text('description').notNull(),
   // CourseModule[] stored as JSONB: [{title, content, minutes}]
   modules: jsonb('modules').notNull().default([]),
+  // ExamQuestion[] stored as JSONB (see lib/exam.ts). Includes the answer key, so it is only ever returned to the course's author and administrators.
+  examQuestions: jsonb('exam_questions').notNull().default([]),
   status: courseStatusEnum('status').notNull().default('draft'),
   rejectionReason: text('rejection_reason'),
   // Minimum score (0-100) a learner needs for an exam on this course to count as passed.

@@ -1,3 +1,4 @@
+import type { ExamQuestion } from '@/lib/exam';
 import type { CourseModule, ManagedCourse } from '@/lib/platformStore';
 import { courses } from '@/db/schema/index';
 
@@ -20,7 +21,9 @@ const ALLOWED_MATERIAL_TYPES = [
 
 export const MAX_MATERIAL_SIZE_BYTES = 500 * 1024 * 1024; // 500MB, covers course video uploads
 
-export function toManagedCourse(row: typeof courses.$inferSelect): ManagedCourse {
+/** `includeAnswers` adds the exam questions with their answer key. Pass it only for the course's author or an administrator. */
+export function toManagedCourse(row: typeof courses.$inferSelect, includeAnswers = false): ManagedCourse {
+  const questions = (row.examQuestions ?? []) as ExamQuestion[];
   return {
     id: row.id,
     lecturerId: row.lecturerId,
@@ -28,6 +31,8 @@ export function toManagedCourse(row: typeof courses.$inferSelect): ManagedCourse
     title: row.title,
     description: row.description,
     modules: row.modules as ManagedCourse['modules'],
+    examQuestionCount: questions.length,
+    ...(includeAnswers ? { examQuestions: questions } : {}),
     status: row.status as ManagedCourse['status'],
     rejectionReason: row.rejectionReason ?? undefined,
     passMark: row.passMark,

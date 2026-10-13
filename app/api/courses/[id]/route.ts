@@ -6,6 +6,7 @@ import { requireRole } from '@/lib/server/auth';
 import { isFieldWorkerRole } from '@/lib/field-worker';
 import { deleteMaterial } from '@/lib/server/r2';
 import type { ManagedCourse } from '@/lib/platformStore';
+import { validateExamQuestions } from '@/lib/exam';
 import { collectAttachments, toManagedCourse, validateCourseBasics, validateCourseModules } from '../course-validation';
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -27,7 +28,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  return NextResponse.json(toManagedCourse(row));
+  const seesAnswers = session.role === 'lecturer' || session.role === 'trainer' || session.role === 'org_admin';
+  return NextResponse.json(toManagedCourse(row, seesAnswers));
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -46,7 +48,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json({ error: 'Can only edit draft or rejected courses' }, { status: 409 });
   }
 
-  const body = await req.json().catch(() => ({})) as Partial<Pick<ManagedCourse, 'title' | 'description' | 'modules' | 'passMark' | 'cpdCredits'>>;
+  const body = await req.json().catch(() => ({})) as Partial<Pick<ManagedCourse, 'title' | 'description' | 'modules' | 'passMark' | 'cpdCredits' | 'examQuestions'>>;
   const patch: Partial<typeof courses.$inferInsert> = { updatedAt: new Date() };
   if (body.title !== undefined || body.description !== undefined || body.passMark !== undefined || body.cpdCredits !== undefined) {
     const basics = validateCourseBasics({
@@ -67,8 +69,14 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     patch.modules = modulesResult.modules;
   }
 
+  if (body.examQuestions !== undefined) {
+    const exam = validateExamQuestions(body.examQuestions);
+    if (!exam.ok) return NextResponse.json({ error: exam.error }, { status: 400 });
+    patch.examQuestions = exam.questions;
+  }
+
   const [updated] = await db.update(courses).set(patch).where(eq(courses.id, id)).returning();
-  return NextResponse.json(toManagedCourse(updated));
+  return NextResponse.json(toManagedCourse(updated, true));
 }
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { basicsProblem, courseReadiness, formatMinutes, isDirty, moduleProblem, totalMinutes, type CourseDraft } from './course-readiness';
+import { basicsProblem, courseReadiness, examProblem, formatMinutes, isDirty, moduleProblem, totalMinutes, type CourseDraft } from './course-readiness';
 
 const good: CourseDraft = {
   title: 'Safe handling of R-290',
@@ -7,6 +7,7 @@ const good: CourseDraft = {
   passMark: 70,
   cpdCredits: 12,
   modules: [{ title: 'Introduction', content: 'What R-290 is and why it is flammable.', minutes: 30 }],
+  examQuestions: [{ type: 'choice', text: 'What safety class is R-290?', options: ['A1', 'A3'], correctIndex: 1 }],
 };
 
 describe('courseReadiness', () => {
@@ -67,5 +68,16 @@ describe('basicsProblem', () => {
     expect(basicsProblem({ ...good, passMark: 0 })).toMatch(/pass mark/);
     expect(basicsProblem({ ...good, cpdCredits: 101 })).toMatch(/CPD credits/);
     expect(basicsProblem({ ...good, title: 'x'.repeat(181) })).toMatch(/180/);
+  });
+});
+
+describe('exam readiness', () => {
+  it('needs at least one valid question', () => {
+    expect(courseReadiness({ ...good, examQuestions: [] }).missing.map((i) => i.id)).toContain('exam');
+    expect(courseReadiness({ ...good, examQuestions: undefined }).ready).toBe(false);
+    expect(examProblem([{ type: 'choice', text: 'Q', options: ['A', 'B'], correctIndex: undefined }])).toMatch(/Mark which option is correct in question 1/);
+    expect(examProblem([{ type: 'choice', text: 'Q', options: ['A', 'a'], correctIndex: 0 }])).toMatch(/two options that are the same/);
+    expect(examProblem([{ type: 'written', text: 'Explain' }])).toBe('');
+    expect(examProblem([{ type: 'choice', text: ' ', options: ['A', 'B'], correctIndex: 0 }])).toBe('Question 1 needs its text.');
   });
 });

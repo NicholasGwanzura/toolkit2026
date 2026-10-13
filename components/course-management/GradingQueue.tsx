@@ -129,8 +129,9 @@ function GradeDialog({ submission, passMark, onClose }: { submission: ExamSubmis
         <section aria-label="Answers" className="space-y-2">
           <h3 className="text-sm font-semibold text-stone-900">Answers ({submission.answers.length})</h3>
           {submission.answers.map((entry, index) => (
-            <div key={index} className="rounded-lg border border-stone-200 bg-stone-50 p-3">
+            <div key={index} className={`rounded-lg border p-3 ${entry.correct === true ? 'border-emerald-200 bg-emerald-50' : entry.correct === false ? 'border-rose-200 bg-rose-50' : 'border-stone-200 bg-stone-50'}`}>
               <p className="text-sm font-semibold text-stone-800">{index + 1}. {entry.question}</p>
+              {entry.correct != null && <p className={`text-xs font-semibold ${entry.correct ? 'text-emerald-700' : 'text-rose-700'}`}>{entry.correct ? 'Correct' : 'Incorrect'}</p>}
               <p className="mt-1 whitespace-pre-line text-sm text-stone-700">{entry.answer}</p>
             </div>
           ))}

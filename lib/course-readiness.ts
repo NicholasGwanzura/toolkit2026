@@ -7,6 +7,8 @@ export interface CourseDraft {
   passMark: number;
   cpdCredits: number;
   modules: Array<{ title: string; content: string; minutes: number }>;
+  /** The exam questions. Optional so older callers still work. */
+  examQuestions?: Array<{ type: 'choice' | 'written'; text: string; options?: string[]; correctIndex?: number }>;
 }
 
 export interface ReadinessItem {
@@ -14,7 +16,7 @@ export interface ReadinessItem {
   label: string;
   ok: boolean;
   /** The editor section that fixes it. */
-  section: 'details' | 'modules';
+  section: 'details' | 'modules' | 'exam';
 }
 
 export const MAX_TITLE = 180;
@@ -59,6 +61,23 @@ export function basicsProblem(course: Pick<CourseDraft, 'title' | 'description' 
   return '';
 }
 
+/** The first problem with the exam questions, as a sentence, or '' when they are fine. Mirrors lib/exam.ts. */
+export function examProblem(questions: NonNullable<CourseDraft['examQuestions']>): string {
+  if (questions.length === 0) return 'Add at least one exam question.';
+  for (const [index, q] of questions.entries()) {
+    const n = index + 1;
+    if (!q.text.trim()) return `Question ${n} needs its text.`;
+    if (q.type === 'choice') {
+      const options = q.options ?? [];
+      if (options.length < 2) return `Question ${n} needs at least 2 options.`;
+      if (options.some((option) => !option.trim())) return `Every option in question ${n} needs text.`;
+      if (new Set(options.map((option) => option.trim().toLowerCase())).size !== options.length) return `Question ${n} has two options that are the same.`;
+      if (typeof q.correctIndex !== 'number' || q.correctIndex < 0 || q.correctIndex >= options.length) return `Mark which option is correct in question ${n}.`;
+    }
+  }
+  return '';
+}
+
 export function courseReadiness(course: CourseDraft): { items: ReadinessItem[]; ready: boolean; missing: ReadinessItem[] } {
   const title = course.title.trim();
   const description = course.description.trim();
@@ -69,6 +88,7 @@ export function courseReadiness(course: CourseDraft): { items: ReadinessItem[]; 
     { id: 'pass-mark', label: 'The pass mark is between 1 and 100', ok: Number.isInteger(course.passMark) && course.passMark >= 1 && course.passMark <= 100, section: 'details' },
     { id: 'cpd', label: 'CPD credits are between 0 and 100', ok: Number.isInteger(course.cpdCredits) && course.cpdCredits >= 0 && course.cpdCredits <= 100, section: 'details' },
     { id: 'modules', label: 'There is at least one module', ok: course.modules.length > 0, section: 'modules' },
+    { id: 'exam', label: course.examQuestions && course.examQuestions.length > 0 ? (examProblem(course.examQuestions) || 'The exam has questions with a marked answer') : 'The exam has at least one question', ok: !!course.examQuestions && examProblem(course.examQuestions) === '', section: 'exam' },
     { id: 'module-content', label: problem && course.modules.length > 0 ? problem : 'Every module has a title, content and a time', ok: course.modules.length > 0 && problem === '', section: 'modules' },
   ];
   const missing = items.filter((item) => !item.ok);
@@ -79,6 +99,7 @@ export function courseReadiness(course: CourseDraft): { items: ReadinessItem[]; 
 export function isDirty(a: CourseDraft, b: CourseDraft): boolean {
   const pick = (c: CourseDraft) => JSON.stringify({
     t: c.title, d: c.description, p: c.passMark, c: c.cpdCredits,
+    q: (c.examQuestions ?? []).map((x) => [x.type, x.text, x.options ?? [], x.correctIndex ?? -1]),
     m: c.modules.map((m) => [m.title, m.content, m.minutes, (m as { attachments?: Array<{ id: string }> }).attachments?.map((x) => x.id) ?? []]),
   });
   return pick(a) !== pick(b);

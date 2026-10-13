@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { ExamPanel } from '@/components/ExamPanel';
 import { BookOpen, CheckCircle2, ChevronDown, ChevronUp, Clock, Download, FileText } from 'lucide-react';
 import { useCourses, getCourseMaterialDownloadUrl, enrollInCourse, useEnrollments, type ManagedCourse } from '@/lib/platformStore';
 import { saveCourseProgress, useCourseProgress, type CourseProgressEntry } from '@/lib/api';
@@ -157,6 +158,8 @@ function CourseCard({ course, saved, enrolled }: { course: ManagedCourse; saved?
             {expanded ? 'Hide curriculum' : 'View curriculum'}
           </button>
         </div>
+
+        <ExamPanel courseId={course.id} enrolled={enrolled} />
 
         {!expanded && error && <p role="alert" className="mt-3 text-xs text-red-600">{error}</p>}
 

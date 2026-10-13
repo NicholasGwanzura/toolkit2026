@@ -51,5 +51,5 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   });
 
   await notifyUser(updated.lecturerId, notificationTemplates.courseDecision('returned', updated.title, reason));
-  return NextResponse.json(toManagedCourse(updated));
+  return NextResponse.json(toManagedCourse(updated, true));
 }

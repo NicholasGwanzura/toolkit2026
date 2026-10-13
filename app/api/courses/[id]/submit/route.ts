@@ -26,6 +26,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const modulesResult = validateCourseModules(row.modules, id);
   if (modulesResult.error) return NextResponse.json({ error: modulesResult.error }, { status: 400 });
 
+  if (!Array.isArray(row.examQuestions) || row.examQuestions.length === 0) {
+    return NextResponse.json({ error: 'Add at least one exam question before submitting. Learners cannot pass a course without an exam.' }, { status: 400 });
+  }
+
   let problemMessage: string | null;
   try {
     problemMessage = describeAttachmentProblems(await findAttachmentProblems(modulesResult.modules!));
@@ -41,5 +45,5 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     .where(eq(courses.id, id))
     .returning();
 
-  return NextResponse.json(toManagedCourse(updated));
+  return NextResponse.json(toManagedCourse(updated, true));
 }

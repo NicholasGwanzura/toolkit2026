@@ -26,7 +26,9 @@ export async function GET(req: Request) {
     rows = await db.select().from(courses).limit(MAX_LIST_ROWS);
   }
 
-  return NextResponse.json(rows.map(toManagedCourse));
+  // Only authors and administrators may see the answer key.
+  const seesAnswers = session.role === 'lecturer' || session.role === 'trainer' || session.role === 'org_admin';
+  return NextResponse.json(rows.map((row) => toManagedCourse(row, seesAnswers)));
 }
 
 export async function POST(req: Request) {
@@ -61,5 +63,5 @@ export async function POST(req: Request) {
     })
     .returning();
 
-  return NextResponse.json(toManagedCourse(inserted), { status: 201 });
+  return NextResponse.json(toManagedCourse(inserted, true), { status: 201 });
 }
