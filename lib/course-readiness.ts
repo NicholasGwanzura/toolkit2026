@@ -36,11 +36,11 @@ export function formatMinutes(minutes: number): string {
 }
 
 /** The first problem with the modules, in the server's wording, or an empty string when they are fine. */
-export function moduleProblem(modules: CourseDraft['modules']): string {
+export function moduleProblem(modules: CourseDraft['modules'], options: { draft?: boolean } = {}): string {
   if (modules.length === 0) return 'Add at least one module.';
   for (const [index, module] of modules.entries()) {
     if (!module.title.trim()) return `Module ${index + 1} needs a title.`;
-    if (!module.content.trim()) return `Module ${index + 1} needs learning content.`;
+    if (!module.content.trim() && !options.draft) return `Module ${index + 1} needs learning content.`;
     if (!Number.isFinite(module.minutes) || module.minutes < 1 || module.minutes > MAX_MODULE_MINUTES) {
       return `Module ${index + 1} minutes must be between 1 and ${MAX_MODULE_MINUTES}.`;
     }

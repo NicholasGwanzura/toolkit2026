@@ -42,7 +42,7 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => ({})) as Omit<ManagedCourse, 'id' | 'status' | 'createdAt' | 'updatedAt' | 'passMark' | 'cpdCredits'> & { passMark?: number; cpdCredits?: number };
   const basics = validateCourseBasics(body);
   if (basics.error) return NextResponse.json({ error: basics.error }, { status: 400 });
-  const modulesResult = validateCourseModules(body.modules);
+  const modulesResult = validateCourseModules(body.modules, undefined, { draft: true });
   if (modulesResult.error) return NextResponse.json({ error: modulesResult.error }, { status: 400 });
 
   const now = new Date();

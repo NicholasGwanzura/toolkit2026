@@ -64,7 +64,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (basics.cpdCredits !== undefined) patch.cpdCredits = basics.cpdCredits;
   }
   if (body.modules !== undefined) {
-    const modulesResult = validateCourseModules(body.modules, id);
+    const modulesResult = validateCourseModules(body.modules, id, { draft: true });
     if (modulesResult.error) return NextResponse.json({ error: modulesResult.error }, { status: 400 });
     patch.modules = modulesResult.modules;
   }

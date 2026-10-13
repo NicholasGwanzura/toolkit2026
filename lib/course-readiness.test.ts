@@ -81,3 +81,14 @@ describe('exam readiness', () => {
     expect(examProblem([{ type: 'choice', text: ' ', options: ['A', 'B'], correctIndex: 0 }])).toBe('Question 1 needs its text.');
   });
 });
+
+describe('moduleProblem draft mode', () => {
+  const empty = [{ title: 'Module 1', content: '', minutes: 30 }];
+  it('requires content for approval but not while drafting', () => {
+    expect(moduleProblem(empty)).toMatch(/needs learning content/);
+    expect(moduleProblem(empty, { draft: true })).toBe('');
+  });
+  it('still rejects a missing title in a draft', () => {
+    expect(moduleProblem([{ title: '', content: '', minutes: 30 }], { draft: true })).toMatch(/needs a title/);
+  });
+});

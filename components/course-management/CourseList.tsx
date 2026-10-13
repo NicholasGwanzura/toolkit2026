@@ -2,14 +2,14 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { BookOpen, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { BookOpen, Copy, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { Button } from '@/components/base/buttons/button';
 import { Pagination } from '@/components/base/pagination/pagination';
 import { SegmentedControl, SegmentedControlItem } from '@/components/base/segmented-control/segmented-control';
 import { Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from '@/components/base/table/table';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { useAuth } from '@/lib/auth';
-import { deleteCourse, useCourses, useTrainerCourseStats } from '@/lib/api';
+import { createCourse, deleteCourse, updateCourse, useCourses, useTrainerCourseStats } from '@/lib/api';
 import { formatMinutes, totalMinutes } from '@/lib/course-readiness';
 import type { CourseStatus, ManagedCourse } from '@/lib/platformStore';
 import { NewCourseDialog } from './NewCourseDialog';
@@ -39,6 +39,7 @@ export function CourseList() {
   const [creating, setCreating] = useState(false);
   const [toDelete, setToDelete] = useState<ManagedCourse | null>(null);
   const [deleteError, setDeleteError] = useState('');
+  const [copyingId, setCopyingId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   const counts = useMemo(() => {
@@ -72,6 +73,30 @@ export function CourseList() {
       setDeleteError(err instanceof Error ? err.message : 'Could not delete the course.');
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const duplicate = async (course: ManagedCourse) => {
+    if (!user || copyingId) return;
+    setCopyingId(course.id);
+    setDeleteError('');
+    try {
+      // Uploaded files stay with the original course; the copy gets the text, settings and exam.
+      const copy = await createCourse({
+        lecturerId: user.id,
+        lecturerName: user.name,
+        title: `Copy of ${course.title}`.slice(0, 200),
+        description: course.description,
+        modules: course.modules.map((m) => ({ title: m.title, content: m.content, minutes: m.minutes })),
+        passMark: course.passMark,
+        cpdCredits: course.cpdCredits,
+      });
+      if (course.examQuestions && course.examQuestions.length > 0) await updateCourse(copy.id, { examQuestions: course.examQuestions });
+      router.push(`/learn/manage/${copy.id}`);
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Could not duplicate the course.');
+    } finally {
+      setCopyingId(null);
     }
   };
 
@@ -165,6 +190,9 @@ export function CourseList() {
                       <button type="button" aria-label={`${isEditable(course.status) ? 'Edit' : 'Open'} ${course.title}`} onClick={(event) => { event.stopPropagation(); router.push(`/learn/manage/${course.id}`); }} className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-800 transition hover:border-[#D97706] hover:text-[#B45309]">
                         <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
                         {isEditable(course.status) ? 'Edit' : 'Open'}
+                      </button>
+                      <button type="button" aria-label={`Duplicate ${course.title}`} title="Duplicate" disabled={copyingId !== null} onClick={(event) => { event.stopPropagation(); void duplicate(course); }} className="rounded p-2 text-stone-400 transition hover:bg-stone-100 hover:text-stone-700 disabled:opacity-50">
+                        <Copy className="h-4 w-4" aria-hidden="true" />
                       </button>
                       {isEditable(course.status) && (
                         <button type="button" aria-label={`Delete ${course.title}`} onClick={() => { setDeleteError(''); setToDelete(course); }} className="rounded p-2 text-stone-400 transition hover:bg-rose-50 hover:text-rose-700">

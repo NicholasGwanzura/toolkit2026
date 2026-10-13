@@ -74,8 +74,9 @@ function validateAttachment(raw: unknown, courseId: string | undefined): Attachm
 /**
  * courseId is required to keep attachments: they must live under `courses/<courseId>/`. When it
  * is omitted (a brand-new course that has no id yet) any attachment is rejected.
+ * `draft` lets module content be empty; only submit and approve require it.
  */
-export function validateCourseModules(value: unknown, courseId?: string): { modules?: CourseModule[]; error?: string } {
+export function validateCourseModules(value: unknown, courseId?: string, options: { draft?: boolean } = {}): { modules?: CourseModule[]; error?: string } {
   if (!Array.isArray(value) || value.length === 0) {
     return { error: 'Add at least one course module before saving.' };
   }
@@ -93,7 +94,8 @@ export function validateCourseModules(value: unknown, courseId?: string): { modu
     const minutes = Number(item.minutes);
 
     if (!title) return { error: `Module ${index + 1} needs a title.` };
-    if (!content) return { error: `Module ${index + 1} needs learning content.` };
+    // A draft may keep a module's content empty while it is being written. Submitting and approving use the strict check.
+    if (!content && !options.draft) return { error: `Module ${index + 1} needs learning content.` };
     if (!Number.isFinite(minutes) || minutes < 1 || minutes > 480) {
       return { error: `Module ${index + 1} minutes must be between 1 and 480.` };
     }

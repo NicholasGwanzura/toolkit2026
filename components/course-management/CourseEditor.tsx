@@ -86,7 +86,7 @@ export function CourseEditor({ courseId }: { courseId: string }) {
   // Save automatically a moment after the person stops typing, but only when the server would accept it.
   useEffect(() => {
     if (!draft || !editable || !dirty) return;
-    const problem = basicsProblem(draft) || moduleProblem(draft.modules);
+    const problem = basicsProblem(draft) || moduleProblem(draft.modules, { draft: true });
     if (problem) {
       setSaveState({ kind: 'waiting', reason: `Not saved yet. ${problem}` });
       return;
@@ -145,7 +145,7 @@ export function CourseEditor({ courseId }: { courseId: string }) {
     if (!draft) return;
     const next = { ...draft, modules: draft.modules.map((m, i) => (i === index ? { ...m, attachments } : m)) };
     setDraft(next);
-    if (!moduleProblem(next.modules)) await persist(next);
+    if (!moduleProblem(next.modules, { draft: true })) await persist(next);
     else setSaveState({ kind: 'waiting', reason: 'The file is uploaded. Finish this module (title and content) and the course will save.' });
   };
 

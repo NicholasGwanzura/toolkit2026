@@ -10,18 +10,16 @@ import { Dialog } from './Dialog';
 
 const textareaClass = 'w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-[#D97706] focus:ring-2 focus:ring-[#D97706]/20';
 
-/** Starts a draft with just enough to be valid (the server needs a title, a description and one module), then opens the editor. */
+/** Starts a draft from a title and description, with one empty module to fill in, then opens the editor. */
 export function NewCourseDialog({ isOpen, onOpenChange }: { isOpen: boolean; onOpenChange: (open: boolean) => void }) {
   const { user } = useAuth();
   const router = useRouter();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [moduleTitle, setModuleTitle] = useState('Introduction');
-  const [moduleContent, setModuleContent] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  const ready = title.trim() && description.trim() && moduleTitle.trim() && moduleContent.trim();
+  const ready = title.trim() && description.trim();
 
   const create = async () => {
     if (!user || !ready) return;
@@ -33,7 +31,7 @@ export function NewCourseDialog({ isOpen, onOpenChange }: { isOpen: boolean; onO
         lecturerName: user.name,
         title: title.trim(),
         description: description.trim(),
-        modules: [{ title: moduleTitle.trim(), content: moduleContent.trim(), minutes: 30 }],
+        modules: [{ title: 'Module 1', content: '', minutes: 30 }],
       });
       onOpenChange(false);
       router.push(`/learn/manage/${course.id}`);
@@ -45,21 +43,21 @@ export function NewCourseDialog({ isOpen, onOpenChange }: { isOpen: boolean; onO
   };
 
   return (
-    <Dialog isOpen={isOpen} onOpenChange={onOpenChange} title="New course" description="Start with the basics. You can add modules, files and settings in the editor, and nothing is visible to learners until an administrator approves it.">
+    <Dialog isOpen={isOpen} onOpenChange={onOpenChange} title="New course" description="Start with the basics. Nothing is visible to learners until an administrator approves it.">
       <form onSubmit={(event) => { event.preventDefault(); void create(); }} className="space-y-4">
         <Input label="Course title" value={title} onChange={setTitle} placeholder="Safe handling of R-290" isRequired />
         <div className="space-y-1.5">
           <label htmlFor="new-course-description" className="text-sm font-medium text-stone-800">What will learners get from it?</label>
           <textarea id="new-course-description" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} className={textareaClass} />
         </div>
-        <fieldset className="space-y-3 rounded-lg border border-stone-200 p-3">
-          <legend className="px-1 text-sm font-semibold text-stone-800">First module</legend>
-          <Input label="Module title" value={moduleTitle} onChange={setModuleTitle} isRequired />
-          <div className="space-y-1.5">
-            <label htmlFor="new-course-module" className="text-sm font-medium text-stone-800">Learning content</label>
-            <textarea id="new-course-module" rows={4} value={moduleContent} onChange={(e) => setModuleContent(e.target.value)} className={textareaClass} />
-          </div>
-        </fieldset>
+        <div className="rounded-lg border border-stone-200 bg-stone-50 p-3 text-sm text-stone-700">
+          <p className="font-semibold text-stone-900">Before an administrator can approve it, the course needs</p>
+          <ul className="mt-1 list-disc space-y-0.5 pl-5">
+            <li>at least one module with a title, content and a time</li>
+            <li>an exam with at least one question, and a pass mark</li>
+          </ul>
+          <p className="mt-1 text-xs text-stone-500">You add these in the editor next. Your work saves automatically.</p>
+        </div>
         {error && <p role="alert" className="text-sm font-medium text-rose-700">{error}</p>}
         <div className="flex justify-end gap-2 border-t border-stone-200 pt-4">
           <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>Cancel</Button>
