@@ -2,13 +2,13 @@
 @import "../styles/lean.css";
 
 @theme inline {
-  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --font-sans: var(--font-honor-sans), system-ui, sans-serif;
 }
 
 body {
   background-color: #ffffff;
   color: #1C1917;
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-honor-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

@@ -170,6 +170,7 @@ export function SiteFooter() {
             <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
             <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
             <Link href="/privacy#cookies" className="hover:text-white transition-colors">Cookies</Link>
+            <a href="/fonts/honor-sans/LICENSE.txt" className="hover:text-white transition-colors">Font: HONOR Sans © Honor Device Co., Ltd.</a>
           </div>
         </div>
 

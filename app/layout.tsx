@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { GeistSans } from 'geist/font/sans';
+import { honorSans } from './fonts/honor-sans';
 import './globals.css';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { ServiceWorkerRegistrar } from '@/components/ServiceWorkerRegistrar';
@@ -27,7 +27,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={GeistSans.variable}>
+    <html lang="en" className={honorSans.variable}>
       <body className="min-h-screen bg-white text-[#1C1917] antialiased font-sans">
         <I18nProvider>
           <EmergencyModeProvider>
