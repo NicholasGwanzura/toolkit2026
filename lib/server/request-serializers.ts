@@ -1,6 +1,6 @@
-import { cocRequests, supplierApplications, supplierReorders, tradePermits, trainerCertificateRequests } from '@/db/schema/index';
+import { cocRequests, supplierApplications, supplierReorders, trainerCertificateRequests } from '@/db/schema/index';
 import type { SupplierReorder } from '@/lib/platformStore';
-import type { CocRequest, SupplierRegistration, TradePermit, TrainerCertificateRequest } from '@/types/index';
+import type { CocRequest, SupplierRegistration, TrainerCertificateRequest } from '@/types/index';
 
 export function toTrainerCertificateRequest(
   row: typeof trainerCertificateRequests.$inferSelect,
@@ -62,35 +62,6 @@ export function toCocRequest(row: typeof cocRequests.$inferSelect): CocRequest {
     reviewedAt: row.reviewedAt?.toISOString() ?? undefined,
     reviewNote: row.reviewNote ?? undefined,
     issuedDate: row.issuedDate ?? undefined,
-    submittedAt: row.submittedAt.toISOString(),
-    createdAt: row.createdAt.toISOString(),
-  };
-}
-
-export function toTradePermit(row: typeof tradePermits.$inferSelect): TradePermit {
-  return {
-    id: row.id,
-    permitNumber: row.permitNumber,
-    permitType: row.permitType as TradePermit['permitType'],
-    applicantName: row.applicantName,
-    applicantCompany: row.applicantCompany,
-    applicantEmail: row.applicantEmail,
-    refrigerantId: row.refrigerantId ?? undefined,
-    refrigerantLabel: row.refrigerantLabel,
-    quantityKg: Number(row.quantityKg),
-    countryOfOriginOrDestination: row.countryOfOriginOrDestination,
-    status: row.status as TradePermit['status'],
-    issuedDate: row.issuedDate ?? undefined,
-    expiryDate: row.expiryDate ?? undefined,
-    verificationToken: row.verificationToken ?? undefined,
-    verificationUrl:
-      row.verificationToken && row.status === 'approved'
-        ? `/verify-permit?q=${encodeURIComponent(row.permitNumber)}&token=${row.verificationToken}`
-        : undefined,
-    reviewedBy: row.reviewedBy ?? undefined,
-    reviewedAt: row.reviewedAt?.toISOString() ?? undefined,
-    reviewNote: row.reviewNote ?? undefined,
-    notes: row.notes ?? undefined,
     submittedAt: row.submittedAt.toISOString(),
     createdAt: row.createdAt.toISOString(),
   };

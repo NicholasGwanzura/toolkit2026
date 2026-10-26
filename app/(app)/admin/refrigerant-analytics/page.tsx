@@ -4,12 +4,8 @@ import {
   BarChart, Bar, PieChart, Pie, Cell, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
-import {
-  BarChart3, TrendingUp, Cylinder, FileText, Recycle, RefreshCw,
-  CheckCircle2, AlertTriangle, Clock,
-} from 'lucide-react';
+import { BarChart3, TrendingUp } from 'lucide-react';
 import { useRefrigerantAnalytics } from '@/lib/api';
-import type { RefrigerantAnalytics } from '@/types/index';
 
 const PIE_COLORS = ['#D97706', '#2563eb', '#7c3aed', '#dc2626', '#059669', '#0891b2', '#db2777'];
 
@@ -18,111 +14,6 @@ function ChartCard({ title, children }: { title: string; children: React.ReactNo
     <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
       <h2 className="mb-4 text-lg font-bold text-gray-900">{title}</h2>
       {children}
-    </div>
-  );
-}
-
-function StatCard({
-  icon: Icon, label, value, sub, color,
-}: {
-  icon: typeof Cylinder; label: string; value: string; sub?: string; color: string;
-}) {
-  const colors: Record<string, string> = {
-    blue: 'bg-blue-50 text-blue-600',
-    amber: 'bg-amber-50 text-amber-600',
-    emerald: 'bg-emerald-50 text-emerald-600',
-    purple: 'bg-purple-50 text-purple-600',
-    rose: 'bg-rose-50 text-rose-600',
-    cyan: 'bg-cyan-50 text-cyan-600',
-  };
-  return (
-    <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-      <div className="flex items-center justify-between mb-2">
-        <span className={`p-2 ${colors[color] ?? colors.blue}`}>
-          <Icon className="h-4 w-4" />
-        </span>
-      </div>
-      <p className="text-2xl font-bold text-gray-900">{value}</p>
-      <p className="text-sm text-gray-500 mt-0.5">{label}</p>
-      {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
-    </div>
-  );
-}
-
-function ComplianceSection({ data }: { data: RefrigerantAnalytics['complianceOverview'] }) {
-  return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-      <h2 className="mb-4 text-lg font-bold text-gray-900">Compliance Module Overview</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Cylinders */}
-        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-2">
-          <div className="flex items-center gap-2">
-            <Cylinder className="h-4 w-4 text-blue-600" />
-            <span className="text-sm font-semibold text-gray-900">Cylinders</span>
-          </div>
-          <p className="text-2xl font-bold text-gray-900">{data.cylinders.totalCylinders}</p>
-          <div className="flex flex-wrap gap-2 text-xs">
-            <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2 py-0.5">
-              <CheckCircle2 className="h-3 w-3" /> {data.cylinders.inServiceCount} in service
-            </span>
-            <span className="inline-flex items-center gap-1 bg-rose-50 text-rose-700 px-2 py-0.5">
-              <AlertTriangle className="h-3 w-3" /> {data.cylinders.overdueInspectionCount} inspection overdue
-            </span>
-          </div>
-          <p className="text-xs text-gray-500">{data.cylinders.totalFillKg.toFixed(1)} kg total fill</p>
-        </div>
-
-        {/* Permits */}
-        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-2">
-          <div className="flex items-center gap-2">
-            <FileText className="h-4 w-4 text-purple-600" />
-            <span className="text-sm font-semibold text-gray-900">Trade Permits</span>
-          </div>
-          <p className="text-2xl font-bold text-gray-900">{data.permits.totalPermits}</p>
-          <div className="flex flex-wrap gap-2 text-xs">
-            <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2 py-0.5">
-              <CheckCircle2 className="h-3 w-3" /> {data.permits.approvedCount} approved
-            </span>
-            <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 px-2 py-0.5">
-              <Clock className="h-3 w-3" /> {data.permits.pendingCount} pending
-            </span>
-          </div>
-          <p className="text-xs text-gray-500">{data.permits.totalQuantityKg.toFixed(1)} kg total</p>
-        </div>
-
-        {/* Reclamation */}
-        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-2">
-          <div className="flex items-center gap-2">
-            <Recycle className="h-4 w-4 text-amber-600" />
-            <span className="text-sm font-semibold text-gray-900">Reclamation</span>
-          </div>
-          <p className="text-2xl font-bold text-gray-900">{data.reclamation.totalRecords}</p>
-          <div className="flex flex-wrap gap-2 text-xs">
-            <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2 py-0.5">
-              <CheckCircle2 className="h-3 w-3" /> {data.reclamation.passedCount} passed
-            </span>
-            <span className="inline-flex items-center gap-1 bg-rose-50 text-rose-700 px-2 py-0.5">
-              <AlertTriangle className="h-3 w-3" /> {data.reclamation.failedCount} failed
-            </span>
-            {data.reclamation.pendingCount > 0 && (
-              <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 px-2 py-0.5">
-                <Clock className="h-3 w-3" /> {data.reclamation.pendingCount} pending
-              </span>
-            )}
-          </div>
-          <p className="text-xs text-gray-500">{data.reclamation.totalQuantityKg.toFixed(1)} kg total</p>
-        </div>
-
-        {/* Recycling */}
-        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-2">
-          <div className="flex items-center gap-2">
-            <RefreshCw className="h-4 w-4 text-cyan-600" />
-            <span className="text-sm font-semibold text-gray-900">Recycling</span>
-          </div>
-          <p className="text-2xl font-bold text-gray-900">{data.recycling.totalRecords}</p>
-          <p className="text-xs text-gray-500 mt-1">{data.recycling.totalQuantityKg.toFixed(1)} kg total</p>
-        </div>
-      </div>
     </div>
   );
 }
@@ -234,8 +125,6 @@ export default function RefrigerantAnalyticsPage() {
           </ChartCard>
         </div>
       </div>
-
-      <ComplianceSection data={data.complianceOverview} />
     </div>
   );
 }

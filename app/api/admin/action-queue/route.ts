@@ -7,7 +7,6 @@ import {
   rewardRedemptions,
   supplierComplianceApplications,
   supplierReorders,
-  tradePermits,
   trainerCertificateRequests,
   cocRequests,
 } from '@/db/schema/index';
@@ -25,7 +24,7 @@ export async function GET(req: Request) {
 
   const n = async (query: Promise<Array<{ total: number }>>) => Number((await query)[0]?.total ?? 0);
 
-  const [applicationCounts, coc, certApprovals, certToIssue, courseApprovals, reorders, compliance, permits, accidents, rewards] = await Promise.all([
+  const [applicationCounts, coc, certApprovals, certToIssue, courseApprovals, reorders, compliance, accidents, rewards] = await Promise.all([
     loadApplicationCounts(),
     n(db.select({ total: count() }).from(cocRequests).where(eq(cocRequests.status, 'submitted'))),
     n(db.select({ total: count() }).from(trainerCertificateRequests).where(eq(trainerCertificateRequests.status, 'submitted-for-admin-approval'))),
@@ -33,7 +32,6 @@ export async function GET(req: Request) {
     n(db.select({ total: count() }).from(courses).where(eq(courses.status, 'pending_nou'))),
     n(db.select({ total: count() }).from(supplierReorders).where(inArray(supplierReorders.status, ['pending_hevacraz', 'pending_nou']))),
     n(db.select({ total: count() }).from(supplierComplianceApplications).where(inArray(supplierComplianceApplications.status, ['submitted', 'under-review']))),
-    n(db.select({ total: count() }).from(tradePermits).where(eq(tradePermits.status, 'pending'))),
     n(db.select({ total: count() }).from(occupationalAccidents).where(inArray(occupationalAccidents.status, ['Open', 'Under Investigation']))),
     n(db.select({ total: count() }).from(rewardRedemptions).where(eq(rewardRedemptions.status, 'requested'))),
   ]);
@@ -47,7 +45,6 @@ export async function GET(req: Request) {
     courseApprovals,
     reorderReviews: reorders,
     supplierCompliance: compliance,
-    permits,
     openAccidents: accidents,
     rewardRequests: rewards,
   };

@@ -8,7 +8,7 @@ describe('shouldRedirectToLogin', () => {
     }
   });
   it('leaves public pages alone', () => {
-    for (const path of ['/', '/login', '/forgot-password', '/reset-password', '/activate-account', '/accept-invite', '/join', '/join/technician', '/verify-technician', '/verify-coc', '/verify-permit', '/contact', '/about']) {
+    for (const path of ['/', '/login', '/forgot-password', '/reset-password', '/activate-account', '/accept-invite', '/join', '/join/technician', '/verify-technician', '/verify-coc', '/contact', '/about']) {
       expect(shouldRedirectToLogin(path)).toBe(false);
     }
   });

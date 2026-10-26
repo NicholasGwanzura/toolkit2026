@@ -1161,64 +1161,6 @@ export interface WhatGasSyncLog {
   finishedAt: string | null;
 }
 
-// ---------------------------------------------------------------------------
-// Cylinder Registry
-// ---------------------------------------------------------------------------
-
-export type CylinderStatus = 'full' | 'partial' | 'empty' | 'in-service' | 'scrapped';
-export type CylinderOwnerType = 'technician' | 'supplier' | 'company';
-
-export interface Cylinder {
-  id: string;
-  cylinderCode: string;
-  refrigerantId?: number;
-  refrigerantLabel: string;
-  ownerType: CylinderOwnerType;
-  ownerId?: string;
-  ownerName: string;
-  capacityKg: number;
-  currentFillKg: number;
-  status: CylinderStatus;
-  province: string;
-  lastFilledDate?: string;
-  lastInspectionDate?: string;
-  nextInspectionDue?: string;
-  notes?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// ---------------------------------------------------------------------------
-// Import/Export Trade Permits
-// ---------------------------------------------------------------------------
-
-export type PermitType = 'import' | 'export';
-export type PermitStatus = 'pending' | 'approved' | 'rejected' | 'expired';
-
-export interface TradePermit {
-  id: string;
-  permitNumber: string;
-  permitType: PermitType;
-  applicantName: string;
-  applicantCompany: string;
-  applicantEmail: string;
-  refrigerantId?: number;
-  refrigerantLabel: string;
-  quantityKg: number;
-  countryOfOriginOrDestination: string;
-  status: PermitStatus;
-  issuedDate?: string;
-  expiryDate?: string;
-  verificationToken?: string;
-  verificationUrl?: string;
-  reviewedBy?: string;
-  reviewedAt?: string;
-  reviewNote?: string;
-  notes?: string;
-  submittedAt: string;
-  createdAt: string;
-}
-
 export type CocRequestStatus = 'submitted' | 'approved' | 'rejected';
 
 export interface CocRequest {
@@ -1248,47 +1190,6 @@ export interface CocRequest {
   createdAt: string;
 }
 
-// ---------------------------------------------------------------------------
-// Reclamation
-// ---------------------------------------------------------------------------
-
-export type ReclamationStatus = 'pending' | 'passed' | 'failed';
-export type RecyclingStatus = 'pending' | 'verified' | 'rejected';
-
-export interface ReclamationRecord {
-  id: string;
-  batchNumber: string;
-  refrigerantId?: number;
-  refrigerantLabel: string;
-  sourceDescription: string;
-  quantityKg: number;
-  purityPercent?: number;
-  testMethod?: string;
-  facilityName: string;
-  technicianId?: string;
-  technicianName: string;
-  status: ReclamationStatus;
-  testedDate?: string;
-  notes?: string;
-  createdAt: string;
-}
-
-// ---------------------------------------------------------------------------
-// Recycling
-// ---------------------------------------------------------------------------
-
-export interface PublicPermitVerification {
-  permitNumber: string;
-  permitType: PermitType;
-  applicantCompany: string;
-  refrigerantLabel: string;
-  quantityKg: number;
-  countryOfOriginOrDestination: string;
-  status: PermitStatus;
-  issuedDate: string | null;
-  expiryDate: string | null;
-}
-
 export interface RefrigerantUsageEntry {
   refrigerant: string;
   totalKg: number;
@@ -1307,28 +1208,6 @@ export interface RefrigerantAnalytics {
   mostRecovered: RefrigerantUsageEntry[];
   classificationBreakdown: ClassificationBreakdown[];
   monthlyTrend: { month: string; totalKg: number }[];
-  complianceOverview: {
-    cylinders: { totalCylinders: number; totalFillKg: number; inServiceCount: number; overdueInspectionCount: number };
-    permits: { totalPermits: number; approvedCount: number; pendingCount: number; totalQuantityKg: number };
-    reclamation: { totalRecords: number; totalQuantityKg: number; passedCount: number; failedCount: number; pendingCount: number };
-    recycling: { totalRecords: number; totalQuantityKg: number };
-  };
-}
-
-export interface RecyclingRecord {
-  id: string;
-  equipmentId?: string;
-  refrigerantId?: number;
-  refrigerantLabel: string;
-  quantityKg: number;
-  method: string;
-  technicianId: string;
-  technicianName: string;
-  jobSite: string;
-  recycledDate: string;
-  notes?: string;
-  status?: RecyclingStatus;
-  createdAt: string;
 }
 
 // ---------------------------------------------------------------------------

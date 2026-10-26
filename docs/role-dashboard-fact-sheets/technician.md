@@ -27,7 +27,7 @@ Registered refrigeration and air-conditioning technicians working in the field.
 Field Operations, Field Toolkit, Jobs & Logs, Certifications.
 
 ## Menu items available
-Dashboard, Learning Hub, Safety Center, Field Operations, Field Toolkit, WhatGas + Risk Engine, Sizing Tool, Refrigerant Catalogue, Cylinder Registry, Reclamation, Recycling, Certification, Rewards, plus an Emergency Mode button in the sidebar.
+Dashboard, Learning Hub, Safety Center, Field Operations, Field Toolkit, WhatGas + Risk Engine, Sizing Tool, Refrigerant Catalogue, Certification, Rewards, plus an Emergency Mode button in the sidebar.
 
 ## Key tools
 - **Field Operations:** three tabs: Schedule, Planner, Jobs & Logs.

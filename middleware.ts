@@ -22,10 +22,6 @@ const PROTECTED_ROUTE_PREFIXES = [
     '/health-safety',
     '/technician-registry',
     '/refrigerants',
-    '/cylinders',
-    '/permits',
-    '/reclamation',
-    '/recycling',
     '/emergency-mode',
     '/contractor-onboarding',
     '/field-operations',
@@ -72,10 +68,6 @@ const ROUTE_ROLE_RULES: Array<{ prefix: string; roles: string[] }> = [
     { prefix: '/dashboard', roles: ['technician', 'trainer', 'lecturer', 'vendor', 'org_admin', 'student', 'contractor'] },
     { prefix: '/contractor-onboarding', roles: ['contractor', 'org_admin'] },
     { prefix: '/refrigerants', roles: ['technician', 'contractor', 'trainer', 'lecturer', 'vendor', 'org_admin', 'student'] },
-    { prefix: '/cylinders', roles: ['technician', 'contractor', 'vendor', 'org_admin'] },
-    { prefix: '/permits', roles: ['vendor', 'org_admin'] },
-    { prefix: '/reclamation', roles: ['technician', 'contractor', 'vendor', 'org_admin'] },
-    { prefix: '/recycling', roles: ['technician', 'contractor', 'org_admin'] },
 ];
 
 export function middleware(request: NextRequest) {

@@ -3,7 +3,7 @@ import { buildActionQueue, totalWaiting, type ActionCounts } from './action-queu
 
 const zero: ActionCounts = {
   applications: 0, applicationsAwaitingEmail: 0, cocRequests: 0, certificateApprovals: 0, certificatesToIssue: 0,
-  courseApprovals: 0, reorderReviews: 0, supplierCompliance: 0, permits: 0, openAccidents: 0, rewardRequests: 0,
+  courseApprovals: 0, reorderReviews: 0, supplierCompliance: 0, openAccidents: 0, rewardRequests: 0,
 };
 
 describe('buildActionQueue', () => {

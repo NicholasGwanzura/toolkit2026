@@ -22,7 +22,6 @@ The first panel lists everything waiting on an administrator, with a count and a
 | Courses awaiting approval | Course Approvals |
 | Refrigerant reorders to review | NOU Dashboard |
 | Supplier compliance certificates to review | Supplier Compliance |
-| Trade permits to review | Permits |
 | Accident reports still open or under investigation | Accidents Module |
 | Reward requests to fulfil | Rewards |
 
@@ -75,7 +74,7 @@ These figures are counted in the database, so the page stays fast as the registr
 - **Home:** Dashboard, Compliance Dashboard
 - **Operations:** Learning Hub, Manage Courses, Field Operations, Field Toolkit, Safety Center
 - **Tools:** WhatGas + Risk Engine, Sizing Tool
-- **Refrigerants:** Catalogue, Cylinder Registry, Import/Export Permits, Reclamation, Recycling
+- **Refrigerants:** Catalogue
 - **Suppliers:** Supplier Management, Invite Supplier, Supplier Compliance, Vendor Reorder, Verify Buyer, Supplier Approvals
 - **Registry and People:** Technician Registry, Certificate Verification, Certifications, Rewards, System Users, Applications, Applicants, Memberships, Email Log, Contractors, Invites
 - **Reviews and Data:** NOU Dashboard, Course Approvals, COC Requests, Accidents Module, Reporting, Refrigerant Analytics, Refrigerants (WhatGas Sync)

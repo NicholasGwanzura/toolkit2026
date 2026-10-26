@@ -31,10 +31,6 @@ import type {
   Refrigerant,
   RefrigerantListResponse,
   WhatGasSyncLog,
-  Cylinder,
-  TradePermit,
-  ReclamationRecord,
-  RecyclingRecord,
 	  RefrigerantAnalytics,
 	  Invite,
 	  AdminUserRecord,
@@ -999,111 +995,6 @@ export function useWhatGasSyncStatus() {
 export async function triggerWhatGasSync() {
   const result = await post<{ status: string }>('/api/admin/sync/whatgas');
   await mutate('/api/admin/sync/whatgas');
-  return result;
-}
-
-// ---------------------------------------------------------------------------
-// Cylinder Registry (DB-backed)
-// ---------------------------------------------------------------------------
-
-export function useCylinders() {
-  return useSWR<Cylinder[]>('/api/cylinders', fetcher);
-}
-
-export async function createCylinder(
-  body: Omit<Cylinder, 'id' | 'ownerId' | 'ownerName' | 'createdAt' | 'updatedAt'>,
-): Promise<Cylinder> {
-  const result = await post<Cylinder>('/api/cylinders', body);
-  await mutate('/api/cylinders');
-  return result;
-}
-
-export async function updateCylinder(
-  id: string,
-  body: Partial<Pick<Cylinder, 'status' | 'currentFillKg' | 'lastFilledDate' | 'lastInspectionDate' | 'nextInspectionDue' | 'notes'>>,
-) {
-  const result = await patch<Pick<Cylinder, 'id' | 'status' | 'currentFillKg' | 'updatedAt'>>(`/api/cylinders/${id}`, body);
-  await mutate('/api/cylinders');
-  return result;
-}
-
-// ---------------------------------------------------------------------------
-// Import/Export Trade Permits (DB-backed)
-// ---------------------------------------------------------------------------
-
-export function useTradePermits() {
-  return useSWR<TradePermit[]>('/api/permits', fetcher);
-}
-
-export async function createTradePermit(
-  body: Omit<TradePermit, 'id' | 'permitNumber' | 'applicantName' | 'applicantEmail' | 'status' | 'submittedAt' | 'createdAt'>,
-): Promise<TradePermit> {
-  const result = await post<TradePermit>('/api/permits', body);
-  await mutate('/api/permits');
-  return result;
-}
-
-export async function reviewTradePermit(id: string, action: 'approve' | 'reject', notes?: string): Promise<TradePermit> {
-  const result = await post<TradePermit>(`/api/permits/${id}/${action}`, notes ? { notes } : undefined);
-  await mutate('/api/permits');
-  return result;
-}
-
-// ---------------------------------------------------------------------------
-// Reclamation (DB-backed)
-// ---------------------------------------------------------------------------
-
-export function useReclamationRecords() {
-  return useSWR<ReclamationRecord[]>('/api/reclamation', fetcher);
-}
-
-export async function createReclamationRecord(
-  body: Omit<ReclamationRecord, 'id' | 'batchNumber' | 'technicianId' | 'technicianName' | 'createdAt'>,
-): Promise<ReclamationRecord> {
-  const result = await post<ReclamationRecord>('/api/reclamation', body);
-  await mutate('/api/reclamation');
-  return result;
-}
-
-export async function reviewReclamationRecord(
-  id: string,
-  action: 'approve' | 'reject',
-  notes?: string,
-): Promise<ReclamationRecord> {
-  const result = await patch<ReclamationRecord>(`/api/reclamation/${id}`, {
-    status: action === 'approve' ? 'passed' : 'failed',
-    notes,
-  });
-  await mutate('/api/reclamation');
-  return result;
-}
-
-// ---------------------------------------------------------------------------
-// Recycling (DB-backed)
-// ---------------------------------------------------------------------------
-
-export function useRecyclingRecords() {
-  return useSWR<RecyclingRecord[]>('/api/recycling', fetcher);
-}
-
-export async function createRecyclingRecord(
-  body: Omit<RecyclingRecord, 'id' | 'technicianId' | 'technicianName' | 'createdAt'>,
-): Promise<RecyclingRecord> {
-  const result = await post<RecyclingRecord>('/api/recycling', body);
-  await mutate('/api/recycling');
-  return result;
-}
-
-export async function reviewRecyclingRecord(
-  id: string,
-  action: 'verify' | 'reject',
-  notes?: string,
-): Promise<RecyclingRecord> {
-  const result = await patch<RecyclingRecord>(`/api/recycling/${id}`, {
-    status: action === 'verify' ? 'verified' : 'rejected',
-    notes,
-  });
-  await mutate('/api/recycling');
   return result;
 }
 

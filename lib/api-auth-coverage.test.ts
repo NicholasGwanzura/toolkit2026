@@ -20,7 +20,6 @@ const PUBLIC_ROUTES: Record<string, string> = {
   'applications/documents/remove': 'applicant flow, protected by the application token',
   'public/certificates': 'public verification, rate limited',
   'public/coc-requests': 'public verification, rate limited',
-  'public/permits': 'public verification, rate limited',
   'public/refrigerants': 'public reference data, rate limited',
   'public/technicians': 'public verification, rate limited',
   'health': 'uptime check, reveals nothing',

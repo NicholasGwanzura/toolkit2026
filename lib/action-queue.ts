@@ -9,7 +9,6 @@ export interface ActionCounts {
   courseApprovals: number;
   reorderReviews: number;
   supplierCompliance: number;
-  permits: number;
   openAccidents: number;
   rewardRequests: number;
 }
@@ -40,7 +39,6 @@ export function buildActionQueue(counts: ActionCounts): ActionItem[] {
     { key: 'courseApprovals', count: counts.courseApprovals, label: plural(counts.courseApprovals, 'course awaiting approval', 'courses awaiting approval'), href: '/learn/approvals' },
     { key: 'reorderReviews', count: counts.reorderReviews, label: plural(counts.reorderReviews, 'refrigerant reorder to review', 'refrigerant reorders to review'), href: '/nou-dashboard' },
     { key: 'supplierCompliance', count: counts.supplierCompliance, label: plural(counts.supplierCompliance, 'supplier compliance certificate to review', 'supplier compliance certificates to review'), href: '/supplier-compliance' },
-    { key: 'permits', count: counts.permits, label: plural(counts.permits, 'trade permit to review', 'trade permits to review'), href: '/permits' },
     { key: 'openAccidents', count: counts.openAccidents, label: plural(counts.openAccidents, 'accident report still open', 'accident reports still open'), href: '/admin/accidents' },
     { key: 'rewardRequests', count: counts.rewardRequests, label: plural(counts.rewardRequests, 'reward request to fulfil', 'reward requests to fulfil'), href: '/rewards' },
   ];

@@ -26,7 +26,7 @@ Registered refrigerant distributors and suppliers. Suppliers register themselves
 Reorder Gas, Compliance, Verify Buyer, Rewards.
 
 ## Menu items available
-Dashboard, Refrigerant Catalogue, Cylinder Registry, Import/Export Permits, Reclamation, Rewards, Supplier Compliance, Supply Reports, Vendor Reorder, Verify Buyer, Certificate Verification.
+Dashboard, Refrigerant Catalogue, Rewards, Supplier Compliance, Supply Reports, Vendor Reorder, Verify Buyer, Certificate Verification.
 
 ## Reorders
 - A reorder is either a **purchase of new stock** or a **return of recovered refrigerant**. You choose when you submit it, and NOU reporting uses that choice.

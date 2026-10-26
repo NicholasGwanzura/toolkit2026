@@ -23,10 +23,7 @@ import {
     ShieldAlert,
     BarChart3,
     Database,
-    Cylinder,
     FileText,
-    Recycle,
-    RefreshCw,
     UserPlus,
     Mail,
     ChevronDown,
@@ -86,10 +83,6 @@ const NAV_SECTIONS: NavSection[] = [
         label: 'Refrigerants',
         items: [
             { name: 'Refrigerant Catalogue', href: '/refrigerants', icon: Database, roles: ['technician', 'contractor', 'trainer', 'lecturer', 'vendor', 'org_admin', 'student'] },
-            { name: 'Cylinder Registry', href: '/cylinders', icon: Cylinder, roles: ['technician', 'contractor', 'vendor', 'org_admin'] },
-            { name: 'Import/Export Permits', href: '/permits', icon: FileText, roles: ['vendor', 'org_admin'] },
-            { name: 'Reclamation', href: '/reclamation', icon: Recycle, roles: ['technician', 'contractor', 'vendor', 'org_admin'] },
-            { name: 'Recycling', href: '/recycling', icon: RefreshCw, roles: ['technician', 'contractor', 'org_admin'] },
         ],
     },
     {
@@ -166,10 +159,6 @@ const ADMIN_NAV_SECTIONS: NavSection[] = [
         label: 'Refrigerants',
         items: [
             { name: 'Refrigerant Catalogue', href: '/refrigerants', icon: Database, roles: ['org_admin'] },
-            { name: 'Cylinder Registry', href: '/cylinders', icon: Cylinder, roles: ['org_admin'] },
-            { name: 'Import/Export Permits', href: '/permits', icon: FileText, roles: ['org_admin'] },
-            { name: 'Reclamation', href: '/reclamation', icon: Recycle, roles: ['org_admin'] },
-            { name: 'Recycling', href: '/recycling', icon: RefreshCw, roles: ['org_admin'] },
         ],
     },
     {

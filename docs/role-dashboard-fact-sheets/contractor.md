@@ -25,7 +25,7 @@ Panels: getting-started checklist, Registration and membership (shown if a regis
 - Administrators manage contractors under Admin, Contractors.
 
 ## Menu items available
-Dashboard, Learning Hub, Safety Center, Field Operations, Field Toolkit, WhatGas + Risk Engine, Sizing Tool, Refrigerant Catalogue, Cylinder Registry, Reclamation, Recycling, Certification, Rewards, Certificate Verification, and the Emergency Mode button.
+Dashboard, Learning Hub, Safety Center, Field Operations, Field Toolkit, WhatGas + Risk Engine, Sizing Tool, Refrigerant Catalogue, Certification, Rewards, Certificate Verification, and the Emergency Mode button.
 
 ## How it differs from a Technician
 - A contractor is a business account; a technician is an individual in the Technician Registry.

@@ -22,7 +22,7 @@ Describes the role dashboards of the Zimbabwe HVAC Compliance Registry (zimhvacr
 - **Loading and errors.** While data loads a card shows an ellipsis. If it fails to load, the card shows a dash and a red banner names what could not be loaded. A failed load is never shown as zero.
 - **Notifications.** The bell in the top bar shows a live unread count. People are notified in the app when a COC, course, exam, certificate request or reorder is decided, and when their application is approved. Admins also get the application alerts described in the Organization Admin sheet.
 - Menu items and pages are limited by role. A role that opens a page it is not allowed to see is blocked.
-- Some pages are public and need no login: certificate verification (`/verify-technician`, `/verify-coc`, `/verify-permit`).
+- Some pages are public and need no login: certificate verification (`/verify-technician` and `/verify-coc`).
 
 ## How people get an account
 
