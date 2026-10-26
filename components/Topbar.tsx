@@ -3,12 +3,11 @@
 
 import { useAuth } from '../lib/auth';
 import { usePWA } from '../lib/pwa';
-import { Icons } from '../constants';
 import { usePathname } from 'next/navigation';
 
 export default function Topbar() {
   const { logout, user } = useAuth();
-  const { syncStatus, triggerSync, isOnline } = usePWA();
+  const { isOnline } = usePWA();
   const pathname = usePathname();
 
   const getTitle = () => {
@@ -24,16 +23,10 @@ export default function Topbar() {
       </div>
 
       <div className="flex items-center gap-4 md:gap-6">
-        {/* Sync Status */}
-        <div className="hidden sm:flex items-center gap-3 text-slate-400">
-          <button 
-            onClick={triggerSync}
-            disabled={!isOnline || syncStatus === 'syncing'}
-            className={`flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-colors hover:text-slate-600 disabled:opacity-50`}
-          >
-            <Icons.Sync className={syncStatus === 'syncing' ? 'animate-spin' : ''} />
-            {syncStatus === 'syncing' ? 'Syncing...' : syncStatus === 'synced' ? 'Success' : 'Sync'}
-          </button>
+        {/* Network status; queued field logs sync from the Field Toolkit. */}
+        <div className="hidden sm:flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500" title={isOnline ? 'Connected to the internet' : 'Offline. Field logs will sync when you reconnect.'}>
+          <span className={`h-2 w-2 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-amber-500'}`} aria-hidden="true" />
+          {isOnline ? 'Online' : 'Offline'}
           <div className="h-4 w-px bg-slate-200"></div>
         </div>
 

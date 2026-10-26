@@ -43,6 +43,7 @@ import type {
 	  AuditLogEntry,
 	  EmailLogEntry,
 	  ContractorApplication,
+  ImageRecord,
 } from '@/types/index';
 import type { TechnicianRewardSummary } from '@/lib/server/rewards';
 import type { LearnerQuestion, SubmittedAnswer } from '@/lib/exam';
@@ -1108,6 +1109,18 @@ export async function reviewCocRequest(id: string, action: 'approve' | 'reject',
 // ---------------------------------------------------------------------------
 // Installations (DB-backed)
 // ---------------------------------------------------------------------------
+
+export function useFieldImageRecords(limit = 5, enabled = true) {
+  return useSWR<ImageRecord[]>(enabled ? `/api/field-images?limit=${limit}` : null, fetcher);
+}
+
+export async function createFieldImageRecord(
+  body: Omit<ImageRecord, 'id' | 'createdAt'>,
+): Promise<ImageRecord> {
+  const result = await post<ImageRecord>('/api/field-images', body);
+  await mutate(key => typeof key === 'string' && key.startsWith('/api/field-images'));
+  return result;
+}
 
 export function useInstallations() {
   return useSWR<Installation[]>('/api/installations', fetcher);

@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from 'react';
 import { ImagePlus, MapPin, Save } from 'lucide-react';
-import { prependCollectionItem, STORAGE_KEYS } from '@/lib/platformStore';
+import { createFieldImageRecord, useFieldImageRecords } from '@/lib/api';
 import type { ImageRecord } from '@/types/index';
 
 type DraftAnnotation = {
@@ -15,27 +15,54 @@ type DraftAnnotation = {
 export function ImageAnnotationWorkbench() {
     const imageRef = useRef<HTMLDivElement>(null);
     const [imageDataUrl, setImageDataUrl] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
     const [jobId, setJobId] = useState('job-plan-001');
     const [beforeAfter, setBeforeAfter] = useState<ImageRecord['beforeAfter']>('inspection');
     const [gpsTag, setGpsTag] = useState('');
     const [annotations, setAnnotations] = useState<DraftAnnotation[]>([]);
     const [notice, setNotice] = useState('');
+    const { data: savedRecords = [], error: savedRecordsError } = useFieldImageRecords(5);
 
     const markerLabel = useMemo(() => `Issue ${annotations.length + 1}`, [annotations.length]);
 
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
 
         if (!file) {
             return;
         }
 
-        const reader = new FileReader();
-        reader.onload = () => {
-            setImageDataUrl(String(reader.result));
+        if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+            setNotice('Choose a JPG, PNG, or WebP image.');
+            event.target.value = '';
+            return;
+        }
+        setNotice('Preparing image…');
+        const objectUrl = URL.createObjectURL(file);
+        try {
+            const image = new Image();
+            image.src = objectUrl;
+            await image.decode();
+            if (!image.naturalWidth || !image.naturalHeight) throw new Error('Could not read this image. Choose another file.');
+            const scale = Math.min(1, 1280 / Math.max(image.naturalWidth, image.naturalHeight));
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+            canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+            const context = canvas.getContext('2d');
+            if (!context) throw new Error('This browser cannot prepare the image.');
+            context.fillStyle = '#fff';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            context.drawImage(image, 0, 0, canvas.width, canvas.height);
+            const prepared = canvas.toDataURL('image/jpeg', 0.78);
+            if (prepared.length > 1_200_000) throw new Error('This image is still too large after compression. Choose a smaller image.');
+            setImageDataUrl(prepared);
             setAnnotations([]);
-        };
-        reader.readAsDataURL(file);
+            setNotice('Image ready to annotate.');
+        } catch (error) {
+            setNotice(error instanceof Error ? error.message : 'Could not read this image. Choose another file.');
+        } finally {
+            URL.revokeObjectURL(objectUrl);
+        }
     };
 
     const handleCanvasClick = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -58,32 +85,31 @@ export function ImageAnnotationWorkbench() {
         ]);
     };
 
-    const saveImageRecord = () => {
+    const saveImageRecord = async () => {
         if (!imageDataUrl) {
             setNotice('Upload an image before saving annotations.');
             return;
         }
+        if (!jobId.trim()) {
+            setNotice('Enter a job ID before saving annotations.');
+            return;
+        }
 
-        const record: ImageRecord = {
-            id: `image-${Date.now()}`,
-            jobId,
-            beforeAfter,
-            annotationsJson: annotations,
-            gpsTag: gpsTag || undefined,
-            imageDataUrl,
-            createdAt: new Date().toISOString(),
-        };
-
-        prependCollectionItem<ImageRecord>(STORAGE_KEYS.imageRecords, record);
-        setNotice(`Saved ${annotations.length} annotations for ${jobId}.`);
-
-        // Warn if localStorage is getting large (full base64 images consume quota quickly)
-        const estimatedBytes = imageDataUrl ? Math.round((imageDataUrl.length * 3) / 4) : 0;
-        if (estimatedBytes > 500_000) {
-            console.warn(
-                `ImageAnnotationWorkbench: saved image ~${(estimatedBytes / 1024 / 1024).toFixed(1)} MB. ` +
-                'Large base64 images can exceed localStorage quota. Consider migrating to DB-backed storage.'
-            );
+        setIsSaving(true);
+        setNotice('Saving evidence to your account…');
+        try {
+            await createFieldImageRecord({
+                jobId: jobId.trim(),
+                beforeAfter,
+                annotationsJson: annotations,
+                gpsTag: gpsTag.trim() || undefined,
+                imageDataUrl,
+            });
+            setNotice(`Saved ${annotations.length} annotations for ${jobId.trim()}.`);
+        } catch (error) {
+            setNotice(error instanceof Error ? `Could not save evidence: ${error.message}` : 'Could not save evidence. Check your connection and try again.');
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -100,7 +126,7 @@ export function ImageAnnotationWorkbench() {
                 <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50">
                     <ImagePlus className="h-4 w-4" />
                     Upload image
-                    <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+                    <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => void handleFileChange(event)} className="hidden" />
                 </label>
             </div>
 
@@ -187,11 +213,12 @@ export function ImageAnnotationWorkbench() {
 
                     <button
                         type="button"
-                        onClick={saveImageRecord}
-                        className="inline-flex items-center gap-2 bg-[#1C1917] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#292524]"
+                        onClick={() => void saveImageRecord()}
+                        disabled={!imageDataUrl || !jobId.trim() || isSaving}
+                        className="inline-flex items-center gap-2 bg-[#1C1917] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#292524] disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         <Save className="h-4 w-4" />
-                        Save annotated image
+                        {isSaving ? 'Saving…' : 'Save annotated image'}
                     </button>
 
                     {notice && (
@@ -200,6 +227,27 @@ export function ImageAnnotationWorkbench() {
                         </div>
                     )}
                 </div>
+            </div>
+            <div className="mt-6 border-t border-gray-200 pt-5">
+                <h3 className="text-sm font-semibold text-gray-800">Recently saved evidence</h3>
+                {savedRecordsError ? (
+                    <p className="mt-2 text-sm text-rose-700">Could not load saved evidence. Check your connection and refresh.</p>
+                ) : savedRecords.length === 0 ? (
+                    <p className="mt-2 text-sm text-gray-500">Your saved field images will appear here on any signed-in device.</p>
+                ) : (
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        {savedRecords.map((record) => (
+                            <article key={record.id} className="flex gap-3 rounded-lg border border-gray-200 p-2">
+                                <img src={record.imageDataUrl} alt={`${record.beforeAfter} evidence for ${record.jobId}`} className="h-20 w-24 shrink-0 rounded object-cover" />
+                                <div className="min-w-0 py-1 text-sm">
+                                    <p className="truncate font-semibold text-gray-800">{record.jobId}</p>
+                                    <p className="capitalize text-gray-600">{record.beforeAfter} · {record.annotationsJson.length} markers</p>
+                                    <p className="mt-1 text-xs text-gray-500">{new Date(record.createdAt).toLocaleDateString()}</p>
+                                </div>
+                            </article>
+                        ))}
+                    </div>
+                )}
             </div>
         </section>
     );

@@ -95,7 +95,7 @@ export default function FieldToolkit() {
         </TabPanel>
         <TabPanel id="photos" className="p-4 sm:p-6">
           <div className="space-y-3">
-            <p className="border border-stone-200 bg-stone-50 px-3 py-2 text-sm text-stone-600">Photo notes are saved on this device only. To keep a photo with a job record, attach it to an installation.</p>
+            <p className="border border-stone-200 bg-stone-50 px-3 py-2 text-sm text-stone-600">Saved field evidence is linked to your account and available when you sign in on another device.</p>
             <ImageAnnotationWorkbench />
           </div>
         </TabPanel>

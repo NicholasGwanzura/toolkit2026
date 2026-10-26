@@ -19,6 +19,7 @@ export * from './invites';
 export * from './ocr-scans';
 export * from './coc-requests';
 export * from './installations';
+export * from './field-images';
 export * from './rewards';
 export * from './accidents';
 export * from './memberships';

@@ -9,7 +9,7 @@ import { isFieldWorkerRole } from '@/lib/field-worker';
 export async function GET(req: Request) {
   let session;
   try {
-    session = await requireRole(req, ['technician', 'contractor', 'trainer', 'lecturer', 'org_admin']);
+    session = await requireRole(req, ['technician', 'contractor', 'org_admin']);
   } catch (e) {
     return e as Response;
   }
