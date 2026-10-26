@@ -1,4 +1,5 @@
 import React from 'react';
+import type { InsulationType } from '@/lib/panel-insulation';
 
 export type AppLanguage = 'en' | 'fr';
 export type SafetyAlertColor = 'green' | 'orange' | 'red' | 'blue';
@@ -491,6 +492,11 @@ export interface SizingInputs {
   roomWidth: number;
   roomLength: number;
   roomHeight: number;
+  insulationType: InsulationType;
+  wallPanelMm: number;
+  ceilingPanelMm: number;
+  floorInsulationMm: number;
+  // Derived from the panel type and thicknesses above.
   wallUValue: number;
   ceilingUValue: number;
   floorUValue: number;

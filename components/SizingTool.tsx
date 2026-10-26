@@ -8,6 +8,7 @@ import { calculateCoolingLoads } from '@/lib/sizing-calculations';
 import EquipmentSelectionPanel from './EquipmentSelectionPanel';
 import { SIZING_RESOURCES } from '@/lib/toolkit-resources';
 import { computeSelection, defaultEquipmentSettings, defaultEvaporatorTd, type EquipmentSettings } from '@/lib/equipment-selection';
+import { COMMON_PANEL_THICKNESSES_MM, INSULATION_TYPES, floorUValue, panelUValue, type InsulationType } from '@/lib/panel-insulation';
 
 // HEVACRAZ brand palette (mirrors tailwind.config hevac-* colors) for PDF export
 const PDF_BRAND = {
@@ -149,9 +150,13 @@ const SizingTool: React.FC = () => {
     roomWidth: 6,
     roomLength: 8,
     roomHeight: 3.5,
-    wallUValue: 0.22,
-    ceilingUValue: 0.22,
-    floorUValue: 0.22,
+    insulationType: 'PU',
+    wallPanelMm: 100,
+    ceilingPanelMm: 100,
+    floorInsulationMm: 100,
+    wallUValue: panelUValue('PU', 100),
+    ceilingUValue: panelUValue('PU', 100),
+    floorUValue: floorUValue('PU', 100),
     ceilingBoundaryTempC: 35,
     floorBoundaryTempC: 20,
     ambientTemp: 35,
@@ -188,6 +193,16 @@ const SizingTool: React.FC = () => {
     freezeProductThicknessMm: 100,
     freezeBioStorage: false,
   });
+
+  const setPanels = (patch: Partial<Pick<SizingInputs, 'insulationType' | 'wallPanelMm' | 'ceilingPanelMm' | 'floorInsulationMm'>>) => {
+    const next = { ...inputs, ...patch };
+    setInputs({
+      ...next,
+      wallUValue: panelUValue(next.insulationType, next.wallPanelMm),
+      ceilingUValue: panelUValue(next.insulationType, next.ceilingPanelMm),
+      floorUValue: floorUValue(next.insulationType, next.floorInsulationMm),
+    });
+  };
 
   const [aiAdvice, setAiAdvice] = useState<string>('');
   const [savedAt, setSavedAt] = useState<string | null>(null);
@@ -338,9 +353,10 @@ const SizingTool: React.FC = () => {
 
     // Envelope assumptions
     heading('Envelope & Boundary Conditions');
-    line(`Wall overall U-value: ${inputs.wallUValue} W/m²·K`);
-    line(`Ceiling overall U-value: ${inputs.ceilingUValue} W/m²·K`);
-    line(`Floor overall U-value: ${inputs.floorUValue} W/m²·K`);
+    line(`Panel type: ${INSULATION_TYPES[inputs.insulationType].label}`);
+    line(`Walls: ${inputs.wallPanelMm} mm panel (U ≈ ${inputs.wallUValue.toFixed(3)} W/m²·K)`);
+    line(`Ceiling: ${inputs.ceilingPanelMm} mm panel (U ≈ ${inputs.ceilingUValue.toFixed(3)} W/m²·K)`);
+    line(`Floor: ${inputs.floorInsulationMm} mm insulation under slab (U ≈ ${inputs.floorUValue.toFixed(3)} W/m²·K)`);
     line(`Ceiling/floor adjacent temperatures: ${inputs.ceilingBoundaryTempC}°C / ${inputs.floorBoundaryTempC}°C`);
     y += 5;
 
@@ -383,11 +399,11 @@ const SizingTool: React.FC = () => {
     // Transmission detail
     heading('Transmission Load Breakdown');
     line(`Wall area: ${results.wallAreaM2.toFixed(2)} m² · Ceiling and floor area: ${results.floorAreaM2.toFixed(2)} m² each`);
-    line(`Walls: ${results.wallAreaM2.toFixed(2)} m² × ${inputs.wallUValue} W/m²·K × (${inputs.ambientTemp} − ${roomTempC})°C = ${results.wallTransmission.toFixed(2)} kW`);
-    line(`Ceiling: ${results.floorAreaM2.toFixed(2)} m² × ${inputs.ceilingUValue} W/m²·K × (${inputs.ceilingBoundaryTempC} − ${roomTempC})°C = ${results.ceilingTransmission.toFixed(2)} kW`);
-    line(`Floor: ${results.floorAreaM2.toFixed(2)} m² × ${inputs.floorUValue} W/m²·K × (${inputs.floorBoundaryTempC} − ${roomTempC})°C = ${results.floorTransmission.toFixed(2)} kW`);
+    line(`Walls: ${results.wallAreaM2.toFixed(2)} m² × ${inputs.wallUValue.toFixed(3)} W/m²·K × (${inputs.ambientTemp} − ${roomTempC})°C = ${results.wallTransmission.toFixed(2)} kW`);
+    line(`Ceiling: ${results.floorAreaM2.toFixed(2)} m² × ${inputs.ceilingUValue.toFixed(3)} W/m²·K × (${inputs.ceilingBoundaryTempC} − ${roomTempC})°C = ${results.ceilingTransmission.toFixed(2)} kW`);
+    line(`Floor: ${results.floorAreaM2.toFixed(2)} m² × ${inputs.floorUValue.toFixed(3)} W/m²·K × (${inputs.floorBoundaryTempC} − ${roomTempC})°C = ${results.floorTransmission.toFixed(2)} kW`);
     line(`Total transmission: ${results.transmission.toFixed(2)} kW (${results.subtotal ? ((results.transmission / results.subtotal) * 100).toFixed(0) : 0}% of the pre-margin subtotal)`);
-    line('A surface at or below the room temperature adds no load. U-values are user supplied and thermal bridges are not modelled.');
+    line('A surface at or below the room temperature adds no load. U-values are estimated from the panel type and thickness; joints and thermal bridges are not modelled.');
     y += 5;
 
     if (equipment) {
@@ -605,7 +621,7 @@ const SizingTool: React.FC = () => {
     setIsLoadingAi(true);
     const prompt = `Review this commercial refrigeration sizing design for a ${JobTypeLabels[inputs.jobType as JobType] || 'Cold Room'}:
     Room: ${inputs.roomWidth}x${inputs.roomLength}x${inputs.roomHeight}m
-    Overall assembly U-values: walls ${inputs.wallUValue} W/m²·K, ceiling ${inputs.ceilingUValue} W/m²·K, floor ${inputs.floorUValue} W/m²·K.
+    Envelope: ${INSULATION_TYPES[inputs.insulationType].label}, walls ${inputs.wallPanelMm} mm, ceiling ${inputs.ceilingPanelMm} mm, floor insulation ${inputs.floorInsulationMm} mm (estimated U-values ${inputs.wallUValue.toFixed(3)} / ${inputs.ceilingUValue.toFixed(3)} / ${inputs.floorUValue.toFixed(3)} W/m²·K).
     Product: ${inputs.productMass}kg, ${inputs.productTemp}C entering to ${inputs.productTargetTempC}C, estimated product energy ${results.productEnergyKjKg.toFixed(1)} kJ/kg.
     Ambient: ${inputs.ambientTemp}C / ${inputs.ambientRH}% RH; room: ${roomTempC}C / ${inputs.holdRH}% RH; infiltration airflow ${inputs.infiltrationAirflowM3h} m3/h.
     Calculated preliminary average load: ${results.total.toFixed(2)}kW (subtotal ${results.subtotal.toFixed(2)} kW plus explicit ${inputs.designMarginPct}% design margin).
@@ -704,7 +720,7 @@ const SizingTool: React.FC = () => {
 
       <div role="note" className="flex gap-3 border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950 sm:p-4 sm:text-sm">
         <Info className="mt-0.5 h-5 w-5 shrink-0" />
-        <p><strong>Preliminary load estimate only.</strong> Results depend on entered U-values, airflow, humidity and product data. Equipment and pipe sizes are indicative only and do not replace manufacturer selection, a site survey or a qualified design review.</p>
+        <p><strong>Preliminary load estimate only.</strong> Results depend on the panel type and thickness, airflow, humidity and product data. Equipment and pipe sizes are indicative only and do not replace manufacturer selection, a site survey or a qualified design review.</p>
       </div>
 
       {activeCalculator === 'wizard' ? (
@@ -1253,12 +1269,27 @@ const SizingTool: React.FC = () => {
                 <div className="space-y-4 border-t border-gray-100 pt-5">
                   <div>
                     <h4 className="text-sm font-semibold text-gray-800">Envelope heat transfer</h4>
-                    <HelpNote>Enter overall assembly U-values from panel/manufacturer data (including skins, joints and thermal bridges), not insulation conductivity. The starting values are examples; replace them for a real project.</HelpNote>
+                    <HelpNote>Choose the panel type and enter the panel thickness in millimetres, as written on the panel or the quote (common sizes: 75, 100, 150 mm). The tool works out the U-value from that. Put 0 for the floor if the slab has no insulation.</HelpNote>
                   </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Panel type</label>
+                    <select
+                      value={inputs.insulationType}
+                      onChange={(e) => setPanels({ insulationType: e.target.value as InsulationType })}
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 text-gray-900 font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                    >
+                      {(Object.keys(INSULATION_TYPES) as InsulationType[]).map((type) => (
+                        <option key={type} value={type}>{INSULATION_TYPES[type].label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <datalist id="panel-thicknesses">
+                    {COMMON_PANEL_THICKNESSES_MM.map((mm) => <option key={mm} value={mm} />)}
+                  </datalist>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                    <InputGroup label="Wall U-value (W/m²·K)" value={inputs.wallUValue} min={0.001} onChange={(v) => setInputs({ ...inputs, wallUValue: v })} />
-                    <InputGroup label="Ceiling U-value (W/m²·K)" value={inputs.ceilingUValue} min={0.001} onChange={(v) => setInputs({ ...inputs, ceilingUValue: v })} />
-                    <InputGroup label="Floor U-value (W/m²·K)" value={inputs.floorUValue} min={0.001} onChange={(v) => setInputs({ ...inputs, floorUValue: v })} />
+                    <ThicknessInput label="Wall panel (mm)" value={inputs.wallPanelMm} min={1} uValue={inputs.wallUValue} onChange={(v) => setPanels({ wallPanelMm: v })} />
+                    <ThicknessInput label="Ceiling panel (mm)" value={inputs.ceilingPanelMm} min={1} uValue={inputs.ceilingUValue} onChange={(v) => setPanels({ ceilingPanelMm: v })} />
+                    <ThicknessInput label="Floor insulation (mm)" value={inputs.floorInsulationMm} min={0} uValue={inputs.floorUValue} onChange={(v) => setPanels({ floorInsulationMm: v })} />
                   </div>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <InputGroup label="Ceiling adjacent temp (°C)" value={inputs.ceilingBoundaryTempC} onChange={(v) => setInputs({ ...inputs, ceilingBoundaryTempC: v })} />
@@ -1345,10 +1376,10 @@ const SizingTool: React.FC = () => {
                   <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                     <LoadDrilldown label="Transmission" value={results.transmission} sharePct={results.subtotal ? results.transmission / results.subtotal * 100 : 0}>
                       <p>Areas: walls {results.wallAreaM2.toFixed(2)} m²; ceiling and floor {results.floorAreaM2.toFixed(2)} m² each.</p>
-                      <p>Walls: max(0, {results.wallAreaM2.toFixed(2)} × {inputs.wallUValue} × [{inputs.ambientTemp} − {roomTempC}] ÷ 1000) = {results.wallTransmission.toFixed(2)} kW.</p>
-                      <p>Ceiling: max(0, {results.floorAreaM2.toFixed(2)} × {inputs.ceilingUValue} × [{inputs.ceilingBoundaryTempC} − {roomTempC}] ÷ 1000) = {results.ceilingTransmission.toFixed(2)} kW.</p>
-                      <p>Floor: max(0, {results.floorAreaM2.toFixed(2)} × {inputs.floorUValue} × [{inputs.floorBoundaryTempC} − {roomTempC}] ÷ 1000) = {results.floorTransmission.toFixed(2)} kW.</p>
-                      <p className="font-medium">Assembly U-values are user supplied; thermal bridges and door-panel effects are not separately modelled.</p>
+                      <p>Walls: max(0, {results.wallAreaM2.toFixed(2)} × {inputs.wallUValue.toFixed(3)} × [{inputs.ambientTemp} − {roomTempC}] ÷ 1000) = {results.wallTransmission.toFixed(2)} kW.</p>
+                      <p>Ceiling: max(0, {results.floorAreaM2.toFixed(2)} × {inputs.ceilingUValue.toFixed(3)} × [{inputs.ceilingBoundaryTempC} − {roomTempC}] ÷ 1000) = {results.ceilingTransmission.toFixed(2)} kW.</p>
+                      <p>Floor: max(0, {results.floorAreaM2.toFixed(2)} × {inputs.floorUValue.toFixed(3)} × [{inputs.floorBoundaryTempC} − {roomTempC}] ÷ 1000) = {results.floorTransmission.toFixed(2)} kW.</p>
+                      <p className="font-medium">U-values are estimated from panel type and thickness; thermal bridges and door-panel effects are not separately modelled.</p>
                     </LoadDrilldown>
                     <LoadDrilldown label="Product load" value={results.product} sharePct={results.subtotal ? results.product / results.subtotal * 100 : 0}>
                       <BreakdownLine label="Sensible above freezing" value={results.productSensibleAboveFreeze} />
@@ -1806,6 +1837,25 @@ const InputGroup = ({ label, value, onChange, min }: { label: string; value: num
       }}
       className="w-full px-4 py-3 bg-gray-50 border border-gray-200 text-gray-900 font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
     />
+  </div>
+);
+
+const ThicknessInput = ({ label, value, onChange, min, uValue }: { label: string; value: number; onChange: (v: number) => void; min: number; uValue: number }) => (
+  <div className="space-y-2">
+    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</label>
+    <input
+      type="number"
+      list="panel-thicknesses"
+      value={value}
+      min={min}
+      step={5}
+      onChange={e => {
+        const parsed = Number(e.target.value);
+        onChange(Math.max(min, Number.isFinite(parsed) ? parsed : 0));
+      }}
+      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 text-gray-900 font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+    />
+    <p className="text-xs text-gray-500">U ≈ {uValue.toFixed(3)} W/m²·K</p>
   </div>
 );
 
