@@ -95,7 +95,11 @@ function TechnicianRegistryContent() {
       total: filteredTechnicians.length,
       active: filteredTechnicians.filter(tech => tech.status === 'active').length,
       employed: filteredTechnicians.filter(tech => tech.employmentStatus === 'employed').length,
-      provinces: new Set(filteredTechnicians.map(tech => tech.province)).size,
+      provinces: new Set(
+        filteredTechnicians
+          .map((tech) => tech.province)
+          .filter((province) => ZIMBABWE_PROVINCES.some((known) => known.name === province))
+      ).size,
       towns: new Set(filteredTechnicians.map(tech => tech.district)).size,
       validCertificates: filteredTechnicians.filter(tech =>
         tech.certifications.some(certification => certification.status === 'valid')
