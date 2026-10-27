@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { and, count, eq, gte, inArray, sql } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { supplierReorders, technicians } from '@/db/schema/index';
+import { ZIMBABWE_PROVINCES } from '@/constants/registry';
 import { requireRole } from '@/lib/server/auth';
 import { rangeMsFor, type SimpleDateRange } from '@/lib/dateRange';
 
@@ -32,12 +33,16 @@ export async function GET(req: Request) {
 
   const totalTechnicians = byStatus.reduce((sum, row) => sum + Number(row.total), 0);
   const activeTechnicians = byStatus.filter((row) => row.status === 'active').reduce((sum, row) => sum + Number(row.total), 0);
+  const knownProvinceNames = new Set(ZIMBABWE_PROVINCES.map(({ name }) => name));
+  const provinceCount = provinces.filter(({ province }) => knownProvinceNames.has(province)).length;
 
   return NextResponse.json({
     range,
     province: province && province !== 'all' ? province : null,
     technicians: { total: totalTechnicians, active: activeTechnicians },
-    regionsWithTechnicians: province && province !== 'all' ? (totalTechnicians > 0 ? 1 : 0) : provinces.length,
+    regionsWithTechnicians: province && province !== 'all'
+      ? (totalTechnicians > 0 && knownProvinceNames.has(province) ? 1 : 0)
+      : provinceCount,
     reorders: { pendingReviews: Number(pending[0]?.total ?? 0), volumeKgInPeriod: Number(volume[0]?.kg ?? 0) },
   });
 }
