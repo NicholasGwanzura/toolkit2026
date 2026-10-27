@@ -6,6 +6,7 @@ import { ArrowLeft, CheckCircle, AlertTriangle, Clock, MapPin, Phone, Mail, Brie
 import { QRCodeCanvas } from 'qrcode.react';
 import { jsPDF } from 'jspdf';
 import { useTechnician, uploadTechnicianPhoto } from '@/lib/api';
+import { useAuth } from '@/lib/auth';
 import { useToast } from '@/components/ui/Toast';
 import { SITE_URL } from '@/lib/site-url';
 import type { Technician } from '@/types/index';
@@ -153,14 +154,37 @@ export default function TechnicianDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const { success, info, error: toastError } = useToast();
+  const { user: session } = useAuth();
   const qrCanvasRef = useRef<HTMLCanvasElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const [generatingCertificate, setGeneratingCertificate] = useState(false);
   const [sendingCertificate, setSendingCertificate] = useState(false);
+  const [resendingActivation, setResendingActivation] = useState(false);
   const [generatingIdCard, setGeneratingIdCard] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const id = typeof params.id === 'string' ? params.id : Array.isArray(params.id) ? params.id[0] : undefined;
   const { data: technician, error, isLoading } = useTechnician(id);
+
+  const handleResendActivation = async () => {
+    if (!id) return;
+    setResendingActivation(true);
+    try {
+      const response = await fetch('/api/admin/technicians/activation-invites', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: [id], resendAll: true }),
+      });
+      const body = await response.json().catch(() => ({})) as { sent?: number; failed?: Array<{ reason: string }>; error?: string };
+      if (!response.ok) throw new Error(body.error ?? 'Could not send the activation email.');
+      if (body.sent) success(`Activation email sent to ${technician?.email}.`);
+      else toastError(body.failed?.[0]?.reason ?? 'The activation email could not be sent.');
+    } catch (cause) {
+      toastError(cause instanceof Error ? cause.message : 'Could not send the activation email.');
+    } finally {
+      setResendingActivation(false);
+    }
+  };
 
   const handlePhotoSelected = async (file: File) => {
     if (!id) return;
@@ -320,6 +344,16 @@ export default function TechnicianDetailsPage() {
                 <div>
                   <p className="text-sm font-medium text-gray-500">Email</p>
                   <p className="text-gray-900">{technician.email}</p>
+                  {session?.role === 'org_admin' && (
+                    <button
+                      type="button"
+                      onClick={handleResendActivation}
+                      disabled={resendingActivation}
+                      className="mt-2 min-h-10 border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      {resendingActivation ? 'Sending…' : 'Resend activation email'}
+                    </button>
+                  )}
                 </div>
               )}
               <div>

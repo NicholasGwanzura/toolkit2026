@@ -38,15 +38,18 @@ async function classify() {
   let awaiting = 0;
   const counts: Record<ActivationEligibility, number> = { eligible: 0, 'has-account': 0, 'no-email': 0, undeliverable: 0 };
   const eligible: Array<(typeof techs)[number] & { failedBefore: boolean }> = [];
+  const allEligible: Array<(typeof techs)[number] & { failedBefore: boolean }> = [];
   for (const t of techs) {
     const state = activationEligibility({ email: t.email, hasWorkingAccount: !!t.email && withAccount.has(t.email.trim().toLowerCase()) });
     counts[state] += 1;
     if (state === 'eligible') {
+      const candidate = { ...t, failedBefore: !!t.email && failedBefore.has(t.email.trim().toLowerCase()) };
+      allEligible.push(candidate);
       if (t.email && recentlyEmailed.has(t.email.trim().toLowerCase())) awaiting += 1;
-      else eligible.push({ ...t, failedBefore: !!t.email && failedBefore.has(t.email.trim().toLowerCase()) });
+      else eligible.push(candidate);
     }
   }
-  return { total: techs.length, counts, eligible, awaiting };
+  return { total: techs.length, counts, eligible, allEligible, awaiting };
 }
 
 export async function GET(req: Request) {
@@ -75,14 +78,22 @@ export async function POST(req: Request) {
     return e as Response;
   }
 
-  const body = await req.json().catch(() => ({})) as { ids?: unknown; failedOnly?: unknown };
+  const body = await req.json().catch(() => ({})) as { ids?: unknown; failedOnly?: unknown; resendAll?: unknown };
   const ids = Array.isArray(body.ids) ? body.ids.filter((v): v is string => typeof v === 'string').slice(0, BATCH_SIZE) : null;
 
   try {
-    const { eligible } = await classify();
+    const { eligible, allEligible } = await classify();
     // failedOnly: just the people whose last activation email failed, nobody else.
-    const base = body.failedOnly === true ? eligible.filter((t) => t.failedBefore) : eligible;
+    // resendAll: include everyone without a working login, even if they got a link recently.
+    const base = body.failedOnly === true
+      ? eligible.filter((t) => t.failedBefore)
+      : body.resendAll === true
+        ? allEligible
+        : eligible;
     const pool = ids ? base.filter((t) => ids.includes(t.id)) : base;
+    if (ids?.length && pool.length === 0) {
+      return NextResponse.json({ error: 'This technician is not eligible for an activation link.' }, { status: 400 });
+    }
     const batch = pool.slice(0, BATCH_SIZE);
 
     let sent = 0;
