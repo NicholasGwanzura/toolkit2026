@@ -40,13 +40,13 @@ export interface NavItem {
 export type ProcessingMode = 'FREEZING' | 'BLASTING' | 'HOLDING';
 
 export const ProcessingModeLabels: Record<ProcessingMode, string> = {
-  FREEZING: 'Freezing',
+  FREEZING: 'Freezer / Holding',
   BLASTING: 'Blast Freezing',
   HOLDING: 'Holding / Storage',
 };
 
 export const ProcessingModeDescriptions: Record<ProcessingMode, string> = {
-  FREEZING: 'Standard product freezing within a cold room or freezer',
+  FREEZING: 'Standard product freezing in a freezer',
   BLASTING: 'High-velocity forced-air freezing for rapid thermal extraction',
   HOLDING: 'Maintaining already-frozen product at storage temperature',
 };
