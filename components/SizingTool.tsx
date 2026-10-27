@@ -818,7 +818,7 @@ const SizingTool: React.FC = () => {
                 <div className="space-y-3 pt-4 border-t border-gray-100">
                   <label className="text-sm font-semibold text-gray-700">
                     Processing Mode
-                    <span className="ml-2 text-xs font-normal text-gray-400">Freezing · Blast Freezing · Holding</span>
+                    <span className="ml-2 text-xs font-normal text-gray-400">Freezer / Holding · Blast Freezing · Holding / Storage</span>
                   </label>
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                     {(Object.keys(ProcessingModeLabels) as ProcessingMode[]).map((mode) => (
@@ -863,7 +863,7 @@ const SizingTool: React.FC = () => {
                   <div className="p-5 border-2 border-blue-200 bg-blue-50/50 space-y-4">
                     <div className="flex items-center gap-2">
                       <span className="text-lg">❄️</span>
-                      <h4 className="text-sm font-bold text-blue-900">Blast Freezing Parameters</h4>
+                      <h4 className="text-sm font-bold text-blue-900">Blast Freezer / Holding Parameters</h4>
                     </div>
                     <HelpNote>Blast-air temperature and cycle duration feed this load estimate. Air velocity is recorded for process context only; this tool does not calculate product core freezing time.</HelpNote>
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
