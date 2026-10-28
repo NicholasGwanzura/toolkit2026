@@ -64,6 +64,7 @@ import { CertificateRecord, JobTypeLabels, RefrigerantLog } from '@/types/index'
 import { BRAND as colors } from '@/constants/colors';
 import { rangeMsFor, type SimpleDateRange } from '@/lib/dateRange';
 import { Drilldown } from '@/components/ui/Drilldown';
+import DashboardEventsCalendar from '@/components/dashboard/DashboardEventsCalendar';
 import { isFieldWorkerRole } from '@/lib/field-worker';
 import { gettingStartedChecklist } from '@/lib/membership-status';
 import { monthlyComplianceStatus } from '@/lib/dashboard-stats';
@@ -593,6 +594,8 @@ export default function DashboardPage() {
                     );
                 })}
             </div>
+
+            <DashboardEventsCalendar />
 
             {/* Quick Actions - Role-based */}
             <div className="rounded-lg bg-white border border-[#E7E5E4] p-6">
