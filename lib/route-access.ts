@@ -22,6 +22,8 @@ export const PROTECTED_ROUTE_PREFIXES = [
   '/contractor-onboarding',
   '/field-operations',
   '/supplier-onboarding',
+  '/events',
+  '/certificate-verification',
 ] as const;
 
 export interface RouteRoleRule {
@@ -62,6 +64,8 @@ export const ROUTE_ROLE_RULES: readonly RouteRoleRule[] = [
   { prefix: '/dashboard', roles: ['technician', 'trainer', 'lecturer', 'vendor', 'org_admin', 'student', 'contractor'] },
   { prefix: '/contractor-onboarding', roles: ['contractor', 'org_admin'] },
   { prefix: '/refrigerants', roles: ['technician', 'contractor', 'trainer', 'lecturer', 'vendor', 'org_admin', 'student'] },
+  { prefix: '/events', roles: ['technician', 'contractor', 'trainer', 'lecturer', 'vendor', 'org_admin', 'student'] },
+  { prefix: '/certificate-verification', roles: ['technician', 'contractor', 'trainer', 'lecturer', 'vendor', 'org_admin', 'student'] },
 ];
 
 export function matchesPath(pathname: string, prefix: string): boolean {

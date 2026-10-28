@@ -62,14 +62,6 @@ export const JobTypeLabels: Record<JobType, string> = {
   FREEZER_ROOM: 'Freezer Room'
 };
 
-export const JobTypeImages: Record<JobType, string> = {
-  C40_FREEZER: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=300&h=200&fit=crop',
-  C60_FREEZER: 'https://images.unsplash.com/photo-1571175443880-49e1d25b2bc5?w=300&h=200&fit=crop',
-  C90_FREEZER: 'https://images.unsplash.com/photo-1626806819282-2c1dc01a5e0c?w=300&h=200&fit=crop',
-  COLD_ROOM: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=300&h=200&fit=crop',
-  FREEZER_ROOM: 'https://images.unsplash.com/photo-1584568694244-14fbdf83bd30?w=300&h=200&fit=crop'
-};
-
 export const JobTypeDescriptions: Record<JobType, string> = {
   C40_FREEZER: 'Light commercial freezer up to -20°C',
   C60_FREEZER: 'Medium commercial freezer up to -25°C',

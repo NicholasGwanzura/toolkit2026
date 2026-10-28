@@ -72,7 +72,7 @@ const NAV_SECTIONS: NavSection[] = [
         label: 'Operations',
         items: [
             { name: 'Learning Hub', href: '/learn', icon: BookOpen, roles: ['technician', 'contractor', 'trainer', 'lecturer', 'org_admin', 'student'] },
-            { name: 'Events Calendar', href: '/training', icon: CalendarDays, roles: ['technician', 'contractor', 'trainer', 'lecturer', 'vendor', 'org_admin', 'student'] },
+            { name: 'Events Calendar', href: '/events', icon: CalendarDays, roles: ['technician', 'contractor', 'trainer', 'lecturer', 'vendor', 'org_admin', 'student'] },
             { name: 'Manage Courses', href: '/learn/manage', icon: BookOpen, roles: ['trainer', 'lecturer'] },
             { name: 'Safety Center', href: '/safety-center', icon: ShieldCheck, roles: ['technician', 'contractor', 'trainer', 'lecturer', 'student'] },
             { name: 'Resources', href: '/resources', icon: Library, roles: ['technician', 'contractor', 'trainer', 'lecturer'] },
@@ -114,7 +114,7 @@ const NAV_SECTIONS: NavSection[] = [
         label: 'Registry',
         items: [
             { name: 'Technician Registry', href: '/technician-registry', icon: Users, roles: ['trainer', 'lecturer', 'org_admin'] },
-            { name: 'Certificate Verification', href: '/verify-technician', icon: ShieldCheck, roles: ['trainer', 'lecturer', 'vendor', 'org_admin', 'contractor'] },
+            { name: 'Certificate Verification', href: '/certificate-verification', icon: ShieldCheck, roles: ['trainer', 'lecturer', 'vendor', 'org_admin', 'contractor'] },
         ],
     },
     {
@@ -155,7 +155,7 @@ const ADMIN_NAV_SECTIONS: NavSection[] = [
         label: 'Operations',
         items: [
             { name: 'Learning Hub', href: '/learn', icon: BookOpen, roles: ['org_admin'], exact: true },
-            { name: 'Events Calendar', href: '/training', icon: CalendarDays, roles: ['org_admin'] },
+            { name: 'Events Calendar', href: '/events', icon: CalendarDays, roles: ['org_admin'] },
             { name: 'Manage Courses', href: '/learn/manage', icon: BookOpen, roles: ['org_admin'] },
             { name: 'Field Operations', href: '/field-operations', icon: Wrench, roles: ['org_admin'] },
             { name: 'Field Toolkit', href: '/field-toolkit', icon: Wrench, roles: ['org_admin'] },
@@ -191,7 +191,7 @@ const ADMIN_NAV_SECTIONS: NavSection[] = [
         items: [
             { name: 'Technician Registry', href: '/technician-registry', icon: Users, roles: ['org_admin'] },
             { name: 'Student Directory', href: '/admin/students', icon: GraduationCap, roles: ['org_admin'] },
-            { name: 'Certificate Verification', href: '/verify-technician', icon: ShieldCheck, roles: ['org_admin'] },
+            { name: 'Certificate Verification', href: '/certificate-verification', icon: ShieldCheck, roles: ['org_admin'] },
             { name: 'Certifications', href: '/certifications', icon: Award, roles: ['org_admin'], badge: 'certificateRequests' },
             { name: 'Rewards', href: '/rewards', icon: Award, roles: ['org_admin'], badge: 'rewardRequests' },
             { name: 'System Users', href: '/admin/users', icon: Users, roles: ['org_admin'] },

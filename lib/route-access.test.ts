@@ -26,7 +26,14 @@ describe('isProtectedPath', () => {
     expect(isProtectedPath('/')).toBe(false);
     expect(isProtectedPath('/login')).toBe(false);
     expect(isProtectedPath('/verify-coc')).toBe(false);
+    expect(isProtectedPath('/verify-technician')).toBe(false);
+    expect(isProtectedPath('/training')).toBe(false);
     expect(isProtectedPath('/privacy')).toBe(false);
+  });
+
+  it('protects the in-app events calendar and verification pages', () => {
+    expect(isProtectedPath('/events')).toBe(true);
+    expect(isProtectedPath('/certificate-verification')).toBe(true);
   });
 });
 
@@ -48,6 +55,13 @@ describe('routeRuleFor', () => {
     expect(routeRuleFor('/admin/users')?.prefix).toBe('/admin');
     expect(routeRuleFor('/suppliers')?.roles).toEqual(['vendor', 'org_admin']);
     expect(routeRuleFor('/learn')?.prefix).toBe('/learn');
+  });
+
+  it('scopes the in-app events calendar and certificate verification', () => {
+    expect(routeRuleFor('/events')?.roles).toContain('student');
+    expect(routeRuleFor('/events')?.roles).toContain('vendor');
+    expect(routeRuleFor('/certificate-verification')?.roles).toContain('contractor');
+    expect(routeRuleFor('/certificate-verification')?.roles).toContain('org_admin');
   });
 
   it('returns nothing for unregistered paths', () => {

@@ -31,7 +31,7 @@ export default function DashboardEventsCalendar() {
             <p className="mt-0.5 text-xs text-[#78716C]">Training sessions and events open to all dashboard users</p>
           </div>
         </div>
-        <Link href="/training" className="inline-flex min-h-10 items-center gap-1 text-sm font-semibold text-[#D97706] hover:text-[#b45309] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]">
+        <Link href="/events" className="inline-flex min-h-10 items-center gap-1 text-sm font-semibold text-[#D97706] hover:text-[#b45309] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]">
           Open full calendar <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </Link>
       </div>

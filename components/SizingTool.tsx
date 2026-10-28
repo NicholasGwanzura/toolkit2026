@@ -1,11 +1,22 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
-import { SizingInputs, JobType, JobTypeLabels, JobTypeDefaults, JobTypeImages, JobTypeDescriptions, ProcessingMode, ProcessingModeLabels, ProcessingModeDescriptions } from '../types';
-import { ChevronRight, ChevronLeft, Calculator, Thermometer, Shield, Sparkles, Download, Snowflake, ExternalLink, Gauge, ArrowUpDown, Droplets, Save, Info } from 'lucide-react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { SizingInputs, JobType, JobTypeLabels, JobTypeDefaults, JobTypeDescriptions, ProcessingMode, ProcessingModeLabels, ProcessingModeDescriptions } from '../types';
+import { ChevronRight, ChevronLeft, Calculator, Thermometer, Shield, Sparkles, Download, Snowflake, ExternalLink, Gauge, ArrowUpDown, Droplets, Save, History, Info, Refrigerator, Cuboid, Warehouse, ThermometerSnowflake, Trash2, type LucideIcon } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { REFRIGERANT_REFERENCE } from '@/constants/refrigerants';
 import { calculateCoolingLoads } from '@/lib/sizing-calculations';
 import EquipmentSelectionPanel from './EquipmentSelectionPanel';
+import { Modal } from './ui/Modal';
+import {
+  clearSizingDraft,
+  deleteSizingSession,
+  readSizingDraft,
+  readSizingSessions,
+  saveSizingSession,
+  writeSizingDraft,
+  type SizingDraft,
+  type SizingSession,
+} from '@/lib/sizing-session';
 import { SIZING_RESOURCES } from '@/lib/toolkit-resources';
 import { computeSelection, defaultEquipmentSettings, defaultEvaporatorTd, type EquipmentSettings } from '@/lib/equipment-selection';
 import { COMMON_PANEL_THICKNESSES_MM, INSULATION_TYPES, floorUValue, panelUValue, type InsulationType } from '@/lib/panel-insulation';
@@ -40,9 +51,26 @@ const SIZING_SOURCES = SIZING_RESOURCES;
 
 const SIZING_REFERENCE_NOTE = 'These references inform methods and cross-checks; they do not certify this preliminary estimate. Confirm product-specific properties, site conditions, equipment ratings and applicable Zimbabwean requirements before design or procurement.';
 
+const JOB_TYPE_ICONS: Record<JobType, LucideIcon> = {
+  C40_FREEZER: Refrigerator,
+  C60_FREEZER: Cuboid,
+  C90_FREEZER: Snowflake,
+  COLD_ROOM: Warehouse,
+  FREEZER_ROOM: ThermometerSnowflake,
+};
+
 type CalculatorTab = 'wizard' | 'superheat' | 'pt-chart' | 'leak-rate' | 'converter';
 type RefrigerantCode = 'R-290' | 'R-32' | 'R-744' | 'R-22';
 type ConverterType = 'temperature' | 'pressure' | 'mass' | 'airflow' | 'energy';
+
+const CALCULATOR_TABS: { id: CalculatorTab; label: string; icon: LucideIcon }[] = [
+  { id: 'wizard', label: 'Cooling Load Wizard', icon: Calculator },
+  { id: 'superheat', label: 'Superheat & Subcooling', icon: Thermometer },
+  { id: 'pt-chart', label: 'P-T Chart', icon: Gauge },
+  { id: 'leak-rate', label: 'Leak Rate & CO2-eq', icon: Droplets },
+  { id: 'converter', label: 'Unit Converter', icon: ArrowUpDown },
+];
+const CALCULATOR_LABELS = Object.fromEntries(CALCULATOR_TABS.map((t) => [t.id, t.label])) as Record<CalculatorTab, string>;
 
 const PT_CURVES: Record<RefrigerantCode, { temp: number; pressure: number }[]> = {
   'R-290': [
@@ -139,60 +167,62 @@ const convertValue = (value: number, type: ConverterType, from: string, to: stri
   return to === 'kW' ? kw : kw * 3412.142;
 };
 
+const DEFAULT_SIZING_INPUTS: SizingInputs = {
+  step: 1,
+  facilityType: 'SUPERMARKET',
+  jobType: 'COLD_ROOM',
+  processingMode: 'FREEZING',
+  roomWidth: 6,
+  roomLength: 8,
+  roomHeight: 3.5,
+  insulationType: 'PU',
+  wallPanelMm: 100,
+  ceilingPanelMm: 100,
+  floorInsulationMm: 100,
+  wallUValue: panelUValue('PU', 100),
+  ceilingUValue: panelUValue('PU', 100),
+  floorUValue: floorUValue('PU', 100),
+  ceilingBoundaryTempC: 35,
+  floorBoundaryTempC: 20,
+  ambientTemp: 35,
+  ambientRH: 50,
+  sitePressureKpa: 86,
+  productTemp: 20,
+  productTargetTempC: -18,
+  productMass: 5000,
+  productCp: 3.2,
+  productCpFrozen: 1.8,
+  productFreezingPointC: -2,
+  productWaterFraction: 0.7,
+  loadingTimeHours: 24,
+  infiltrationAirflowM3h: 0,
+  internalLoadKw: 0,
+  defrostHeaterPowerKw: 0,
+  designMarginPct: 0,
+  blastAirTemp: -35,
+  blastAirVelocity: 4.5,
+  blastCycleDurationMinutes: 240,
+  blastPharmaMode: false,
+  holdTargetTemp: 2,
+  holdRHPreset: 'general',
+  holdRH: 65,
+  holdDefrostCyclesPerDay: 4,
+  holdDefrostDurationMin: 15,
+  holdAirVelocity: 0.2,
+  holdRecoveryTimeSec: 75,
+  holdFloorClearanceCm: 15,
+  holdAirflowClearanceCm: 7,
+  freezeStorageTemp: -20,
+  freezeRateCHour: 15,
+  freezeAirVelocity: 3.0,
+  freezeProductThicknessMm: 100,
+  freezeBioStorage: false,
+};
+
 const SizingTool: React.FC = () => {
   const { user } = useAuth();
   const [step, setStep] = useState(1);
-  const [inputs, setInputs] = useState<SizingInputs>({
-    step: 1,
-    facilityType: 'SUPERMARKET',
-    jobType: 'COLD_ROOM',
-    processingMode: 'FREEZING',
-    roomWidth: 6,
-    roomLength: 8,
-    roomHeight: 3.5,
-    insulationType: 'PU',
-    wallPanelMm: 100,
-    ceilingPanelMm: 100,
-    floorInsulationMm: 100,
-    wallUValue: panelUValue('PU', 100),
-    ceilingUValue: panelUValue('PU', 100),
-    floorUValue: floorUValue('PU', 100),
-    ceilingBoundaryTempC: 35,
-    floorBoundaryTempC: 20,
-    ambientTemp: 35,
-    ambientRH: 50,
-    sitePressureKpa: 86,
-    productTemp: 20,
-    productTargetTempC: -18,
-    productMass: 5000,
-    productCp: 3.2,
-    productCpFrozen: 1.8,
-    productFreezingPointC: -2,
-    productWaterFraction: 0.7,
-    loadingTimeHours: 24,
-    infiltrationAirflowM3h: 0,
-    internalLoadKw: 0,
-    defrostHeaterPowerKw: 0,
-    designMarginPct: 0,
-    blastAirTemp: -35,
-    blastAirVelocity: 4.5,
-    blastCycleDurationMinutes: 240,
-    blastPharmaMode: false,
-    holdTargetTemp: 2,
-    holdRHPreset: 'general',
-    holdRH: 65,
-    holdDefrostCyclesPerDay: 4,
-    holdDefrostDurationMin: 15,
-    holdAirVelocity: 0.2,
-    holdRecoveryTimeSec: 75,
-    holdFloorClearanceCm: 15,
-    holdAirflowClearanceCm: 7,
-    freezeStorageTemp: -20,
-    freezeRateCHour: 15,
-    freezeAirVelocity: 3.0,
-    freezeProductThicknessMm: 100,
-    freezeBioStorage: false,
-  });
+  const [inputs, setInputs] = useState<SizingInputs>(DEFAULT_SIZING_INPUTS);
 
   const setPanels = (patch: Partial<Pick<SizingInputs, 'insulationType' | 'wallPanelMm' | 'ceilingPanelMm' | 'floorInsulationMm'>>) => {
     const next = { ...inputs, ...patch };
@@ -205,7 +235,6 @@ const SizingTool: React.FC = () => {
   };
 
   const [aiAdvice, setAiAdvice] = useState<string>('');
-  const [savedAt, setSavedAt] = useState<string | null>(null);
   const [isLoadingAi, setIsLoadingAi] = useState(false);
   const [activeCalculator, setActiveCalculator] = useState<CalculatorTab>('wizard');
   const [selectedRefrigerant, setSelectedRefrigerant] = useState<RefrigerantCode>('R-290');
@@ -225,15 +254,15 @@ const SizingTool: React.FC = () => {
   const [converterTo, setConverterTo] = useState('F');
 
   useEffect(() => {
-    const [defaultFrom, defaultTo] = CONVERTER_OPTIONS[converterType].units;
+    setAiAdvice('');
+  }, [inputs]);
+
+  const changeConverterType = (next: ConverterType) => {
+    const [defaultFrom, defaultTo] = CONVERTER_OPTIONS[next].units;
+    setConverterType(next);
     setConverterFrom(defaultFrom);
     setConverterTo(defaultTo ?? defaultFrom);
-  }, [converterType]);
-
-  useEffect(() => {
-    setAiAdvice('');
-    setSavedAt(null);
-  }, [inputs]);
+  };
 
   const handleDownload = async () => {
     // Generate PDF using jsPDF
@@ -483,12 +512,53 @@ const SizingTool: React.FC = () => {
     doc.save(`HEVACRAZ_Sizing_Report_${Date.now()}.pdf`);
   };
 
-  const saveSizingCase = () => {
-    if (sizingInputIssues.length > 0) return;
-    const entry = { id: crypto.randomUUID(), savedAt: new Date().toISOString(), inputs, calculatedLoadKw: results.total };
-    const existing = JSON.parse(localStorage.getItem('hevacraz-sizing-cases') ?? '[]') as unknown[];
-    localStorage.setItem('hevacraz-sizing-cases', JSON.stringify([entry, ...existing].slice(0, 20)));
-    setSavedAt(entry.savedAt);
+  const openSaveSession = () => {
+    if (!storeId) return;
+    setSessionLabel(suggestLabel());
+    setSessionsOpen(false);
+    setSaveOpen(true);
+  };
+
+  const confirmSaveSession = () => {
+    if (!storeId) return;
+    const session: SizingSession = {
+      id: crypto.randomUUID(),
+      label: sessionLabel.trim() || suggestLabel(),
+      technicianId: user?.id,
+      technicianName: user?.name,
+      ...currentSession(),
+      savedAt: new Date().toISOString(),
+    };
+    setSessions(saveSizingSession(storeId, session));
+    setDraft(null);
+    setSaveOpen(false);
+    setSessionNotice(`“${session.label}” saved on this device. Find it under Saved cases.`);
+  };
+
+  const resumeSession = (saved: SizingSession | SizingDraft) => {
+    setStep(saved.step);
+    setActiveCalculator(saved.calculator);
+    setInputs({ ...DEFAULT_SIZING_INPUTS, ...saved.inputs, step: saved.step });
+    setSuperheatInputs(saved.superheatInputs);
+    setLeakInputs({ leakRate: saved.leakInputs.leakRate, refrigerantCode: saved.leakInputs.refrigerantCode as RefrigerantCode });
+    setConverterType(saved.converter.type as ConverterType);
+    setConverterValue(saved.converter.value);
+    setConverterFrom(saved.converter.from);
+    setConverterTo(saved.converter.to);
+    setSelectedRefrigerant(saved.refrigerant as RefrigerantCode);
+    setDraft(null);
+    setSessionsOpen(false);
+    setSessionNotice('Session restored. Keep going where you left off.');
+  };
+
+  const removeSession = (id: string) => {
+    if (!storeId) return;
+    setSessions(deleteSizingSession(storeId, id));
+  };
+
+  const discardDraft = () => {
+    if (storeId) clearSizingDraft(storeId);
+    setDraft(null);
   };
 
   const isHolding = inputs.processingMode === 'HOLDING';
@@ -596,6 +666,51 @@ const SizingTool: React.FC = () => {
     [equipmentSettings, results.total, roomTempC, inputs.ambientTemp],
   );
 
+  // --- Saved sessions and the in-progress draft -------------------------------
+  const storeId = user?.id ?? null;
+  const [sessions, setSessions] = useState<SizingSession[]>([]);
+  const [draft, setDraft] = useState<SizingDraft | null>(null);
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [sessionsOpen, setSessionsOpen] = useState(false);
+  const [sessionLabel, setSessionLabel] = useState('');
+  const [sessionNotice, setSessionNotice] = useState('');
+  const draftSnapshotRef = useRef<string | null>(null);
+
+  const suggestLabel = () => `${JobTypeLabels[inputs.jobType]} · ${inputs.roomWidth}×${inputs.roomLength}m`;
+
+  const currentSession = () => ({
+    step,
+    calculator: activeCalculator,
+    inputs,
+    superheatInputs,
+    leakInputs: { leakRate: leakInputs.leakRate, refrigerantCode: leakInputs.refrigerantCode },
+    converter: { type: converterType, value: converterValue, from: converterFrom, to: converterTo },
+    refrigerant: selectedRefrigerant,
+    loadKw: results.total,
+  });
+
+  useEffect(() => {
+    if (!storeId) return;
+    setSessions(readSizingSessions(storeId));
+    setDraft(readSizingDraft(storeId));
+  }, [storeId]);
+
+  // Progress is kept on the device while it is typed, so a reload or a dropped signal costs nothing.
+  useEffect(() => {
+    if (!storeId) return;
+    const snapshot = JSON.stringify(currentSession());
+    if (draftSnapshotRef.current === null) { draftSnapshotRef.current = snapshot; return; }
+    if (draftSnapshotRef.current === snapshot) return;
+    draftSnapshotRef.current = snapshot;
+    setDraft(null);
+    const timer = setTimeout(() => writeSizingDraft(storeId, { savedAt: new Date().toISOString(), ...currentSession() }), 700);
+    return () => clearTimeout(timer);
+    // currentSession reads the latest state from this render; listing it as a dependency would re-run on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storeId, step, activeCalculator, inputs, superheatInputs, leakInputs, converterType, converterValue, converterFrom, converterTo, selectedRefrigerant]);
+
+  const savedSessionTime = (value: string) => new Intl.DateTimeFormat('en-ZW', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+
   const liveEstimate = (
     <div className="border border-blue-200 bg-blue-50 px-4 py-2 lg:p-4" aria-live="polite">
       <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">Live estimate</p>
@@ -691,19 +806,13 @@ const SizingTool: React.FC = () => {
     <div className="max-w-5xl mx-auto space-y-6 pb-24 sm:space-y-8 lg:pb-0">
       <div className="border border-gray-200 bg-white p-2 shadow-sm sm:p-3">
         <div className="flex gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-2 sm:overflow-visible sm:pb-0 xl:grid-cols-5">
-          {[
-            { id: 'wizard', label: 'Cooling Load Wizard', icon: Calculator },
-            { id: 'superheat', label: 'Superheat & Subcooling', icon: Thermometer },
-            { id: 'pt-chart', label: 'P-T Chart', icon: Gauge },
-            { id: 'leak-rate', label: 'Leak Rate & CO2-eq', icon: Droplets },
-            { id: 'converter', label: 'Unit Converter', icon: ArrowUpDown },
-          ].map((tab) => {
+          {CALCULATOR_TABS.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeCalculator === tab.id;
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveCalculator(tab.id as CalculatorTab)}
+                onClick={() => setActiveCalculator(tab.id)}
                 className={`flex shrink-0 items-center gap-2 whitespace-nowrap px-4 py-3 text-sm font-semibold transition-all sm:shrink ${
                   isActive
                     ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
@@ -717,6 +826,77 @@ const SizingTool: React.FC = () => {
           })}
         </div>
       </div>
+
+      {/* Session toolbar: autosaved progress, saved cases and the save dialog */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border border-gray-200 bg-white px-3 py-2.5 shadow-sm sm:px-4">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Session</p>
+          <p className="mt-0.5 text-xs text-gray-600">
+            {storeId
+              ? sessions[0]
+                ? `${sessions.length} saved case${sessions.length === 1 ? '' : 's'} · last save ${savedSessionTime(sessions[0].savedAt)} · progress autosaves on this device`
+                : 'Progress autosaves on this device · no saved cases yet'
+              : 'Signing in keeps your sizing progress on this device.'}
+          </p>
+          {sessionNotice && (
+            <p className="mt-1 flex items-start gap-1.5 text-xs font-semibold text-emerald-800">
+              <Shield className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              <span>{sessionNotice}</span>
+              <button type="button" onClick={() => setSessionNotice('')} className="ml-1 underline">Dismiss</button>
+            </p>
+          )}
+        </div>
+        <div className="flex shrink-0 gap-2">
+          <button
+            type="button"
+            onClick={() => { setSessionsOpen(true); setSaveOpen(false); }}
+            disabled={!storeId}
+            className="inline-flex items-center gap-1.5 border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <History className="h-3.5 w-3.5" aria-hidden="true" />
+            Saved cases ({sessions.length})
+          </button>
+          <button
+            type="button"
+            onClick={openSaveSession}
+            disabled={!storeId}
+            className="inline-flex items-center gap-1.5 bg-gray-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Save className="h-3.5 w-3.5" aria-hidden="true" />
+            Save progress
+          </button>
+        </div>
+      </div>
+
+      {draft && storeId && (
+        <div role="note" className="flex flex-wrap items-center justify-between gap-3 border border-blue-300 bg-blue-50 px-4 py-3">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-blue-900">Continue your unfinished sizing</p>
+            <p className="mt-0.5 text-xs text-blue-800">
+              {JobTypeLabels[draft.inputs.jobType]} · {draft.inputs.roomWidth}×{draft.inputs.roomLength} m ·{' '}
+              {draft.calculator === 'wizard' ? `Cooling Load Wizard, step ${draft.step}` : CALCULATOR_LABELS[draft.calculator]}
+              {draft.loadKw > 0 ? ` · ${draft.loadKw.toFixed(2)} kW` : ''} · autosaved {savedSessionTime(draft.savedAt)}
+            </p>
+          </div>
+          <div className="flex shrink-0 gap-2">
+            <button
+              type="button"
+              onClick={() => resumeSession(draft)}
+              className="inline-flex items-center gap-1.5 bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
+            >
+              <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+              Continue
+            </button>
+            <button
+              type="button"
+              onClick={discardDraft}
+              className="inline-flex items-center gap-1.5 border border-blue-300 bg-white px-3 py-1.5 text-xs font-semibold text-blue-800 hover:bg-blue-100"
+            >
+              Start fresh
+            </button>
+          </div>
+        </div>
+      )}
 
       <div role="note" className="flex gap-3 border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950 sm:p-4 sm:text-sm">
         <Info className="mt-0.5 h-5 w-5 shrink-0" />
@@ -775,42 +955,46 @@ const SizingTool: React.FC = () => {
                   <label className="text-sm font-semibold text-gray-700">Select Job Type</label>
                   <HelpNote>Job type is a report label and preset only; the load is calculated from explicit dimensions, boundary conditions, product, airflow and internal-load inputs. No hidden job-type multipliers are applied.</HelpNote>
                   <div className="grid grid-cols-2 gap-3">
-                    {(Object.keys(JobTypeLabels) as JobType[]).map((type) => (
-                      <button 
-                        key={type}
-                        onClick={() => {
-                          const defaults = JobTypeDefaults[type];
-                          setInputs({
-                            ...inputs, 
-                            jobType: type,
-                            productTargetTempC: inputs.processingMode === 'HOLDING' ? defaults.targetTemp : inputs.productTargetTempC,
-                            ...(inputs.processingMode === 'HOLDING' ? { holdTargetTemp: defaults.targetTemp } : {}),
-                            ...(inputs.processingMode === 'BLASTING' ? { blastAirTemp: defaults.targetTemp } : {}),
-                            ...(inputs.processingMode === 'FREEZING' && defaults.targetTemp <= 0 ? { freezeStorageTemp: defaults.targetTemp } : {}),
-                            loadingTimeHours: defaults.defaultLoadingTime
-                          });
-                        }}
-                        className={`p-4 border-2 text-sm font-semibold transition-all ${
-                          inputs.jobType === type 
-                            ? 'border-blue-600 bg-blue-50 text-blue-700' 
-                            : 'border-gray-200 text-gray-500 hover:border-gray-300'
-                        }`}
-                      >
-                        <div className="flex flex-col items-center gap-2">
-                          <img 
-                            src={JobTypeImages[type]} 
-                            alt={JobTypeLabels[type]} 
-                            className="w-full h-24 object-cover "
-                          />
-                          <div className="text-center w-full">
-                            <div className="flex items-center justify-center gap-1 font-semibold">
-                              {JobTypeLabels[type]}
+                    {(Object.keys(JobTypeLabels) as JobType[]).map((type) => {
+                      const Icon = JOB_TYPE_ICONS[type];
+                      const selected = inputs.jobType === type;
+                      return (
+                        <button 
+                          key={type}
+                          onClick={() => {
+                            const defaults = JobTypeDefaults[type];
+                            setInputs({
+                              ...inputs, 
+                              jobType: type,
+                              productTargetTempC: inputs.processingMode === 'HOLDING' ? defaults.targetTemp : inputs.productTargetTempC,
+                              ...(inputs.processingMode === 'HOLDING' ? { holdTargetTemp: defaults.targetTemp } : {}),
+                              ...(inputs.processingMode === 'BLASTING' ? { blastAirTemp: defaults.targetTemp } : {}),
+                              ...(inputs.processingMode === 'FREEZING' && defaults.targetTemp <= 0 ? { freezeStorageTemp: defaults.targetTemp } : {}),
+                              loadingTimeHours: defaults.defaultLoadingTime
+                            });
+                          }}
+                          className={`p-4 border-2 text-sm font-semibold transition-all ${
+                            selected 
+                              ? 'border-blue-600 bg-blue-50 text-blue-700' 
+                              : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                          }`}
+                        >
+                          <div className="flex flex-col items-center gap-3">
+                            <span className={`flex h-14 w-14 items-center justify-center rounded-full transition-colors ${
+                              selected ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'
+                            }`}>
+                              <Icon className="h-7 w-7" strokeWidth={1.75} aria-hidden="true" />
+                            </span>
+                            <div className="text-center w-full">
+                              <div className="flex items-center justify-center gap-1 font-semibold">
+                                {JobTypeLabels[type]}
+                              </div>
+                              <p className="text-xs mt-1 opacity-70">{JobTypeDescriptions[type]}</p>
                             </div>
-                            <p className="text-xs mt-1 opacity-70">{JobTypeDescriptions[type]}</p>
                           </div>
-                        </div>
-                      </button>
-                    ))}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -1418,7 +1602,7 @@ const SizingTool: React.FC = () => {
                 <div className="p-4 bg-emerald-50 border border-emerald-100">
                   <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                     <p className="text-sm font-semibold text-emerald-900">Engineering handoff</p>
-                    <button type="button" onClick={saveSizingCase} disabled={sizingInputIssues.length > 0} className="inline-flex items-center gap-1.5 border border-emerald-200 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50"><Save className="h-3.5 w-3.5" /> {savedAt ? 'Case saved locally' : 'Save sizing case'}</button>
+                    <button type="button" onClick={openSaveSession} disabled={!storeId} className="inline-flex items-center gap-1.5 border border-emerald-200 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50"><Save className="h-3.5 w-3.5" /> {sessions.length > 0 ? 'Save updated case' : 'Save sizing case'}</button>
                   </div>
                   <EquipmentSelectionPanel loadKw={results.total} roomTempC={roomTempC} ambientTempC={inputs.ambientTemp} settings={equipmentSettings} onChange={setEquipmentSettings} sel={equipment} />
                 </div>
@@ -1772,7 +1956,7 @@ const SizingTool: React.FC = () => {
                 <label className="text-sm font-semibold text-gray-700">Category</label>
                 <select
                   value={converterType}
-                  onChange={(e) => setConverterType(e.target.value as ConverterType)}
+                  onChange={(e) => changeConverterType(e.target.value as ConverterType)}
                   className="w-full border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none transition focus:border-blue-300 focus:bg-white"
                 >
                   <option value="temperature">Temperature</option>
@@ -1819,6 +2003,84 @@ const SizingTool: React.FC = () => {
           </div>
         </div>
       )}
+
+      <Modal
+        open={saveOpen}
+        onClose={() => setSaveOpen(false)}
+        title="Save sizing progress"
+        description="Saved to this device so you can close the tab and pick the same calculation up later."
+        icon={<Save className="h-5 w-5" aria-hidden="true" />}
+        size="sm"
+        footer={
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={() => setSaveOpen(false)} className="border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Cancel</button>
+            <button type="submit" form="sizing-save-session" className="bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800">Save case</button>
+          </div>
+        }
+      >
+        <form id="sizing-save-session" onSubmit={(e) => { e.preventDefault(); confirmSaveSession(); }} className="space-y-4">
+          <div className="space-y-2">
+            <label htmlFor="sizing-case-name" className="text-xs font-semibold uppercase tracking-wide text-gray-500">Case name</label>
+            <input
+              id="sizing-case-name"
+              value={sessionLabel}
+              onChange={(e) => setSessionLabel(e.target.value)}
+              maxLength={80}
+              className="w-full border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm outline-none focus:border-blue-300 focus:bg-white"
+            />
+          </div>
+          <dl className="space-y-1.5 border border-gray-200 bg-gray-50 p-3 text-xs text-gray-700">
+            <div className="flex justify-between gap-3"><dt className="text-gray-500">Job type</dt><dd className="font-semibold">{JobTypeLabels[inputs.jobType]}</dd></div>
+            <div className="flex justify-between gap-3"><dt className="text-gray-500">Calculator</dt><dd className="font-semibold">{CALCULATOR_LABELS[activeCalculator]}{activeCalculator === 'wizard' ? ` (step ${step})` : ''}</dd></div>
+            <div className="flex justify-between gap-3"><dt className="text-gray-500">Room</dt><dd className="font-semibold">{inputs.roomWidth} × {inputs.roomLength} × {inputs.roomHeight} m</dd></div>
+            <div className="flex justify-between gap-3"><dt className="text-gray-500">Estimated load</dt><dd className="font-semibold">{results.total.toFixed(2)} kW</dd></div>
+          </dl>
+          <p className="text-xs text-gray-500">Saved cases stay on this device and are private to your sign-in. They are not submitted for approval.</p>
+          {sizingInputIssues.length > 0 && (
+            <p role="note" className="border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">
+              {sizingInputIssues.length} input{sizingInputIssues.length === 1 ? '' : 's'} still need{sizingInputIssues.length === 1 ? 's' : ''} correcting, so the saved load is a working figure rather than an estimate.
+            </p>
+          )}
+        </form>
+      </Modal>
+
+      <Modal
+        open={sessionsOpen}
+        onClose={() => setSessionsOpen(false)}
+        title="Saved sizing cases"
+        description={`${sessions.length} case${sessions.length === 1 ? '' : 's'} stored on this device. Resuming replaces the current inputs.`}
+        icon={<History className="h-5 w-5" aria-hidden="true" />}
+        size="md"
+      >
+        {sessions.length === 0 ? (
+          <p className="py-6 text-center text-sm text-gray-500">No saved cases yet. Use “Save progress” to keep one.</p>
+        ) : (
+          <ul className="space-y-3">
+            {sessions.map((saved) => (
+              <li key={saved.id} className="flex flex-wrap items-center justify-between gap-3 border border-gray-200 bg-white p-3 shadow-sm">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-gray-900">{saved.label}</p>
+                  <p className="mt-0.5 text-xs text-gray-500">
+                    {JobTypeLabels[saved.inputs.jobType]} · {CALCULATOR_LABELS[saved.calculator]}
+                    {saved.calculator === 'wizard' ? ` (step ${saved.step})` : ''} · {saved.loadKw.toFixed(2)} kW
+                    {saved.technicianName ? ` · ${saved.technicianName}` : ''} · {savedSessionTime(saved.savedAt)}
+                  </p>
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  <button type="button" onClick={() => resumeSession(saved)} className="inline-flex items-center gap-1.5 bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700">
+                    <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+                    Resume
+                  </button>
+                  <button type="button" onClick={() => removeSession(saved.id)} aria-label={`Delete ${saved.label}`} className="inline-flex items-center gap-1.5 border border-rose-200 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-50">
+                    <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                    Delete
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Modal>
     </div>
   );
 };
