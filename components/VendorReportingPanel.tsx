@@ -204,7 +204,6 @@ export default function VendorReportingPanel({
             approvedSupplierId: supplierName.toLowerCase().replace(/\s+/g, '-'),
             approvedSupplierName: supplierName,
             supplierVerified: true,
-            pesepayTransactionId: saleForm.invoiceNumber.trim(),
         };
 
         try {

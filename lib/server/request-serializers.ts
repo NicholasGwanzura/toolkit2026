@@ -90,7 +90,6 @@ export function toSupplierRegistration(row: typeof supplierApplications.$inferSe
     address: row.address,
     refrigerantsSupplied: row.refrigerantsSupplied as string[],
     taxNumber: row.taxNumber ?? undefined,
-    pesepayMerchantId: row.pesepayMerchantId ?? undefined,
     website: row.website ?? undefined,
     notes: row.notes ?? undefined,
     surveyData: (row.surveyData as SupplierRegistration['surveyData']) ?? undefined,

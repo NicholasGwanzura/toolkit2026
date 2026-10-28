@@ -227,7 +227,6 @@ export interface SupplierRegistration extends EmailConfirmationFlag {
   address: string;
   refrigerantsSupplied: string[];
   taxNumber?: string;
-  pesepayMerchantId?: string;
   website?: string;
   notes?: string;
   status: SupplierRegistrationStatus;
@@ -756,13 +755,11 @@ export interface RefrigerantLog {
   approvedSupplierId?: string;
   approvedSupplierName?: string;
   supplierVerified?: boolean;
-  pesepayTransactionId?: string;
   odp?: number;
   gwp?: number;
   co2EqEmissions?: number;
   ashraeSafetyClass?: RefrigerantSafetyClass;
   supplierId?: string;
-  purchaseTransactionId?: string;
 }
 
 export interface InstallationChecklistSnapshot {
@@ -1014,7 +1011,6 @@ export interface SupplyChainPurchase {
   supplierId: string;
   refrigerantType: string;
   quantityKg: number;
-  pesepayTransactionId?: string;
 }
 
 export interface RewardAccount {

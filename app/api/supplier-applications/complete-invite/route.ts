@@ -49,7 +49,7 @@ export async function POST(req: Request) {
     contactName: body.contactName.trim(), email: session.email, passwordHash: null,
     phone: body.phone.trim(), province: body.province.trim(), city: body.city.trim(), address: body.address.trim(),
     refrigerantsSupplied: body.refrigerantsSupplied, taxNumber: body.taxNumber ?? null,
-    pesepayMerchantId: body.pesepayMerchantId ?? null, website: body.website ?? null, notes: body.notes ?? null,
+    website: body.website ?? null, notes: body.notes ?? null,
     surveyData: body.surveyData ?? null,
     status: 'submitted', submittedAt: new Date(), createdAt: new Date(),
   }).returning();

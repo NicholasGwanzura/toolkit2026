@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { runWhatGasSync, type SyncType } from '@/lib/whatgas/sync';
+import { isAuthorizedCronRequest } from '@/lib/server/cron-auth';
 
 /**
  * Trigger endpoint for scheduled syncs. This app has no built-in cron like Vercel — point
@@ -16,7 +17,7 @@ export async function POST(req: Request) {
   }
 
   const auth = req.headers.get('authorization');
-  if (auth !== `Bearer ${secret}`) {
+  if (!isAuthorizedCronRequest(auth, secret)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

@@ -1,5 +1,10 @@
 # HEVACRAZ App - Data Flows Documentation
 
+> **Historical document (2026-03-03).** It describes the original localStorage mock architecture,
+> which no longer exists: the app is now database-backed with Drizzle/PostgreSQL, real
+> credential auth, live AI services, migrations, and scheduled jobs. For current architecture see
+> `README.md` and `SONNET_ALIGNMENT.md`. Do not use this file as a source of truth.
+
 ## Overview
 
 The HEVACRAZ (HVAC-R Association of Zimbabwe) application is a Next.js 16 web application that provides a digital toolkit for HVAC-R technicians. Currently, it uses a **client-side mock data architecture** with localStorage for persistence.
@@ -181,7 +186,7 @@ Display Results:
     - Infiltration load
     - Wall/ceiling/floor loads
     ↓
-AI Verification: Calls Groq service (mock)
+AI Verification: Calls DeepSeek service
     ↓
 Download Technical Sheet → jsPDF
 ```
@@ -231,10 +236,10 @@ Save to localStorage (optional)
 
 ### AI Services (Mock Implementation)
 
-#### Groq Service
-- Endpoint: `/services/groq.ts`
+#### DeepSeek Service
+- Endpoint: `/services/deepseek.ts`
 - Purpose: AI-powered sizing verification
-- Status: **Mock response** (not connected to actual Groq API)
+- Status: **Live** when `DEEPSEEK_API_KEY` is configured
 
 #### Gemini Service  
 - Endpoint: `/services/gemini.ts`

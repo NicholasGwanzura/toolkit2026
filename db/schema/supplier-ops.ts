@@ -62,7 +62,6 @@ export const supplierApplications = pgTable('supplier_applications', {
   address: text('address').notNull().default(''),
   refrigerantsSupplied: jsonb('refrigerants_supplied').notNull().$type<string[]>().default([]),
   taxNumber: text('tax_number'),
-  pesepayMerchantId: text('pesepay_merchant_id'),
   website: text('website'),
   notes: text('notes'),
   surveyData: jsonb('survey_data'),

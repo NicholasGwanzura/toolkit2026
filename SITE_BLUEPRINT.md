@@ -1,5 +1,10 @@
 # HEVACRAZ - Site Blueprint
 
+> **Historical design document.** Several claims here (Vercel deployment, mock services, module
+> list, data layer) are out of date. The app is deployed on Railway, uses Drizzle/PostgreSQL,
+> and the cylinder/permit/reclamation/recycling modules have been removed. See `README.md` and
+> `SONNET_ALIGNMENT.md` for the current architecture.
+
 ## 1. Project Overview
 
 **Project Name:** HEVACRAZ (HVAC-R Association of Zimbabwe)  
@@ -29,7 +34,7 @@ A comprehensive digital toolkit for HVAC-R professionals in Zimbabwe, providing:
 | PDF Generation | jsPDF |
 | State | React Context + localStorage |
 | Auth | Mock (localStorage-based) |
-| AI Services | Groq + Gemini (mock implementation) |
+| AI Services | DeepSeek + Gemini |
 
 ---
 
@@ -78,7 +83,7 @@ coolpro2026/
 │   ├── jobs.ts                  # Job-related constants
 │   └── registry.ts              # Registry constants
 ├── services/                    # External service integrations
-│   ├── groq.ts                  # Groq AI service (mock)
+│   ├── deepseek.ts              # DeepSeek AI service
 │   └── gemini.ts                # Gemini AI service (mock)
 └── public/                      # Static assets
 ```
@@ -282,7 +287,7 @@ type JobType = 'C40_FREEZER' | 'C60_FREEZER' | 'C90_FREEZER' | 'COLD_ROOM' | 'FR
 NEXTAUTH_SECRET=
 NEXTAUTH_URL=
 DATABASE_URL=
-GROQ_API_KEY=
+DEEPSEEK_API_KEY=
 GEMINI_API_KEY=
 ```
 
@@ -295,7 +300,6 @@ GEMINI_API_KEY=
 - [ ] PostgreSQL database
 - [ ] API routes for CRUD
 - [ ] Email notifications
-- [ ] Payment processing for rewards
 
 ### Phase 3
 - [ ] Real AI integration

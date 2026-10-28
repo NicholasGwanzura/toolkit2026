@@ -1,5 +1,11 @@
 # REFACTOR_PLAN — Whole-App Audit
 
+> **Historical audit (2026-07-03).** Many findings below have since been fixed — including the
+> live-data dashboard/jobs migration, job completion, course navigation, analytics wiring,
+> middleware ordering, startup migrations, scheduled cron, automated tests, and route hardening.
+> Payments were subsequently removed and Groq was replaced with DeepSeek. Treat this file as an
+> archaeological record, not a current task list; `UNFIXED01.md` is the live punch list.
+
 _Compiled 2026-07-03 from six parallel audits: technician dashboard/field tools, vendor/supplier
 workflows, trainer/lecturer LMS, org admin (all `/admin/*` + NOU dashboard + reporting),
 refrigerant/compliance modules, and cross-cutting data-flow/auth architecture. Every finding below

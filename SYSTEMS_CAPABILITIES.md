@@ -233,7 +233,7 @@ COOLPRO is a comprehensive digital toolkit specifically for **Refrigeration and 
 - COC certificates
 
 ### AI Integration
-- Groq-powered technical advice
+- DeepSeek-powered technical advice
 - Compressor sizing recommendations
 - Refrigerant alternatives guidance
 
@@ -267,7 +267,7 @@ COOLPRO is a comprehensive digital toolkit specifically for **Refrigeration and 
 - **Styling**: Tailwind CSS
 - **Icons**: Lucide React
 - **PDF**: jsPDF
-- **AI**: Groq, Gemini
+- **AI**: DeepSeek, Gemini
 - **Auth**: Custom implementation
 - **Database**: Local storage with sync
 

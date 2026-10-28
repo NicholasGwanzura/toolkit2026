@@ -37,7 +37,7 @@ const sections: LegalSection[] = [
     title: 'User-submitted information and records',
     paragraphs: [
       'You retain any rights you hold in information and files you submit. You give HEVACRAZ and its authorised service providers permission to host, process, display to authorised users, and use that material only as needed to operate the requested platform features, support association workflows, meet legal duties, and enforce these terms.',
-      'You are responsible for having the rights and authority needed to submit the material, including photographs and personal information about other people. Do not upload passwords, payment-card security codes, or information unrelated to the platform purpose.',
+      'You are responsible for having the rights and authority needed to submit the material, including photographs and personal information about other people. Do not upload passwords or information unrelated to the platform purpose.',
       'Records may be used in training, credential, safety, compliance, audit, reporting, or verification workflows. Limited fields may be displayed to other authorised users or, where a public registry or verification feature is enabled, to the public. Do not submit information for publication unless you have read the relevant notice and have authority to do so.',
     ],
   },

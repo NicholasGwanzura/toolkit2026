@@ -1,5 +1,26 @@
 import type { NextConfig } from "next";
 
+const isDev = process.env.NODE_ENV === "development";
+
+// Next.js injects inline bootstrap scripts, so 'unsafe-inline' is required without a
+// nonce pipeline. Everything else is locked to the app's own origin (plus remote images).
+const contentSecurityPolicy = [
+  "default-src 'self'",
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https:",
+  "font-src 'self' data:",
+  `connect-src 'self' https:${isDev ? " ws: wss:" : ""}`,
+  "media-src 'self' blob:",
+  "worker-src 'self' blob:",
+  "manifest-src 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'self'",
+  ...(isDev ? [] : ["upgrade-insecure-requests"]),
+].join("; ");
+
 const nextConfig: NextConfig = {
   experimental: {
     cpus: 2,
@@ -25,6 +46,7 @@ const nextConfig: NextConfig = {
       {
         source: '/:path*',
         headers: [
+          { key: 'Content-Security-Policy', value: contentSecurityPolicy },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },

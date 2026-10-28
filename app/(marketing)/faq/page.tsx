@@ -22,9 +22,9 @@ const FAQS: FAQ[] = [
   },
   {
     category: 'general',
-    question: 'Is my payment and personal data secure?',
+    question: 'Is my personal data secure?',
     answer:
-      'Yes. All payments are processed via PCI-DSS-compliant gateways and we never store card details. Personal data is encrypted at rest and in transit, and only authorised HEVACRAZ and NOU reviewers can access your registry record. You can request a full data export or deletion at any time.',
+      'Yes. Personal data is encrypted at rest and in transit, and only authorised HEVACRAZ and NOU reviewers can access your registry record. You can request a full data export or deletion at any time.',
   },
 
   // Students

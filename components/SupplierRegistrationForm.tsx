@@ -35,7 +35,6 @@ type SupplierFormState = {
   address: string;
   refrigerantsSupplied: string[];
   taxNumber: string;
-  pesepayMerchantId: string;
   website: string;
   notes: string;
   surveyData: SupplierSurveyData;
@@ -56,7 +55,6 @@ const INITIAL: SupplierFormState = {
   address: '',
   refrigerantsSupplied: [],
   taxNumber: '',
-  pesepayMerchantId: '',
   website: '',
   notes: '',
   surveyData: {},
@@ -120,7 +118,6 @@ export default function SupplierRegistrationForm({ inviteOnly = false, invitedEm
         address: form.address.trim(),
         refrigerantsSupplied: form.refrigerantsSupplied,
         taxNumber: form.taxNumber.trim() || undefined,
-        pesepayMerchantId: form.pesepayMerchantId.trim() || undefined,
         website: form.website.trim() || undefined,
         notes: form.notes.trim() || undefined,
         surveyData: form.surveyData,
@@ -330,13 +327,6 @@ export default function SupplierRegistrationForm({ inviteOnly = false, invitedEm
                 value={form.taxNumber}
                 onChange={(v) => update('taxNumber', v)}
                 placeholder="Tax reference"
-              />
-            </Field>
-            <Field label="Pesepay merchant ID">
-              <Input
-                value={form.pesepayMerchantId}
-                onChange={(v) => update('pesepayMerchantId', v)}
-                placeholder="For verified purchases"
               />
             </Field>
           </div>

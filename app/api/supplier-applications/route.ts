@@ -127,7 +127,6 @@ export async function POST(req: Request) {
       address: body.address ?? '',
       refrigerantsSupplied: body.refrigerantsSupplied ?? [],
       taxNumber: body.taxNumber ?? null,
-      pesepayMerchantId: body.pesepayMerchantId ?? null,
       website: body.website ?? null,
       notes: body.notes ?? null,
       surveyData: body.surveyData ?? null,

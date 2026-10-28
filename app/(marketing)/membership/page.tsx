@@ -58,8 +58,8 @@ const PRICING_FAQS = [
     answer: 'Straightforward applications with complete documentation are typically reviewed within 5-7 working days. Applications requiring additional evidence or on-site assessment can take up to 21 working days. You can track the live status of your application from your dashboard.',
   },
   {
-    question: 'Is my payment and personal data secure?',
-    answer: 'Yes. All payments are processed via PCI-DSS-compliant gateways and we never store card details. Personal data is encrypted at rest and in transit, and only authorised HEVACRAZ and NOU reviewers can access your registry record. You can request a full data export or deletion at any time.',
+    question: 'Is my personal data secure?',
+    answer: 'Yes. Personal data is encrypted at rest and in transit, and only authorised HEVACRAZ and NOU reviewers can access your registry record. You can request a full data export or deletion at any time.',
   },
 ];
 

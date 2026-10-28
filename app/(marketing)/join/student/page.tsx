@@ -367,7 +367,7 @@ function JoinStudentForm() {
                     )}
                   </button>
                   <p className="text-xs text-gray-500">
-                    Payment of $7/year is taken <strong>after</strong> verification succeeds.
+                    No payment is taken through this form. The HEVACRAZ team reviews every application.
                   </p>
                 </div>
               </form>

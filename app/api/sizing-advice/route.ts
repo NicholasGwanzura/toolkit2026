@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { readSessionFromRequest } from '@/lib/server/auth';
 import { checkRateLimit } from '@/lib/server/rate-limit';
-import { getTechnicalAdvice } from '@/services/groq';
+import { getTechnicalAdvice } from '@/services/deepseek';
 
 const RATE_LIMIT = 10;
 const RATE_WINDOW_MS = 5 * 60 * 1000;

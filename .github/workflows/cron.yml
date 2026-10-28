@@ -1,0 +1,72 @@
+name: Scheduled jobs
+
+on:
+  schedule:
+    # WhatGas incremental catalogue sync (daily).
+    - cron: '0 2 * * *'
+    # WhatGas full catalogue sync (weekly, Sunday).
+    - cron: '0 3 * * 0'
+    # Technician and membership expiry reminders (daily).
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      job:
+        description: Job to run
+        type: choice
+        required: true
+        default: expiry-reminders
+        options:
+          - whatgas-daily
+          - whatgas-weekly
+          - expiry-reminders
+
+permissions: {}
+
+concurrency:
+  group: scheduled-jobs
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Call scheduled endpoint
+        env:
+          APP_URL: ${{ vars.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          SCHEDULE: ${{ github.event.schedule }}
+          JOB: ${{ inputs.job }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${APP_URL:-}" ]; then
+            echo "::error::Set the APP_URL repository variable (for example https://your-domain.com)."
+            exit 1
+          fi
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "::error::Set the CRON_SECRET repository secret (must match the app's CRON_SECRET)."
+            exit 1
+          fi
+
+          if [ -n "${JOB:-}" ]; then
+            case "$JOB" in
+              whatgas-daily) path="/api/cron/whatgas-sync?type=daily-incremental" ;;
+              whatgas-weekly) path="/api/cron/whatgas-sync?type=weekly-full" ;;
+              expiry-reminders) path="/api/cron/expiry-reminders" ;;
+              *) echo "::error::Unknown job '$JOB'"; exit 1 ;;
+            esac
+          else
+            case "$SCHEDULE" in
+              '0 2 * * *') path="/api/cron/whatgas-sync?type=daily-incremental" ;;
+              '0 3 * * 0') path="/api/cron/whatgas-sync?type=weekly-full" ;;
+              '0 6 * * *') path="/api/cron/expiry-reminders" ;;
+              *) echo "::error::Unrecognised schedule '$SCHEDULE'"; exit 1 ;;
+            esac
+          fi
+
+          echo "Calling $APP_URL$path"
+          curl --fail-with-body --silent --show-error --max-time 180 \
+            -X POST \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$APP_URL$path"

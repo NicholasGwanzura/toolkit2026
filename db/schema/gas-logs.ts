@@ -18,13 +18,11 @@ export const gasUsageLogs = pgTable('gas_usage_logs', {
   approvedSupplierId: text('approved_supplier_id'),
   approvedSupplierName: text('approved_supplier_name'),
   supplierVerified: boolean('supplier_verified').default(false),
-  pesepayTransactionId: text('pesepay_transaction_id'),
   odp: numeric('odp', { precision: 5, scale: 2 }),
   gwp: numeric('gwp', { precision: 8, scale: 2 }),
   co2EqEmissions: numeric('co2_eq_emissions', { precision: 12, scale: 3 }),
   ashraeSafetyClass: text('ashrae_safety_class'),
   supplierId: text('supplier_id'),
-  purchaseTransactionId: text('purchase_transaction_id'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({
   clientLogIdIdx: uniqueIndex('gas_usage_logs_client_log_id_idx').on(table.clientLogId),

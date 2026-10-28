@@ -6,6 +6,7 @@ import { describeReminder, dueReminders, EXPIRED_REMINDER_WINDOW_DAYS, type Expi
 import { sendExpiryReminderEmail } from '@/lib/server/email';
 import { isUndeliverableAddress } from '@/lib/deliverable-address';
 import { notifyRegistryTechnician } from '@/lib/server/notifications';
+import { isAuthorizedCronRequest } from '@/lib/server/cron-auth';
 
 // Run once a day by an external scheduler:
 //   POST /api/cron/expiry-reminders   Authorization: Bearer <CRON_SECRET>
@@ -17,7 +18,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export async function POST(req: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret) return NextResponse.json({ error: 'CRON_SECRET is not configured' }, { status: 500 });
-  if (req.headers.get('authorization') !== `Bearer ${secret}`) {
+  if (!isAuthorizedCronRequest(req.headers.get('authorization'), secret)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

@@ -491,9 +491,6 @@ export default function SupplierManagement() {
                                     {selectedApplication.taxNumber && (
                                         <p><span className="font-semibold text-gray-900">Tax number:</span> {selectedApplication.taxNumber}</p>
                                     )}
-                                    {selectedApplication.pesepayMerchantId && (
-                                        <p><span className="font-semibold text-gray-900">Pesepay merchant:</span> {selectedApplication.pesepayMerchantId}</p>
-                                    )}
                                     {selectedApplication.website && (
                                         <p className="sm:col-span-2"><span className="font-semibold text-gray-900">Website:</span> {selectedApplication.website}</p>
                                     )}

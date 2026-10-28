@@ -1,4 +1,5 @@
-import { pgEnum, pgTable, text, timestamp, uuid, boolean, jsonb, index } from 'drizzle-orm/pg-core';
+import { pgEnum, pgTable, text, timestamp, uuid, boolean, jsonb, index, uniqueIndex } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 import type { InstallationChecklistSnapshot } from '@/types/index';
 
 export const cocRequestStatusEnum = pgEnum('coc_request_status', [
@@ -37,4 +38,8 @@ export const cocRequests = pgTable('coc_requests', {
 }, (table) => [
   index('coc_requests_technician_id_idx').on(table.technicianId),
   index('coc_requests_status_idx').on(table.status),
+  // One installation can produce at most one certificate of conformity.
+  uniqueIndex('coc_requests_installation_id_unique')
+    .on(table.installationId)
+    .where(sql`${table.installationId} is not null`),
 ]);

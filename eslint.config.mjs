@@ -24,6 +24,8 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     "_backup_vite/**",
+    // Vendored OCR engine bundles copied in by scripts/copy-ocr-assets.mjs (gitignored).
+    "public/ocr/**",
   ]),
 ]);
 

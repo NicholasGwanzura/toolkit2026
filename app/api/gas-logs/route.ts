@@ -19,7 +19,6 @@ const gasLogSchema = z.object({
   actionType: z.enum(['Charge', 'Recovery', 'Leak Repair']),
   timestamp: z.iso.datetime().transform((value) => new Date(value)),
   approvedSupplierId: z.uuid().optional(),
-  pesepayTransactionId: z.string().trim().max(200).optional(),
 });
 const gasLogBatchSchema = z.object({ logs: z.array(gasLogSchema).min(1).max(100) });
 
@@ -47,13 +46,11 @@ function toRefrigerantLog(row: typeof gasUsageLogs.$inferSelect): RefrigerantLog
     approvedSupplierId: row.approvedSupplierId ?? undefined,
     approvedSupplierName: row.approvedSupplierName ?? undefined,
     supplierVerified: row.supplierVerified ?? undefined,
-    pesepayTransactionId: row.pesepayTransactionId ?? undefined,
     odp: row.odp ? Number(row.odp) : undefined,
     gwp: row.gwp ? Number(row.gwp) : undefined,
     co2EqEmissions: row.co2EqEmissions ? Number(row.co2EqEmissions) : undefined,
     ashraeSafetyClass: (row.ashraeSafetyClass ?? undefined) as RefrigerantLog['ashraeSafetyClass'],
     supplierId: row.supplierId ?? undefined,
-    purchaseTransactionId: row.purchaseTransactionId ?? undefined,
   };
 }
 
@@ -131,13 +128,11 @@ export async function POST(req: Request) {
         approvedSupplierId: log.approvedSupplierId ?? null,
         approvedSupplierName: log.approvedSupplierId ? suppliersById.get(log.approvedSupplierId)?.companyName ?? null : null,
         supplierVerified: Boolean(log.approvedSupplierId),
-        pesepayTransactionId: log.pesepayTransactionId ?? null,
         odp: log.refrigerantId ? numericReference(refrigerantById.get(log.refrigerantId)?.odp) : null,
         gwp: log.refrigerantId ? numericReference(refrigerantById.get(log.refrigerantId)?.gwp) : null,
         co2EqEmissions: null,
         ashraeSafetyClass: log.refrigerantId ? refrigerantById.get(log.refrigerantId)?.ashraeSafetyGroup ?? null : null,
         supplierId: log.approvedSupplierId ?? null,
-        purchaseTransactionId: null,
       }))
     )
     .onConflictDoNothing({ target: gasUsageLogs.clientLogId })

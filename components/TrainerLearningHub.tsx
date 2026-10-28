@@ -148,7 +148,7 @@ export default function TrainerLearningHub({ session }: { session: UserSession }
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-400">Add training</p>
             <h2 className="mt-2 text-2xl font-bold text-gray-900">Create a new training course</h2>
             <p className="mt-2 text-sm leading-6 text-gray-600">
-              Add the course details, date, venue, and fee. Online payment can be wired in later.
+              Add the course details, date, venue, and fee.
             </p>
           </div>
 
