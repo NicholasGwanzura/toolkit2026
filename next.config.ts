@@ -3,10 +3,11 @@ import type { NextConfig } from "next";
 const isDev = process.env.NODE_ENV === "development";
 
 // Next.js injects inline bootstrap scripts, so 'unsafe-inline' is required without a
-// nonce pipeline. Everything else is locked to the app's own origin (plus remote images).
+// nonce pipeline. 'wasm-unsafe-eval' is needed because the OCR engine compiles WebAssembly
+// in the browser; it does not allow JavaScript eval. Everything else is locked to our origin.
 const contentSecurityPolicy = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
+  `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'${isDev ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
