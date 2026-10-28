@@ -83,4 +83,48 @@ describe('BRANDS', () => {
     const names = BRANDS.map((b) => b.name.toLowerCase());
     expect(new Set(names).size).toBe(names.length);
   });
+
+  it('keeps every name and alias pointing at its own brand', () => {
+    for (const brand of BRANDS) {
+      for (const label of [brand.name, ...(brand.aliases ?? [])]) {
+        expect(matchBrand(label), label).toMatchObject({ kind: 'exact', brand: brand.name });
+      }
+    }
+  });
+
+  it('covers equipment, components and refrigerants', () => {
+    const categories = new Set(BRANDS.map((b) => b.category));
+    expect(categories.size).toBe(9);
+    expect(BRANDS.length).toBeGreaterThanOrEqual(180);
+  });
+});
+
+describe('expanded brand coverage', () => {
+  it('recognises common equipment and part makers', () => {
+    expect(matchBrand('Midea')).toMatchObject({ kind: 'exact', brand: 'Midea' });
+    expect(matchBrand('Chigo')).toMatchObject({ kind: 'exact', brand: 'Chigo' });
+    expect(matchBrand('Honeywell')).toMatchObject({ kind: 'exact', brand: 'Honeywell' });
+    expect(matchBrand('Carel')).toMatchObject({ kind: 'exact', brand: 'Carel' });
+    expect(matchBrand('Armacell')).toMatchObject({ kind: 'exact', brand: 'Armacell' });
+    expect(matchBrand('Genetron')).toMatchObject({ kind: 'exact', brand: 'Genetron' });
+  });
+
+  it('handles accents and punctuation printed on plates', () => {
+    expect(matchBrand('Östberg')).toMatchObject({ kind: 'exact', brand: 'Östberg' });
+    expect(findBrandInText('FLÄKTGROUP AHU')).toMatchObject({ brand: 'FlaktGroup' });
+    expect(findBrandInText('A.O. SMITH water heater')).toMatchObject({ brand: 'A.O. Smith' });
+    expect(findBrandInText('ICE-O-MATIC icemaker')).toMatchObject({ brand: 'Ice-O-Matic' });
+  });
+
+  it('prefers a longer exact name when the plate carries several words', () => {
+    expect(findBrandInText('EMERSON COPELAND scroll')).toMatchObject({ brand: 'Copeland' });
+    expect(findBrandInText('GEA BOCK compressor')).toMatchObject({ brand: 'Bock' });
+  });
+
+  it('puts common makers first when suggestions are equally close', () => {
+    const { suggestions } = matchBrand('Yock');
+    expect(suggestions).toContain('York');
+    expect(suggestions).toContain('Bock');
+    expect(suggestions.indexOf('York')).toBeLessThan(suggestions.indexOf('Bock'));
+  });
 });

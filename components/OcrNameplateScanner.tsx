@@ -1,9 +1,23 @@
 'use client';
 
 import { useMemo, useRef, useState } from 'react';
-import { Camera, Clock, LoaderCircle, RotateCcw, RotateCw, ScanText, Sparkles, Wrench } from 'lucide-react';
+import {
+    Camera,
+    Check,
+    CheckCircle2,
+    Clock,
+    ImagePlus,
+    Lightbulb,
+    LoaderCircle,
+    RotateCcw,
+    RotateCw,
+    ScanText,
+    ShieldCheck,
+    Sparkles,
+    Wrench,
+} from 'lucide-react';
 import { extractNameplateData, fetchWhatGasProfile } from '@/lib/refrigerantIntelligence';
-import { checkNameplateWithAi, createOcrScan, useOcrScans } from '@/lib/api';
+import { ApiError, checkNameplateWithAi, createOcrScan, useOcrScans } from '@/lib/api';
 import { RefrigerantRiskBadge } from '@/components/RefrigerantRiskBadge';
 import { binariseForOcr, cropImage, enhanceForOcr, readBarcodes, rotateImage, type CropRect } from '@/lib/nameplateImage';
 import { createOcrWorker } from '@/lib/ocr-engine';
@@ -19,6 +33,8 @@ function formatScanDate(iso: string) {
 }
 
 type AiChangeField = 'manufacturer' | 'model' | 'serialNumber' | 'refrigerantCode' | 'chargeKg';
+
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
 interface OcrNameplateScannerProps {
     /** Called when the technician chooses to carry a scanned refrigerant code into the Field Toolkit gas register. */
@@ -84,6 +100,9 @@ export function OcrNameplateScanner({ onUseRefrigerant }: OcrNameplateScannerPro
         return changes;
     }, [aiSuggestion, result]);
 
+    const suggestionCount = brandSuggestions.length + serialSuggestions.length + aiChanges.length;
+    const step = confirmed ? 3 : result ? 2 : preview ? 1 : 0;
+
     const resetAiCheck = () => {
         setAiSuggestion(null);
         setAiError('');
@@ -99,27 +118,33 @@ export function OcrNameplateScanner({ onUseRefrigerant }: OcrNameplateScannerPro
         });
     };
 
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        event.target.value = '';
-
-        if (!file) {
-            return;
-        }
-        if (!file.type.startsWith('image/')) {
-            setError('Choose an image file for the nameplate scan.');
-            return;
-        }
-        if (file.size > 10 * 1024 * 1024) {
-            setError('Use an image smaller than 10 MB. Crop the nameplate and try again.');
-            return;
-        }
-
+    const acceptFile = (file: File) => {
         setError('');
         setResult(null);
         setConfirmed(false);
         resetAiCheck();
+
+        if (!file.type.startsWith('image/')) {
+            setError('Choose an image file for the nameplate scan.');
+            return;
+        }
+        if (file.size > MAX_IMAGE_BYTES) {
+            setError('Use an image smaller than 10 MB. Crop the nameplate and try again.');
+            return;
+        }
         stageImage(file);
+    };
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        event.target.value = '';
+        if (file) acceptFile(file);
+    };
+
+    const handleDrop = (event: React.DragEvent<HTMLLabelElement>) => {
+        event.preventDefault();
+        const file = event.dataTransfer.files?.[0];
+        if (file) acceptFile(file);
     };
 
     const rotate = async (turns: 1 | -1) => {
@@ -260,7 +285,11 @@ export function OcrNameplateScanner({ onUseRefrigerant }: OcrNameplateScannerPro
         try {
             setAiSuggestion(await checkNameplateWithAi(rawText));
         } catch (checkError) {
-            setAiError(checkError instanceof Error ? checkError.message : 'The AI check could not be completed. Try again later.');
+            setAiError(
+                checkError instanceof ApiError && checkError.status >= 500
+                    ? 'The AI check is not available right now. Use the extracted fields below.'
+                    : checkError instanceof Error ? checkError.message : 'The AI check could not be completed. Try again later.',
+            );
         } finally {
             setAiBusy(false);
         }
@@ -331,56 +360,78 @@ export function OcrNameplateScanner({ onUseRefrigerant }: OcrNameplateScannerPro
     };
 
     return (
-        <section className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <section className="space-y-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gray-400">OCR nameplate scanning</p>
-                    <h2 className="mt-2 text-xl font-bold text-gray-900">Scan Equipment Nameplates</h2>
-                    <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
-                        Capture a nameplate image, extract refrigerant details with Tesseract.js, and immediately classify safety risk.
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-400">OCR nameplate scanning</p>
+                    <h2 className="mt-1.5 text-xl font-bold text-stone-900">Scan a nameplate</h2>
+                    <p className="mt-1 max-w-2xl text-sm leading-6 text-stone-600">
+                        Read the model, serial, refrigerant and factory charge from a photo. Recognition runs on this device.
                     </p>
                 </div>
-                <label className="inline-flex cursor-pointer items-center gap-2 bg-[#D97706] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#b45309]">
+                <label className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 bg-[#D97706] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#b45309]">
                     <Camera className="h-4 w-4" />
                     Upload or use camera
-                    <input
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        onChange={handleFileChange}
-                        className="hidden"
-                    />
+                    <input type="file" accept="image/*" capture="environment" onChange={handleFileChange} className="hidden" />
                 </label>
             </div>
 
-            <div className="mt-5 grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
-                <div className="overflow-hidden border border-gray-200 bg-gray-50">
+            <ol className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs font-semibold">
+                {['Capture', 'Review', 'Confirm'].map((label, index) => {
+                    const done = step > index;
+                    const active = step === index;
+                    return (
+                        <li key={label} className="flex items-center gap-2">
+                            <span
+                                className={`flex h-6 w-6 items-center justify-center rounded-full border text-[11px] ${
+                                    done
+                                        ? 'border-stone-900 bg-stone-900 text-white'
+                                        : active
+                                            ? 'border-[#D97706] bg-amber-50 text-[#b45309]'
+                                            : 'border-stone-200 bg-white text-stone-400'
+                                }`}
+                                aria-hidden="true"
+                            >
+                                {done ? <Check className="h-3.5 w-3.5" /> : index + 1}
+                            </span>
+                            <span className={done || active ? 'text-stone-800' : 'text-stone-400'}>{label}</span>
+                            {index < 2 && <span className="h-px w-6 bg-stone-200" aria-hidden="true" />}
+                        </li>
+                    );
+                })}
+            </ol>
+
+            <div className="grid gap-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+                <div className="border border-stone-200 bg-stone-50">
                     {preview ? (
-                        <div className="p-3">
-                            <div className="mb-3 flex flex-wrap items-center gap-2">
-                                <button type="button" onClick={() => rotate(-1)} disabled={isScanning} className="inline-flex items-center gap-1.5 border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-50">
+                        <div className="space-y-3 p-3">
+                            <div className="flex flex-wrap items-center gap-2">
+                                <button type="button" onClick={() => rotate(-1)} disabled={isScanning} className="inline-flex min-h-9 items-center gap-1.5 border border-stone-300 bg-white px-3 py-1.5 text-xs font-semibold text-stone-700 hover:bg-stone-100 disabled:opacity-50">
                                     <RotateCcw className="h-3.5 w-3.5" /> Rotate left
                                 </button>
-                                <button type="button" onClick={() => rotate(1)} disabled={isScanning} className="inline-flex items-center gap-1.5 border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-50">
+                                <button type="button" onClick={() => rotate(1)} disabled={isScanning} className="inline-flex min-h-9 items-center gap-1.5 border border-stone-300 bg-white px-3 py-1.5 text-xs font-semibold text-stone-700 hover:bg-stone-100 disabled:opacity-50">
                                     <RotateCw className="h-3.5 w-3.5" /> Rotate right
                                 </button>
                                 {crop && (
-                                    <button type="button" onClick={() => setCrop(null)} className="border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-100">
+                                    <button type="button" onClick={() => setCrop(null)} className="min-h-9 border border-stone-300 bg-white px-3 py-1.5 text-xs font-semibold text-stone-700 hover:bg-stone-100">
                                         Clear crop
                                     </button>
                                 )}
-                                <button type="button" onClick={runScan} disabled={isScanning} className="ml-auto inline-flex items-center gap-2 bg-[#D97706] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#b45309] disabled:opacity-60">
-                                    {isScanning ? 'Scanning…' : result ? 'Scan again' : 'Scan nameplate'}
+                                <button type="button" onClick={runScan} disabled={isScanning} className="ml-auto inline-flex min-h-9 items-center gap-2 bg-[#D97706] px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-[#b45309] disabled:opacity-60">
+                                    {isScanning ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <ScanText className="h-3.5 w-3.5" />}
+                                    {isScanning ? 'Reading plate…' : result ? 'Scan again' : 'Scan nameplate'}
                                 </button>
                             </div>
-                            <p className="mb-2 text-xs text-gray-500">Drag on the image to crop to the plate (recommended), and rotate it upright first.</p>
+                            <p className="text-xs text-stone-500">
+                                {crop ? 'Cropped to the plate. Scan when the text sits straight and in focus.' : 'Drag on the photo to crop to the plate — this gives the best read.'}
+                            </p>
                             <div
                                 className="relative inline-block max-w-full cursor-crosshair touch-none select-none"
                                 onPointerDown={onCropDown}
                                 onPointerMove={onCropMove}
                                 onPointerUp={onCropUp}
                             >
-                                <img src={preview} alt="Nameplate preview" draggable={false} className="block h-auto max-h-[480px] w-auto max-w-full" />
+                                <img src={preview} alt="Nameplate preview" draggable={false} className="block h-auto max-h-[520px] w-auto max-w-full" />
                                 {crop && (
                                     <div
                                         className="pointer-events-none absolute border-2 border-[#D97706] bg-[#D97706]/10 shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]"
@@ -390,188 +441,299 @@ export function OcrNameplateScanner({ onUseRefrigerant }: OcrNameplateScannerPro
                             </div>
                         </div>
                     ) : (
-                        <div className="flex min-h-[280px] items-center justify-center text-sm text-gray-500">
-                            Awaiting a nameplate image. Upload one, then crop and scan.
-                        </div>
+                        <label
+                            onDragOver={(event) => event.preventDefault()}
+                            onDrop={handleDrop}
+                            className="flex min-h-[320px] cursor-pointer flex-col items-center justify-center gap-3 border-2 border-dashed border-stone-300 bg-white p-8 text-center transition hover:border-[#D97706] hover:bg-amber-50/40"
+                        >
+                            <input type="file" accept="image/*" capture="environment" onChange={handleFileChange} className="hidden" />
+                            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 text-[#b45309]">
+                                <ImagePlus className="h-6 w-6" />
+                            </span>
+                            <div>
+                                <p className="text-sm font-semibold text-stone-800">Drop a nameplate photo here</p>
+                                <p className="mt-1 text-xs text-stone-500">or click to upload or take a photo. JPG or PNG, up to 10 MB.</p>
+                            </div>
+                            <ul className="mt-1 space-y-1 text-left text-xs text-stone-500">
+                                <li>Stand square to the plate so the text is level.</li>
+                                <li>Shade it from glare and fill the frame.</li>
+                                <li>Crop tightly to the plate before scanning.</li>
+                            </ul>
+                        </label>
                     )}
                 </div>
 
                 <div className="space-y-4">
-                    <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
-                        <strong>Upload a clear image for best results.</strong> Photograph the plate straight on, in good light, with no glare, and crop to the plate. Photos of screens or blurry shots often misread the model and serial. Always check the fields before confirming.
-                    </div>
-                    <div className="rounded-lg border border-gray-200 bg-gray-50 p-5">
-                        <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                            <ScanText className="h-4 w-4" />
-                            OCR status
+                    {error && (
+                        <div role="alert" className="border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800">
+                            {error}
                         </div>
-                        <div className="mt-3">
+                    )}
+
+                    <div className="border border-stone-200 bg-white">
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-100 px-4 py-3">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-stone-800">
+                                <ScanText className="h-4 w-4 text-stone-400" />
+                                Plate details
+                            </div>
+                            <ReadQuality value={result?.matchConfidence} />
+                        </div>
+
+                        <div className="space-y-3 p-4" aria-live="polite">
                             {isScanning ? (
-                                <div className="flex items-center gap-2 text-sm text-[#D97706]">
-                                    <LoaderCircle className="h-4 w-4 animate-spin" />
-                                    Extracting text from the uploaded image...
+                                <div className="space-y-3 py-4">
+                                    <div className="flex items-center gap-2 text-sm font-medium text-[#b45309]">
+                                        <LoaderCircle className="h-4 w-4 animate-spin" />
+                                        Reading the plate…
+                                    </div>
+                                    <div className="space-y-2" aria-hidden="true">
+                                        <div className="h-9 animate-pulse rounded bg-stone-100" />
+                                        <div className="h-9 animate-pulse rounded bg-stone-100" />
+                                        <div className="h-9 animate-pulse rounded bg-stone-100" />
+                                    </div>
+                                    <p className="text-xs text-stone-500">Enhancing the image, finding text, then matching the refrigerant.</p>
                                 </div>
-                            ) : result || error ? (
-                                <div className="space-y-3 text-sm text-gray-700">
-                                    {error && <p role="alert" className="text-sm font-medium text-rose-700">{error}</p>}
+                            ) : result ? (
+                                <>
+                                    <div className="grid gap-2 sm:grid-cols-2">
+                                        <EditableDetail label="Manufacturer" confidence={confidence.manufacturer} value={result.manufacturer ?? ''} onChange={(value) => updateResult('manufacturer', value)} />
+                                        <EditableDetail label="Model" confidence={confidence.model} value={result.model ?? ''} onChange={(value) => updateResult('model', value)} />
+                                        <EditableDetail label="Serial" confidence={confidence.serialNumber} value={result.serialNumber ?? ''} onChange={(value) => updateResult('serialNumber', value)} />
+                                        <EditableDetail label="Refrigerant" confidence={confidence.refrigerantCode} value={result.refrigerantCode ?? ''} onChange={(value) => updateResult('refrigerantCode', /^r[-\s]?\d/i.test(value.trim()) ? normaliseRefrigerantCode(value.trim()) : value.toUpperCase())} />
+                                    </div>
+
+                                    {result.refrigerantCode && !result.whatGasMatch && (
+                                        <p className="text-xs text-amber-800">
+                                            This refrigerant is not in the registry, so no safety class is attached. Check the code against the plate.
+                                        </p>
+                                    )}
+
+                                    {result.chargeKg !== undefined && (
+                                        <div className="flex items-center justify-between gap-3 border border-stone-200 bg-stone-50 px-3 py-2.5">
+                                            <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-400">Factory charge</span>
+                                            <span className="text-sm font-semibold text-stone-900">{result.chargeKg} kg <span className="font-normal text-stone-500">· fills the gas register</span></span>
+                                        </div>
+                                    )}
+
                                     {result && !hasAnyDetails(result) && (
-                                        <ul className="list-inside list-disc text-xs text-gray-600">
+                                        <ul className="list-inside list-disc space-y-1 text-xs text-stone-500">
                                             <li>Stand square to the plate so the text is not at an angle.</li>
                                             <li>Avoid glare from the flash or a window. Shade the plate with your body.</li>
                                             <li>Fill the frame with the plate, then drag a box around it before scanning.</li>
                                         </ul>
                                     )}
-                                    {result && (<>
-                                    <EditableDetail label="Manufacturer" confidence={confidence.manufacturer} value={result.manufacturer ?? ''} onChange={(value) => updateResult('manufacturer', value)} />
-                                    {brandNote && <p className="text-xs text-amber-800">{brandNote}</p>}
-                                    {brandSuggestions.length > 0 && (
-                                        <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600">
-                                            Did you mean:
-                                            {brandSuggestions.map((name) => (
-                                                <button key={name} type="button" onClick={() => updateResult('manufacturer', name)} className="min-h-9 border border-gray-300 bg-white px-2 py-1 font-semibold hover:bg-gray-50">
-                                                    {name}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
-                                    <EditableDetail label="Model" confidence={confidence.model} value={result.model ?? ''} onChange={(value) => updateResult('model', value)} />
-                                    <EditableDetail label="Serial" confidence={confidence.serialNumber} value={result.serialNumber ?? ''} onChange={(value) => updateResult('serialNumber', value)} />
-                                    {serialNote && <p className="text-xs text-emerald-700">{serialNote}</p>}
-                                    {serialSuggestions.length > 0 && (
-                                        <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600">
-                                            Barcodes found:
-                                            {serialSuggestions.map((code) => (
-                                                <button key={code} type="button" onClick={() => updateResult('serialNumber', code)} className="border border-gray-300 bg-white px-2 py-1 font-mono hover:bg-gray-100">
-                                                    Use {code} as serial
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
-                                    {result.chargeKg !== undefined && (
-                                        <p className="text-xs text-gray-600">Factory charge on the plate: <strong>{result.chargeKg} kg</strong>. It will fill the amount in the gas register. Check it against the plate.</p>
-                                    )}
-                                    <EditableDetail label="Refrigerant" confidence={confidence.refrigerantCode} value={result.refrigerantCode ?? ''} onChange={(value) => updateResult('refrigerantCode', /^r[-\s]?\d/i.test(value.trim()) ? normaliseRefrigerantCode(value.trim()) : value.toUpperCase())} />
-                                    <div className="rounded-lg border border-dashed border-gray-300 bg-white p-3">
-                                        <div className="flex flex-wrap items-center gap-2">
+
+                                    <div className="border border-amber-200 bg-amber-50/50">
+                                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-100 px-3 py-2.5">
+                                            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-amber-800">
+                                                <Lightbulb className="h-4 w-4" />
+                                                Suggestions
+                                                {suggestionCount > 0 && (
+                                                    <span className="rounded-full bg-amber-200 px-2 py-0.5 text-[11px] font-bold normal-case tracking-normal text-amber-900">{suggestionCount}</span>
+                                                )}
+                                            </div>
                                             <button
                                                 type="button"
                                                 onClick={runAiCheck}
                                                 disabled={aiBusy || isSaving || !result.rawText.trim()}
-                                                className="inline-flex items-center gap-2 border border-[#D97706] bg-white px-3 py-1.5 text-xs font-semibold text-[#b45309] transition hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-60"
+                                                className="inline-flex min-h-8 items-center gap-1.5 border border-[#D97706] bg-white px-2.5 py-1 text-xs font-semibold text-[#b45309] transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
                                             >
                                                 {aiBusy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-                                                {aiBusy ? 'Checking with AI…' : aiSuggestion ? 'Check again with AI' : 'Check with AI'}
+                                                {aiBusy ? 'Checking…' : aiSuggestion ? 'Check again' : 'Check with AI'}
                                             </button>
-                                            <span className="text-xs text-gray-500">Optional. Sends the plate text, not the photo, to our AI service.</span>
                                         </div>
-                                        {aiError && <p role="alert" className="mt-2 text-xs font-medium text-rose-700">{aiError}</p>}
-                                        {aiSuggestion && (
-                                            <div className="mt-3 space-y-2">
-                                                {aiChanges.length > 0 ? (<>
-                                                    <p className="text-xs font-semibold text-gray-700">Suggested corrections. Check each one against the plate before applying.</p>
-                                                    <ul className="space-y-1">
-                                                        {aiChanges.map((change) => (
-                                                            <li key={change.field} className="text-xs text-gray-700">
-                                                                <span className="font-semibold uppercase tracking-[0.12em] text-gray-400">{change.label}</span>{' '}
-                                                                <span className="text-gray-500 line-through">{change.from}</span>{' '}
-                                                                <span className="font-semibold text-gray-900">→ {change.to}</span>
-                                                            </li>
-                                                        ))}
-                                                    </ul>
-                                                    <button
-                                                        type="button"
-                                                        onClick={applyAiSuggestions}
-                                                        disabled={aiApplied}
-                                                        className="inline-flex items-center gap-2 bg-[#1C1917] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#292524] disabled:cursor-not-allowed disabled:opacity-60"
-                                                    >
-                                                        {aiApplied ? 'Suggestions applied' : 'Apply suggestions'}
-                                                    </button>
-                                                </>) : (
-                                                    <p className="text-xs text-gray-600">
-                                                        {aiApplied ? 'AI suggestions applied.' : 'The AI did not find anything to change. It only reads the text, so check the plate if a field looks wrong.'}
-                                                    </p>
-                                                )}
-                                                {aiSuggestion.note && <p className="text-xs text-amber-800">AI note: {aiSuggestion.note}</p>}
-                                            </div>
-                                        )}
+
+                                        <div className="space-y-3 px-3 py-3 text-xs">
+                                            {brandNote && <p className="text-amber-900">{brandNote}</p>}
+                                            {brandSuggestions.length > 0 && (
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    <span className="text-stone-600">Did you mean:</span>
+                                                    {brandSuggestions.map((name) => (
+                                                        <button key={name} type="button" onClick={() => updateResult('manufacturer', name)} className="min-h-8 border border-stone-300 bg-white px-2 py-1 font-semibold text-stone-800 hover:bg-stone-50">
+                                                            {name}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            {serialNote && <p className="text-emerald-700">{serialNote}</p>}
+                                            {serialSuggestions.length > 0 && (
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    <span className="text-stone-600">Barcodes found:</span>
+                                                    {serialSuggestions.map((code) => (
+                                                        <button key={code} type="button" onClick={() => updateResult('serialNumber', code)} className="min-h-8 border border-stone-300 bg-white px-2 py-1 font-mono text-stone-800 hover:bg-stone-50">
+                                                            Use {code}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            {aiError && <p role="alert" className="font-medium text-rose-700">{aiError}</p>}
+                                            {aiSuggestion && (
+                                                <div className="space-y-2">
+                                                    {aiChanges.length > 0 ? (
+                                                        <>
+                                                            <ul className="space-y-1.5">
+                                                                {aiChanges.map((change) => (
+                                                                    <li key={change.field} className="text-stone-700">
+                                                                        <span className="font-semibold text-stone-500">{change.label}:</span>{' '}
+                                                                        <span className="text-stone-400 line-through">{change.from}</span>{' '}
+                                                                        <span className="font-semibold text-stone-900">→ {change.to}</span>
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                            <button
+                                                                type="button"
+                                                                onClick={applyAiSuggestions}
+                                                                disabled={aiApplied}
+                                                                className="inline-flex min-h-8 items-center gap-1.5 bg-stone-900 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-60"
+                                                            >
+                                                                {aiApplied ? 'Applied — check the fields' : 'Apply AI suggestions'}
+                                                            </button>
+                                                        </>
+                                                    ) : (
+                                                        <p className="text-stone-600">
+                                                            {aiApplied ? 'AI suggestions applied. Check the fields against the plate.' : 'The AI found nothing to change in the extracted text.'}
+                                                        </p>
+                                                    )}
+                                                    {aiSuggestion.note && <p className="text-amber-900">AI note: {aiSuggestion.note}</p>}
+                                                </div>
+                                            )}
+
+                                            <p className="flex items-start gap-1.5 text-[11px] leading-5 text-stone-500">
+                                                <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-stone-400" />
+                                                AI check sends the extracted text only — never the photo. It is optional and every value still needs checking against the plate.
+                                            </p>
+                                        </div>
                                     </div>
-                                    <button type="button" onClick={confirmScan} disabled={isSaving || confirmed || !hasAnyDetails(result)} title={hasAnyDetails(result) ? undefined : 'Enter at least one detail from the plate before saving'} className="inline-flex items-center gap-2 bg-[#D97706] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#b45309] disabled:cursor-not-allowed disabled:opacity-60">
-                                        {isSaving ? 'Saving confirmed scan…' : confirmed ? 'Scan confirmed and saved' : 'Confirm and save scan'}
-                                    </button>
-                                    {result.refrigerantCode && onUseRefrigerant && (
+
+                                    {confirmed && (
+                                        <div className="flex items-center gap-2 border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm font-medium text-emerald-800">
+                                            <CheckCircle2 className="h-4 w-4" />
+                                            Saved to scan history.
+                                        </div>
+                                    )}
+
+                                    <div className="flex flex-wrap gap-2 border-t border-stone-100 pt-3">
                                         <button
                                             type="button"
-                                            onClick={() => onUseRefrigerant(result.refrigerantCode!, { amountKg: result.chargeKg })}
-                                            className="inline-flex items-center gap-2 bg-[#1C1917] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#292524]"
+                                            onClick={confirmScan}
+                                            disabled={isSaving || confirmed || !hasAnyDetails(result)}
+                                            title={hasAnyDetails(result) ? undefined : 'Enter at least one detail from the plate before saving'}
+                                            className="inline-flex min-h-10 flex-1 items-center justify-center gap-2 bg-[#D97706] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#b45309] disabled:cursor-not-allowed disabled:opacity-60"
                                         >
-                                            <Wrench className="h-4 w-4" />
-                                            Use in Field Toolkit
+                                            {isSaving ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                                            {isSaving ? 'Saving…' : confirmed ? 'Confirmed' : 'Confirm and save'}
                                         </button>
-                                    )}
-                                    </>)}
-                                </div>
+                                        {result.refrigerantCode && onUseRefrigerant && (
+                                            <button
+                                                type="button"
+                                                onClick={() => onUseRefrigerant(result.refrigerantCode!, { amountKg: result.chargeKg })}
+                                                className="inline-flex min-h-10 flex-1 items-center justify-center gap-2 bg-[#1C1917] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#292524]"
+                                            >
+                                                <Wrench className="h-4 w-4" />
+                                                Use in Field Toolkit
+                                            </button>
+                                        )}
+                                    </div>
+                                </>
                             ) : (
-                                <p className="text-sm text-gray-500">No scan has been processed yet.</p>
+                                <div className="space-y-3 py-2">
+                                    <p className="text-sm font-medium text-stone-700">Nothing scanned yet</p>
+                                    <p className="text-xs leading-5 text-stone-500">
+                                        Upload a photo, crop to the plate, then scan. The scanner looks for the manufacturer, model, serial, refrigerant code and factory charge.
+                                    </p>
+                                    <ul className="space-y-1.5 text-xs text-stone-500">
+                                        <li className="flex items-start gap-2"><Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" /> Two image passes to cope with glare and colour</li>
+                                        <li className="flex items-start gap-2"><Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" /> Barcode read for a reliable serial</li>
+                                        <li className="flex items-start gap-2"><Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" /> Instant ASHRAE safety class for the refrigerant</li>
+                                    </ul>
+                                </div>
                             )}
                         </div>
                     </div>
 
                     {result?.whatGasMatch && risk && (
-                        <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-                            <div className="flex items-center justify-between gap-3">
+                        <div className="border border-stone-200 bg-white p-4">
+                            <div className="flex items-start justify-between gap-3">
                                 <div>
-                                    <p className="text-sm font-semibold text-gray-500">Matched refrigerant</p>
-                                    <h3 className="mt-1 text-lg font-bold text-gray-900">
-                                        {result.whatGasMatch.code} · {result.whatGasMatch.commonName}
-                                    </h3>
+                                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-400">Matched refrigerant</p>
+                                    <p className="mt-1 text-base font-bold text-stone-900">{result.whatGasMatch.code}</p>
+                                    <p className="text-sm text-stone-600">{result.whatGasMatch.commonName}</p>
                                 </div>
                                 <RefrigerantRiskBadge color={risk.color} label={risk.label} />
                             </div>
-                            <p className="mt-3 text-sm text-gray-600">
-                                {result.whatGasMatch.typicalUse}
-                            </p>
+                            <p className="mt-3 text-sm leading-6 text-stone-600">{result.whatGasMatch.typicalUse}</p>
                         </div>
                     )}
                 </div>
             </div>
 
             {history.length > 0 && (
-                <div className="mt-6 border-t border-gray-100 pt-5">
-                    <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                        <Clock className="h-4 w-4" />
-                        Recent scans
+                <div className="border-t border-stone-200 pt-5">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="flex items-center gap-2 text-sm font-semibold text-stone-700">
+                            <Clock className="h-4 w-4 text-stone-400" />
+                            Recent scans
+                        </p>
+                        <span className="text-xs text-stone-400">{history.length} saved</span>
                     </div>
-                    <div className="mt-3 divide-y divide-gray-100 border border-gray-200">
+                    <ul className="mt-3 grid gap-2 sm:grid-cols-2">
                         {history.map((scan) => (
-                            <div key={scan.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
+                            <li key={scan.id} className="flex items-center justify-between gap-3 border border-stone-200 bg-white px-3 py-2.5">
                                 <div className="min-w-0">
-                                    <p className="truncate font-medium text-gray-900">
-                                        {scan.manufacturer || 'Unknown manufacturer'} {scan.model ? `· ${scan.model}` : ''}
+                                    <p className="truncate text-sm font-medium text-stone-900">
+                                        {scan.manufacturer || 'Unknown manufacturer'}{scan.model ? ` · ${scan.model}` : ''}
                                     </p>
-                                    <p className="text-xs text-gray-400">{formatScanDate(scan.createdAt)}</p>
+                                    <p className="text-xs text-stone-400">{formatScanDate(scan.createdAt)}</p>
                                 </div>
-                                <span className="shrink-0 text-xs font-semibold text-gray-500">
-                                    {scan.refrigerantCode || 'No refrigerant detected'}
-                                </span>
-                            </div>
+                                {scan.refrigerantCode ? (
+                                    <span className="shrink-0 border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-900">{scan.refrigerantCode}</span>
+                                ) : (
+                                    <span className="shrink-0 text-xs text-stone-400">No refrigerant</span>
+                                )}
+                            </li>
                         ))}
-                    </div>
+                    </ul>
                 </div>
             )}
         </section>
     );
 }
 
+function ReadQuality({ value }: { value?: number }) {
+    if (typeof value !== 'number') return null;
+    const percent = Math.round(value * 100);
+    const tone = percent >= 75
+        ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+        : percent >= 45
+            ? 'border-amber-200 bg-amber-50 text-amber-800'
+            : 'border-rose-200 bg-rose-50 text-rose-700';
+    return <span className={`border px-2 py-1 text-[11px] font-semibold ${tone}`}>{percent}% read quality</span>;
+}
+
 function EditableDetail({ label, value, confidence, onChange }: { label: string; value: string; confidence?: number; onChange: (value: string) => void }) {
     // Only flag fields that have a value; "Not detected" already says it all for empty ones.
     const unsure = value !== '' && (confidence === undefined || confidence < LOW_CONFIDENCE);
+    const chip = value === ''
+        ? null
+        : confidence === undefined || confidence < LOW_CONFIDENCE
+            ? { label: 'Check', tone: 'bg-amber-100 text-amber-800' }
+            : confidence >= 85
+                ? { label: 'High', tone: 'bg-emerald-100 text-emerald-700' }
+                : { label: 'Medium', tone: 'bg-stone-100 text-stone-600' };
+
     return (
-        <div className={`flex items-center justify-between gap-3 border px-4 py-3 ${unsure ? 'border-amber-400 bg-amber-50' : 'border-gray-200 bg-white'}`}>
-            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-400">
-                {label}
-                {unsure && <span className="ml-2 normal-case tracking-normal text-amber-700">check this</span>}
+        <label className={`block border px-3 py-2 ${unsure ? 'border-amber-300 bg-amber-50/60' : 'border-stone-200 bg-white'}`}>
+            <span className="flex items-center justify-between gap-2">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-400">{label}</span>
+                {chip && <span className={`px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${chip.tone}`}>{chip.label}</span>}
             </span>
-            <input value={value} onChange={(event) => onChange(event.target.value)} placeholder="Not detected" className="min-w-0 flex-1 bg-transparent text-right text-sm font-medium text-gray-900 outline-none focus:ring-1 focus:ring-[#D97706]" />
-        </div>
+            <input
+                value={value}
+                onChange={(event) => onChange(event.target.value)}
+                placeholder="Not detected"
+                className="mt-1 w-full min-w-0 bg-transparent text-sm font-medium text-stone-900 outline-none placeholder:font-normal placeholder:text-stone-400 focus:ring-1 focus:ring-[#D97706]"
+            />
+        </label>
     );
 }
