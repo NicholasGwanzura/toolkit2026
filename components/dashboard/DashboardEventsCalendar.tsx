@@ -52,7 +52,7 @@ export default function DashboardEventsCalendar() {
               </div>
               <div className="shrink-0 space-y-1 text-xs text-[#57534E] sm:text-right">
                 <p>{formatDate(session.startDate)}{new Date(session.startDate).toDateString() !== new Date(session.endDate).toDateString() ? ` – ${formatDate(session.endDate)}` : ''}</p>
-                <p>{formatTime(session.startDate)}{new Date(session.startDate).toDateString() !== new Date(session.endDate).toDateString() ? ` – ${formatTime(session.endDate)}` : ` – ${formatTime(session.endDate)}`}</p>
+                <p>{formatTime(session.startDate)} – {formatTime(session.endDate)}</p>
                 <p className="inline-flex items-center gap-1 sm:justify-end"><MapPin className="h-3.5 w-3.5" aria-hidden="true" />{session.venue}, {session.province}</p>
               </div>
             </li>
