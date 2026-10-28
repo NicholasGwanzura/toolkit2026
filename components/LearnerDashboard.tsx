@@ -5,6 +5,7 @@ import { ArrowRight, Award, BookOpen, CheckCircle2, ClipboardCheck, Clock3 } fro
 import { useCourses, useExamSubmissions, type ExamSubmission } from '@/lib/platformStore';
 import type { UserSession } from '@/lib/session-types';
 import { isFieldWorkerRole } from '@/lib/field-worker';
+import DashboardEventsCalendar from '@/components/dashboard/DashboardEventsCalendar';
 
 function formatDate(iso: string) {
   return new Intl.DateTimeFormat('en-ZW', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(iso));
@@ -67,6 +68,8 @@ export default function LearnerDashboard({ session }: { session: UserSession }) 
       {(coursesError || submissionsError) && (
         <p role="alert" className="text-sm text-red-600">Some learner summary data could not be loaded. Your course list is still available below.</p>
       )}
+
+      <DashboardEventsCalendar />
 
       <div className="grid gap-5 lg:grid-cols-[1.25fr_1fr]">
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
