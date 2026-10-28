@@ -225,6 +225,20 @@
       "when": 1793100000000,
       "tag": "0031_coc_installation_unique",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1793200000000,
+      "tag": "0032_user_last_login",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1793300000000,
+      "tag": "0033_technician_documents",
+      "breakpoints": true
     }
   ]
 }

@@ -1220,6 +1220,7 @@ export interface AdminUserRecord {
   region: string;
   status: 'active' | 'inactive' | 'suspended' | 'pending';
   isDemo: boolean;
+  lastLoginAt: string | null;
   createdAt: string;
   updatedAt: string;
 }

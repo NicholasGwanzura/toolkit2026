@@ -2,10 +2,10 @@
 
 import { useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, CheckCircle, AlertTriangle, Clock, MapPin, Phone, Mail, Briefcase, Award, Calendar, FileText, Building2, Loader2, Camera, User } from 'lucide-react';
+import { ArrowLeft, CheckCircle, AlertTriangle, Clock, MapPin, Phone, Mail, Briefcase, Award, Calendar, FileText, Building2, Loader2, Camera, User, Download } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { jsPDF } from 'jspdf';
-import { useTechnician, uploadTechnicianPhoto } from '@/lib/api';
+import { useTechnician, uploadTechnicianPhoto, useTechnicianCertificationDocuments } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useToast } from '@/components/ui/Toast';
 import { SITE_URL } from '@/lib/site-url';
@@ -164,6 +164,7 @@ export default function TechnicianDetailsPage() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const id = typeof params.id === 'string' ? params.id : Array.isArray(params.id) ? params.id[0] : undefined;
   const { data: technician, error, isLoading } = useTechnician(id);
+  const isReviewer = session?.role === 'trainer' || session?.role === 'lecturer' || session?.role === 'org_admin';
 
   const handleResendActivation = async () => {
     if (!id) return;
@@ -429,6 +430,9 @@ export default function TechnicianDetailsPage() {
             </div>
           </div>
 
+          {/* Uploaded certification documents */}
+          {isReviewer && <TechnicianDocumentsCard technicianId={technician.id} />}
+
           {/* Training History */}
           <div className="bg-white border border-gray-200 shadow-sm p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Training History</h2>
@@ -689,6 +693,51 @@ export default function TechnicianDetailsPage() {
 
         </div>
       </div>
+    </div>
+  );
+}
+
+function formatDocumentSize(bytes: number) {
+  return bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+/** Documents the technician uploaded from their own account, for trainers and administrators reviewing certification. */
+function TechnicianDocumentsCard({ technicianId }: { technicianId: string }) {
+  const { data, error, isLoading } = useTechnicianCertificationDocuments(technicianId);
+  const documents = data?.documents ?? [];
+
+  return (
+    <div className="bg-white border border-gray-200 shadow-sm p-6">
+      <h2 className="text-lg font-semibold text-gray-900 mb-1">Certification documents</h2>
+      <p className="text-sm text-gray-500">Uploaded by the technician from their own account.</p>
+      {isLoading ? (
+        <p className="mt-4 text-sm text-gray-400">Loading…</p>
+      ) : error ? (
+        <p className="mt-4 text-sm text-rose-600">Could not load the uploaded documents.</p>
+      ) : documents.length === 0 ? (
+        <p className="mt-4 text-sm text-gray-500">No documents uploaded yet.</p>
+      ) : (
+        <ul className="mt-4 divide-y divide-gray-100 rounded-lg border border-gray-200">
+          {documents.map((doc) => (
+            <li key={doc.id} className="flex items-center justify-between gap-3 px-3 py-2">
+              <span className="flex min-w-0 items-center gap-2 text-sm text-gray-900">
+                <FileText className="h-4 w-4 shrink-0 text-gray-400" aria-hidden="true" />
+                <span className="truncate">{doc.fileName}</span>
+                <span className="shrink-0 text-xs text-gray-500">
+                  {formatDocumentSize(doc.sizeBytes)} · {new Date(doc.uploadedAt).toLocaleDateString('en-GB')}
+                </span>
+              </span>
+              <a
+                href={`/api/technicians/${technicianId}/certification-documents/${doc.id}`}
+                className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700"
+              >
+                <Download className="h-3.5 w-3.5" aria-hidden="true" />
+                Download
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

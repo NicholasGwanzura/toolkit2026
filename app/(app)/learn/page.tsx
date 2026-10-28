@@ -9,6 +9,8 @@ import { isFieldWorkerRole } from '@/lib/field-worker';
 export default function LearnPage() {
     const { user: session, isLoading } = useAuth();
     const isTrainer = session?.role === 'trainer' || session?.role === 'lecturer';
+    const isAdmin = session?.role === 'org_admin';
+    const managesTraining = isTrainer || isAdmin;
     const isLearner = session?.role === 'student' || isFieldWorkerRole(session?.role);
 
     if (isLoading) {
@@ -23,16 +25,19 @@ export default function LearnPage() {
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">{isTrainer ? 'Training Operations' : 'RAC Technician Learning Hub'}</h1>
+                    <h1 className="text-2xl font-bold text-gray-900">{managesTraining ? 'Training Operations' : 'RAC Technician Learning Hub'}</h1>
                     <p className="text-gray-500 mt-1">
-                        {isTrainer
+                        {managesTraining
                             ? 'Schedule trainings, publish course details, and manage upcoming sessions'
                             : 'Continue your RAC safety, compliance, and certification courses'}
                     </p>
                 </div>
             </div>
-            {isTrainer && session ? (
-                <TrainerLearningHub session={session} />
+            {managesTraining && session ? (
+                <>
+                    <TrainerLearningHub session={session} />
+                    {isAdmin && <LMS />}
+                </>
             ) : (
                 <>
                     {isLearner && session && <LearnerDashboard session={session} />}

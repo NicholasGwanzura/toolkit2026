@@ -42,6 +42,8 @@ Dashboard, Learning Hub, Manage Courses, Safety Center, WhatGas + Risk Engine, R
 ## Certificate requests
 You can base a certificate request on a graded, passed exam. The course, date and theory score then come from the exam, and the learner's login email must match the technician's registry email. A request without a linked exam, such as an in-person practical, is allowed and is shown to administrators as a manual entry.
 
+A technician can upload their own supporting documents (national ID, trade and training certificates) from the Certification page. They appear under **Certification documents** on the technician's registry profile, where you can download them before marking or forwarding a request.
+
 ## Notifications
 You are notified when a course is approved, rejected or returned for correction (with the reason), and when a certificate request is approved, rejected or issued.
 

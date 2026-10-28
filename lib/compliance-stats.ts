@@ -1,4 +1,5 @@
-// Figures for the admin Compliance Dashboard. Pure, so the period rules can be tested.
+// Figures for the admin Compliance Report. Pure, so the period rules can be tested. The API route
+// aggregates in the database and reuses these helpers, so the browser never downloads the registry.
 
 export type CompliancePeriod = 'ytd' | '12m' | 'all';
 
@@ -7,6 +8,9 @@ export const PERIOD_LABEL: Record<CompliancePeriod, string> = {
   '12m': 'Last 12 months',
   all: 'All time',
 };
+
+/** Refrigerants treated as natural for the natural-gas share. */
+export const NATURAL_REFRIGERANTS: ReadonlySet<string> = new Set(['R-290', 'R-600a', 'R-744', 'R-717', 'R-1270']);
 
 export interface ReorderLike {
   status: string;
@@ -23,13 +27,6 @@ export function periodStart(period: CompliancePeriod, now: number): number | nul
   return null;
 }
 
-function inPeriod(createdAt: string, period: CompliancePeriod, now: number): boolean {
-  const time = new Date(createdAt).getTime();
-  if (!Number.isFinite(time)) return false;
-  const start = periodStart(period, now);
-  return time <= now && (start === null || time >= start);
-}
-
 export interface ComplianceKpis {
   approvedKg: number;
   gwpImpactTonnes: number;
@@ -38,22 +35,35 @@ export interface ComplianceKpis {
   pendingReviewCount: number;
 }
 
-export function complianceKpis(input: {
-  reorders: ReorderLike[];
-  period: CompliancePeriod;
-  now: number;
-  gwpOf: (gasType: string) => number | undefined;
-  naturalGases: ReadonlySet<string>;
-}): ComplianceKpis {
-  const approved = input.reorders.filter((r) => r.status === 'approved' && inPeriod(r.createdAt, input.period, input.now));
-  const approvedKg = approved.reduce((sum, r) => sum + r.quantityKg, 0);
-  const gwpImpact = approved.reduce((sum, r) => sum + (r.quantityKg * (input.gwpOf(r.gasType) ?? 0)) / 1000, 0);
-  const naturalKg = approved.filter((r) => input.naturalGases.has(r.gasType)).reduce((sum, r) => sum + r.quantityKg, 0);
+/** One row per (status, gas type) already summed by the database for the selected period. */
+export interface ReorderGroupTotal {
+  status: string;
+  gasType: string;
+  quantityKg: number;
+}
+
+export function summarizeReorderTotals(
+  groups: ReorderGroupTotal[],
+  input: {
+    pendingReviewCount: number;
+    gwpOf: (gasType: string) => number | undefined;
+    naturalGases: ReadonlySet<string>;
+  },
+): ComplianceKpis {
+  let approvedKg = 0;
+  let gwpImpact = 0;
+  let naturalKg = 0;
+  for (const group of groups) {
+    if (group.status !== 'approved' || !Number.isFinite(group.quantityKg)) continue;
+    approvedKg += group.quantityKg;
+    gwpImpact += (group.quantityKg * (input.gwpOf(group.gasType) ?? 0)) / 1000;
+    if (input.naturalGases.has(group.gasType)) naturalKg += group.quantityKg;
+  }
   return {
     approvedKg: Math.round(approvedKg),
     gwpImpactTonnes: Math.round(gwpImpact),
     naturalSharePct: approvedKg > 0 ? Math.round((naturalKg / approvedKg) * 100) : 0,
-    pendingReviewCount: input.reorders.filter((r) => r.status === 'pending_hevacraz' || r.status === 'pending_nou').length,
+    pendingReviewCount: input.pendingReviewCount,
   };
 }
 
@@ -106,4 +116,21 @@ export function expiringCertificates(
     }
   }
   return rows.sort((a, b) => a.daysLeft - b.daysLeft).slice(0, limit);
+}
+
+export interface LeakRepairAlert {
+  id: string;
+  technicianName: string;
+  clientName: string;
+  refrigerantType: string;
+  amountKg: number;
+  timestamp: string;
+}
+
+export interface ComplianceSummary {
+  period: CompliancePeriod;
+  kpis: ComplianceKpis & { activeTechnicians: number; validCertificates: number };
+  monthlyVolume: Array<{ month: string; kg: number }>;
+  expiringCertificates: ExpiringCertificate[];
+  leakRepairs: { total: number; alerts: LeakRepairAlert[] };
 }

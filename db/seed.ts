@@ -823,23 +823,6 @@ const seedEquipmentRecords: (typeof schema.equipmentRecords.$inferInsert)[] = [
   },
 ];
 
-const seedTrainingSessions: (typeof schema.trainingSessions.$inferInsert)[] = [
-  {
-    title: 'Low GWP Refrigerants Safety', summary: 'Essential safety protocols for handling flammable and high-pressure low GWP refrigerants.',
-    venue: 'HEVACRAZ Training Centre', province: 'Harare',
-    startDate: new Date('2026-04-15T09:00:00.000Z'), endDate: new Date('2026-04-15T16:00:00.000Z'),
-    feeUsd: '120.00', seats: 20, seatsRemaining: 14,
-    trainerName: 'Demo Trainer', trainerEmail: 'trainer@coolpro.demo', status: 'open',
-  },
-  {
-    title: 'R-744 (CO2) System Specialist', summary: 'Advanced transcritical and subcritical CO2 system design, installation, and maintenance.',
-    venue: 'Bulawayo Polytechnic', province: 'Bulawayo',
-    startDate: new Date('2026-05-06T09:00:00.000Z'), endDate: new Date('2026-05-07T16:00:00.000Z'),
-    feeUsd: '220.00', seats: 15, seatsRemaining: 15,
-    trainerName: 'Demo Trainer', trainerEmail: 'trainer@coolpro.demo', status: 'scheduled',
-  },
-];
-
 const seedCertificateRequests: (typeof schema.trainerCertificateRequests.$inferInsert)[] = [
   {
     technicianId: U.tTendai, technicianName: 'Tendai Moyo', technicianRegistrationNumber: 'TEC-2024-001',
@@ -944,10 +927,6 @@ async function seed() {
   console.log(`equipment_records: ${eqCount[0].count} rows`);
 
   // Training sessions
-  await db.insert(schema.trainingSessions).values(seedTrainingSessions);
-  const tsCount = await db.select({ count: sql<number>`count(*)` }).from(schema.trainingSessions);
-  console.log(`training_sessions: ${tsCount[0].count} rows`);
-
   // Trainer certificate requests
   await db.insert(schema.trainerCertificateRequests).values(seedCertificateRequests);
   const tcrCount = await db.select({ count: sql<number>`count(*)` }).from(schema.trainerCertificateRequests);

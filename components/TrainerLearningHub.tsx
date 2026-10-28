@@ -1,8 +1,13 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { CalendarDays, MapPin, Plus, Ticket, Users } from 'lucide-react';
-import { useTrainingSessions, createTrainingSession } from '@/lib/api';
+import { CalendarDays, MapPin, Pencil, Plus, Save, Ticket, Users, XCircle } from 'lucide-react';
+import {
+  useTrainingSessions,
+  createTrainingSession,
+  updateTrainingSession,
+  cancelTrainingSession,
+} from '@/lib/api';
 import type { UserSession } from '@/lib/auth';
 
 type SessionFormState = {
@@ -15,6 +20,16 @@ type SessionFormState = {
   feeUsd: string;
   seats: string;
 };
+
+function emptyForm(region: string): SessionFormState {
+  return { title: '', summary: '', venue: '', province: region, startDate: '', endDate: '', feeUsd: '120', seats: '20' };
+}
+
+function toDateTimeInput(value: string) {
+  const date = new Date(value);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('en-ZW', {
@@ -30,21 +45,14 @@ export default function TrainerLearningHub({ session }: { session: UserSession }
   const sessions = useMemo(() => sessionsData ?? [], [sessionsData]);
   const [notice, setNotice] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [summaryReferenceTime] = useState(() => Date.now());
-  const [form, setForm] = useState<SessionFormState>({
-    title: '',
-    summary: '',
-    venue: '',
-    province: session.region,
-    startDate: '2026-04-15T09:00',
-    endDate: '2026-04-15T16:00',
-    feeUsd: '120',
-    seats: '20',
-  });
+  const [form, setForm] = useState<SessionFormState>(() => emptyForm(session.region));
 
+  const isAdmin = session.role === 'org_admin';
   const trainerSessions = useMemo(() => {
-    return sessions.filter(entry => entry.trainerEmail === session.email);
-  }, [session.email, sessions]);
+    return isAdmin ? sessions : sessions.filter(entry => entry.trainerEmail === session.email);
+  }, [isAdmin, session.email, sessions]);
 
   const summary = useMemo(() => ({
     upcoming: trainerSessions.filter(entry => new Date(entry.startDate).getTime() >= summaryReferenceTime).length,
@@ -67,33 +75,63 @@ export default function TrainerLearningHub({ session }: { session: UserSession }
       return;
     }
 
+    const payload = {
+      title: form.title.trim(),
+      summary: form.summary.trim(),
+      venue: form.venue.trim(),
+      province: form.province.trim(),
+      startDate: new Date(form.startDate).toISOString(),
+      endDate: new Date(form.endDate).toISOString(),
+      feeUsd,
+      seats,
+    };
+
     setSubmitting(true);
     try {
-      const created = await createTrainingSession({
-        title: form.title.trim(),
-        summary: form.summary.trim(),
-        venue: form.venue.trim(),
-        province: form.province.trim(),
-        startDate: new Date(form.startDate).toISOString(),
-        endDate: new Date(form.endDate).toISOString(),
-        feeUsd,
-        seats,
-      });
-      setNotice(`${created.title} added to the training calendar.`);
-      setForm({
-        title: '',
-        summary: '',
-        venue: '',
-        province: session.region,
-        startDate: form.startDate,
-        endDate: form.endDate,
-        feeUsd: '120',
-        seats: '20',
-      });
+      if (editingId) {
+        const updated = await updateTrainingSession(editingId, payload);
+        setNotice(`${updated.title} updated on the calendar.`);
+      } else {
+        const created = await createTrainingSession(payload);
+        setNotice(`${created.title} added to the training calendar.`);
+      }
+      setEditingId(null);
+      setForm(emptyForm(session.region));
     } catch (err) {
       setNotice(err instanceof Error ? err.message : 'Failed to save the training session.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const startEdit = (entry: (typeof sessions)[number]) => {
+    setEditingId(entry.id);
+    setNotice('');
+    setForm({
+      title: entry.title,
+      summary: entry.summary,
+      venue: entry.venue,
+      province: entry.province,
+      startDate: toDateTimeInput(entry.startDate),
+      endDate: toDateTimeInput(entry.endDate),
+      feeUsd: String(entry.feeUsd),
+      seats: String(entry.seats),
+    });
+  };
+
+  const stopEdit = () => {
+    setEditingId(null);
+    setForm(emptyForm(session.region));
+  };
+
+  const handleCancelTraining = async (entry: (typeof sessions)[number]) => {
+    if (!window.confirm(`Cancel "${entry.title}"? It will be removed from the training calendar.`)) return;
+    try {
+      await cancelTrainingSession(entry.id);
+      if (editingId === entry.id) stopEdit();
+      setNotice(`${entry.title} cancelled.`);
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : 'Failed to cancel the training session.');
     }
   };
 
@@ -133,9 +171,27 @@ export default function TrainerLearningHub({ session }: { session: UserSession }
                       <span className="inline-flex items-center gap-2"><Ticket className="h-4 w-4" /> ${sessionItem.feeUsd}</span>
                     </div>
                   </div>
-                  <div className="border border-gray-200 bg-white px-4 py-3 text-right">
-                    <p className="text-xs uppercase tracking-[0.18em] text-gray-400">Seats</p>
-                    <p className="mt-1 text-lg font-bold text-gray-900">{sessionItem.seatsRemaining}/{sessionItem.seats}</p>
+                  <div className="flex shrink-0 flex-col gap-2 sm:items-end">
+                    <div className="border border-gray-200 bg-white px-4 py-3 text-right">
+                      <p className="text-xs uppercase tracking-[0.18em] text-gray-400">Seats</p>
+                      <p className="mt-1 text-lg font-bold text-gray-900">{sessionItem.seatsRemaining}/{sessionItem.seats}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => startEdit(sessionItem)}
+                        className="inline-flex items-center gap-1.5 border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50"
+                      >
+                        <Pencil className="h-3.5 w-3.5" /> Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleCancelTraining(sessionItem)}
+                        className="inline-flex items-center gap-1.5 border border-red-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-50"
+                      >
+                        <XCircle className="h-3.5 w-3.5" /> Cancel
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -145,10 +201,10 @@ export default function TrainerLearningHub({ session }: { session: UserSession }
 
         <form onSubmit={handleSubmit} className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
           <div className="mb-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-400">Add training</p>
-            <h2 className="mt-2 text-2xl font-bold text-gray-900">Create a new training course</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-400">{editingId ? 'Edit training' : 'Add training'}</p>
+            <h2 className="mt-2 text-2xl font-bold text-gray-900">{editingId ? 'Update this training course' : 'Create a new training course'}</h2>
             <p className="mt-2 text-sm leading-6 text-gray-600">
-              Add the course details, date, venue, and fee.
+              {editingId ? 'Change the details and save; the calendar updates immediately.' : 'Add the course details, date, venue, and fee.'}
             </p>
           </div>
 
@@ -212,14 +268,26 @@ export default function TrainerLearningHub({ session }: { session: UserSession }
             </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={submitting}
-            className="mt-5 inline-flex items-center gap-2 bg-[#FF6B35] px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <Plus className="h-4 w-4" />
-            {submitting ? 'Saving…' : 'Add Training Course'}
-          </button>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <button
+              type="submit"
+              disabled={submitting}
+              className="inline-flex items-center gap-2 bg-[#FF6B35] px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {editingId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+              {submitting ? 'Saving…' : editingId ? 'Save Changes' : 'Add Training Course'}
+            </button>
+            {editingId && (
+              <button
+                type="button"
+                onClick={stopEdit}
+                disabled={submitting}
+                className="inline-flex items-center gap-2 border border-gray-300 bg-white px-4 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Discard changes
+              </button>
+            )}
+          </div>
 
           {notice && (
             <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">

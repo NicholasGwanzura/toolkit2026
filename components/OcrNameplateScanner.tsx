@@ -1,9 +1,9 @@
 'use client';
 
 import { useMemo, useRef, useState } from 'react';
-import { Camera, Clock, LoaderCircle, RotateCcw, RotateCw, ScanText, Wrench } from 'lucide-react';
-import { extractNameplateData } from '@/lib/refrigerantIntelligence';
-import { createOcrScan, useOcrScans } from '@/lib/api';
+import { Camera, Clock, LoaderCircle, RotateCcw, RotateCw, ScanText, Sparkles, Wrench } from 'lucide-react';
+import { extractNameplateData, fetchWhatGasProfile } from '@/lib/refrigerantIntelligence';
+import { checkNameplateWithAi, createOcrScan, useOcrScans } from '@/lib/api';
 import { RefrigerantRiskBadge } from '@/components/RefrigerantRiskBadge';
 import { binariseForOcr, cropImage, enhanceForOcr, readBarcodes, rotateImage, type CropRect } from '@/lib/nameplateImage';
 import { createOcrWorker } from '@/lib/ocr-engine';
@@ -11,11 +11,14 @@ import { hasAnyDetails, overallConfidence, scanScore } from '@/lib/nameplate-qua
 import { normaliseRefrigerantCode } from '@/lib/refrigerant-code';
 import { LOW_CONFIDENCE, fieldConfidence, flattenWords, reconcileSerial, type FieldConfidence, type FieldKey } from '@/lib/nameplateScan';
 import { resolveManufacturer } from '@/lib/nameplate-brands';
+import type { NameplateAiSuggestion } from '@/lib/nameplate-ai';
 import type { OcrScanRecord } from '@/types/index';
 
 function formatScanDate(iso: string) {
     return new Intl.DateTimeFormat('en-ZW', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso));
 }
+
+type AiChangeField = 'manufacturer' | 'model' | 'serialNumber' | 'refrigerantCode' | 'chargeKg';
 
 interface OcrNameplateScannerProps {
     /** Called when the technician chooses to carry a scanned refrigerant code into the Field Toolkit gas register. */
@@ -37,6 +40,10 @@ export function OcrNameplateScanner({ onUseRefrigerant }: OcrNameplateScannerPro
     const [isSaving, setIsSaving] = useState(false);
     const [confirmed, setConfirmed] = useState(false);
     const [error, setError] = useState('');
+    const [aiSuggestion, setAiSuggestion] = useState<NameplateAiSuggestion | null>(null);
+    const [aiBusy, setAiBusy] = useState(false);
+    const [aiError, setAiError] = useState('');
+    const [aiApplied, setAiApplied] = useState(false);
     const { data: historyData } = useOcrScans();
     const history = historyData?.data ?? [];
 
@@ -50,6 +57,38 @@ export function OcrNameplateScanner({ onUseRefrigerant }: OcrNameplateScannerPro
             label: `${result.whatGasMatch.riskColor} / ${result.whatGasMatch.ashraeSafetyClass}`,
         };
     }, [result]);
+
+    // What the AI check would change, so the technician sees a diff before anything is applied.
+    const aiChanges = useMemo(() => {
+        if (!aiSuggestion || !result) return [];
+        const changes: Array<{ field: AiChangeField; label: string; from: string; to: string }> = [];
+        const compare = (field: AiChangeField, label: string, current: string | undefined, suggested: string | null) => {
+            const next = suggested?.trim();
+            if (!next) return;
+            if ((current ?? '').trim().toLowerCase() === next.toLowerCase()) return;
+            changes.push({ field, label, from: current?.trim() || 'Not detected', to: next });
+        };
+
+        compare('manufacturer', 'Manufacturer', result.manufacturer, aiSuggestion.manufacturer);
+        compare('model', 'Model', result.model, aiSuggestion.model);
+        compare('serialNumber', 'Serial', result.serialNumber, aiSuggestion.serialNumber);
+        compare('refrigerantCode', 'Refrigerant', result.refrigerantCode, aiSuggestion.refrigerantCode);
+        if (aiSuggestion.chargeKg != null && aiSuggestion.chargeKg !== result.chargeKg) {
+            changes.push({
+                field: 'chargeKg',
+                label: 'Factory charge',
+                from: result.chargeKg !== undefined ? `${result.chargeKg} kg` : 'Not detected',
+                to: `${aiSuggestion.chargeKg} kg`,
+            });
+        }
+        return changes;
+    }, [aiSuggestion, result]);
+
+    const resetAiCheck = () => {
+        setAiSuggestion(null);
+        setAiError('');
+        setAiApplied(false);
+    };
 
     const stageImage = (blob: Blob) => {
         setSource(blob);
@@ -79,6 +118,7 @@ export function OcrNameplateScanner({ onUseRefrigerant }: OcrNameplateScannerPro
         setError('');
         setResult(null);
         setConfirmed(false);
+        resetAiCheck();
         stageImage(file);
     };
 
@@ -86,6 +126,7 @@ export function OcrNameplateScanner({ onUseRefrigerant }: OcrNameplateScannerPro
         if (!source || isScanning) return;
         stageImage(await rotateImage(source, turns));
         setResult(null);
+        resetAiCheck();
     };
 
     const pointerFraction = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -126,6 +167,7 @@ export function OcrNameplateScanner({ onUseRefrigerant }: OcrNameplateScannerPro
         setSerialNote('');
         setBrandNote('');
         setBrandSuggestions([]);
+        resetAiCheck();
 
         try {
             const region = await cropImage(source, crop);
@@ -204,6 +246,64 @@ export function OcrNameplateScanner({ onUseRefrigerant }: OcrNameplateScannerPro
             [key]: value || undefined,
             ...(key === 'refrigerantCode' ? { whatGasMatch: undefined } : {}),
         } : current);
+        setAiApplied(false);
+        setConfirmed(false);
+    };
+
+    const runAiCheck = async () => {
+        const rawText = result?.rawText?.trim();
+        if (!rawText) return;
+        setAiBusy(true);
+        setAiError('');
+        setAiSuggestion(null);
+        setAiApplied(false);
+        try {
+            setAiSuggestion(await checkNameplateWithAi(rawText));
+        } catch (checkError) {
+            setAiError(checkError instanceof Error ? checkError.message : 'The AI check could not be completed. Try again later.');
+        } finally {
+            setAiBusy(false);
+        }
+    };
+
+    const applyAiSuggestions = async () => {
+        if (!result || !aiSuggestion || aiChanges.length === 0) return;
+        const next: OcrScanRecord = { ...result };
+        // Values the AI supplied have not been read by the OCR engine, so they are marked for checking.
+        const nextConfidence: FieldConfidence = { ...confidence };
+
+        for (const change of aiChanges) {
+            switch (change.field) {
+                case 'manufacturer':
+                    next.manufacturer = resolveManufacturer(aiSuggestion.manufacturer, result.rawText).value ?? undefined;
+                    nextConfidence.manufacturer = undefined;
+                    break;
+                case 'model':
+                    next.model = aiSuggestion.model ?? undefined;
+                    nextConfidence.model = undefined;
+                    break;
+                case 'serialNumber':
+                    next.serialNumber = aiSuggestion.serialNumber ?? undefined;
+                    nextConfidence.serialNumber = undefined;
+                    break;
+                case 'refrigerantCode':
+                    next.refrigerantCode = aiSuggestion.refrigerantCode ?? undefined;
+                    nextConfidence.refrigerantCode = undefined;
+                    next.whatGasMatch = await fetchWhatGasProfile(next.refrigerantCode);
+                    break;
+                case 'chargeKg':
+                    next.chargeKg = aiSuggestion.chargeKg ?? undefined;
+                    break;
+            }
+        }
+
+        next.matchConfidence = overallConfidence(next, nextConfidence);
+        setResult(next);
+        setConfidence(nextConfidence);
+        setSerialNote('');
+        setBrandNote('');
+        setBrandSuggestions([]);
+        setAiApplied(true);
         setConfirmed(false);
     };
 
@@ -351,6 +451,50 @@ export function OcrNameplateScanner({ onUseRefrigerant }: OcrNameplateScannerPro
                                         <p className="text-xs text-gray-600">Factory charge on the plate: <strong>{result.chargeKg} kg</strong>. It will fill the amount in the gas register. Check it against the plate.</p>
                                     )}
                                     <EditableDetail label="Refrigerant" confidence={confidence.refrigerantCode} value={result.refrigerantCode ?? ''} onChange={(value) => updateResult('refrigerantCode', /^r[-\s]?\d/i.test(value.trim()) ? normaliseRefrigerantCode(value.trim()) : value.toUpperCase())} />
+                                    <div className="rounded-lg border border-dashed border-gray-300 bg-white p-3">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={runAiCheck}
+                                                disabled={aiBusy || isSaving || !result.rawText.trim()}
+                                                className="inline-flex items-center gap-2 border border-[#D97706] bg-white px-3 py-1.5 text-xs font-semibold text-[#b45309] transition hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-60"
+                                            >
+                                                {aiBusy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                                                {aiBusy ? 'Checking with AI…' : aiSuggestion ? 'Check again with AI' : 'Check with AI'}
+                                            </button>
+                                            <span className="text-xs text-gray-500">Optional. Sends the plate text, not the photo, to our AI service.</span>
+                                        </div>
+                                        {aiError && <p role="alert" className="mt-2 text-xs font-medium text-rose-700">{aiError}</p>}
+                                        {aiSuggestion && (
+                                            <div className="mt-3 space-y-2">
+                                                {aiChanges.length > 0 ? (<>
+                                                    <p className="text-xs font-semibold text-gray-700">Suggested corrections. Check each one against the plate before applying.</p>
+                                                    <ul className="space-y-1">
+                                                        {aiChanges.map((change) => (
+                                                            <li key={change.field} className="text-xs text-gray-700">
+                                                                <span className="font-semibold uppercase tracking-[0.12em] text-gray-400">{change.label}</span>{' '}
+                                                                <span className="text-gray-500 line-through">{change.from}</span>{' '}
+                                                                <span className="font-semibold text-gray-900">→ {change.to}</span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                    <button
+                                                        type="button"
+                                                        onClick={applyAiSuggestions}
+                                                        disabled={aiApplied}
+                                                        className="inline-flex items-center gap-2 bg-[#1C1917] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#292524] disabled:cursor-not-allowed disabled:opacity-60"
+                                                    >
+                                                        {aiApplied ? 'Suggestions applied' : 'Apply suggestions'}
+                                                    </button>
+                                                </>) : (
+                                                    <p className="text-xs text-gray-600">
+                                                        {aiApplied ? 'AI suggestions applied.' : 'The AI did not find anything to change. It only reads the text, so check the plate if a field looks wrong.'}
+                                                    </p>
+                                                )}
+                                                {aiSuggestion.note && <p className="text-xs text-amber-800">AI note: {aiSuggestion.note}</p>}
+                                            </div>
+                                        )}
+                                    </div>
                                     <button type="button" onClick={confirmScan} disabled={isSaving || confirmed || !hasAnyDetails(result)} title={hasAnyDetails(result) ? undefined : 'Enter at least one detail from the plate before saving'} className="inline-flex items-center gap-2 bg-[#D97706] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#b45309] disabled:cursor-not-allowed disabled:opacity-60">
                                         {isSaving ? 'Saving confirmed scan…' : confirmed ? 'Scan confirmed and saved' : 'Confirm and save scan'}
                                     </button>

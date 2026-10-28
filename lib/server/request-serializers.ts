@@ -1,6 +1,24 @@
-import { cocRequests, supplierApplications, supplierReorders, trainerCertificateRequests } from '@/db/schema/index';
+import { cocRequests, supplierApplications, supplierReorders, trainerCertificateRequests, trainingSessions } from '@/db/schema/index';
 import type { SupplierReorder } from '@/lib/platformStore';
-import type { CocRequest, SupplierRegistration, TrainerCertificateRequest } from '@/types/index';
+import type { CocRequest, SupplierRegistration, TrainerCertificateRequest, TrainingSession } from '@/types/index';
+
+export function toTrainingSession(row: typeof trainingSessions.$inferSelect): TrainingSession {
+  return {
+    id: row.id,
+    title: row.title,
+    summary: row.summary,
+    venue: row.venue,
+    province: row.province,
+    startDate: row.startDate.toISOString(),
+    endDate: row.endDate.toISOString(),
+    feeUsd: Number(row.feeUsd),
+    seats: row.seats,
+    seatsRemaining: row.seatsRemaining,
+    trainerName: row.trainerName,
+    trainerEmail: row.trainerEmail,
+    status: row.status as TrainingSession['status'],
+  };
+}
 
 export function toTrainerCertificateRequest(
   row: typeof trainerCertificateRequests.$inferSelect,

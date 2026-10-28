@@ -2,6 +2,7 @@
 
 import type { ApplicationCounts } from '@/lib/application-counts';
 import type { ReportRange, ReportingSummary } from '@/lib/reporting-summary';
+import type { CompliancePeriod, ComplianceSummary } from '@/lib/compliance-stats';
 import { handleUnauthorized } from '@/lib/session-expiry';
 import useSWR, { mutate } from 'swr';
 import useSWRInfinite from 'swr/infinite';
@@ -47,6 +48,7 @@ import type {
 } from '@/types/index';
 import type { TechnicianRewardSummary } from '@/lib/server/rewards';
 import type { LearnerQuestion, SubmittedAnswer } from '@/lib/exam';
+import type { NameplateAiSuggestion } from '@/lib/nameplate-ai';
 
 /** An error from the API that keeps the HTTP status, so callers can tell "try again later" from "this was refused". */
 export class ApiError extends Error {
@@ -355,6 +357,54 @@ export function useTechnicians(q?: string, enabled = true) {
 
 export function useTechnician(id: string | undefined) {
   return useSWR<Technician>(id ? `/api/technicians/${id}` : null, fetcher);
+}
+
+export interface TechnicianDocumentSummary {
+  id: string;
+  fileName: string;
+  fileType: string;
+  sizeBytes: number;
+  uploadedAt: string;
+}
+
+export interface TechnicianDocumentsResponse {
+  documents: TechnicianDocumentSummary[];
+  limit: number;
+  hint?: string;
+}
+
+/** The signed-in technician's own certification documents. */
+export function useMyCertificationDocuments(enabled = true) {
+  return useSWR<TechnicianDocumentsResponse>(enabled ? '/api/me/certification-documents' : null, fetcher);
+}
+
+export async function uploadCertificationDocument(file: File): Promise<TechnicianDocumentSummary> {
+  const form = new FormData();
+  form.set('file', file);
+  const res = await fetch('/api/me/certification-documents', {
+    method: 'POST',
+    credentials: 'include',
+    body: form,
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({})) as { error?: string };
+    throw new Error(data.error ?? `Upload failed: ${res.status}`);
+  }
+  await mutate('/api/me/certification-documents');
+  return res.json() as Promise<TechnicianDocumentSummary>;
+}
+
+export async function removeCertificationDocument(id: string): Promise<void> {
+  await del<{ ok: true }>(`/api/me/certification-documents/${id}`);
+  await mutate('/api/me/certification-documents');
+}
+
+/** Reviewers: documents a technician has uploaded to their registry profile. */
+export function useTechnicianCertificationDocuments(technicianId: string | undefined, enabled = true) {
+  return useSWR<{ documents: TechnicianDocumentSummary[]; limit: number }>(
+    technicianId && enabled ? `/api/technicians/${technicianId}/certification-documents` : null,
+    fetcher,
+  );
 }
 
 export async function updateTechnician(id: string, body: Partial<Technician>): Promise<Technician> {
@@ -697,6 +747,14 @@ export function useAdminDashboardSummary(range: string, province: string, enable
   return useSWR<AdminDashboardSummary>(enabled ? `/api/admin/dashboard-summary?${params}` : null, fetcher);
 }
 
+/** Compliance Report figures, aggregated in the database. */
+export function useComplianceSummary(period: CompliancePeriod) {
+  return useSWR<ComplianceSummary>(`/api/admin/compliance-summary?period=${period}`, fetcher, {
+    refreshInterval: 120_000,
+    keepPreviousData: true,
+  });
+}
+
 export interface AdminActionItem {
   key: string;
   count: number;
@@ -882,12 +940,23 @@ export function useTrainingSessions(enabled = true) {
   return useSWR<TrainingSession[]>(enabled ? '/api/training-sessions' : null, fetcher);
 }
 
-export async function createTrainingSession(
-  body: Omit<TrainingSession, 'id' | 'trainerName' | 'trainerEmail' | 'seatsRemaining' | 'status'>,
-): Promise<TrainingSession> {
+export type TrainingSessionInput = Omit<TrainingSession, 'id' | 'trainerName' | 'trainerEmail' | 'seatsRemaining' | 'status'>;
+
+export async function createTrainingSession(body: TrainingSessionInput): Promise<TrainingSession> {
   const result = await post<TrainingSession>('/api/training-sessions', body);
   await mutate('/api/training-sessions');
   return result;
+}
+
+export async function updateTrainingSession(id: string, body: Partial<TrainingSessionInput>): Promise<TrainingSession> {
+  const result = await patch<TrainingSession>(`/api/training-sessions/${id}`, body);
+  await mutate('/api/training-sessions');
+  return result;
+}
+
+export async function cancelTrainingSession(id: string): Promise<void> {
+  await del<{ deleted: true }>(`/api/training-sessions/${id}`);
+  await mutate('/api/training-sessions');
 }
 
 // ---------------------------------------------------------------------------
@@ -1041,9 +1110,25 @@ export async function resendSupplierInvite(id: string): Promise<{ invite: Invite
 // System users (DB-backed, org_admin only)
 // ---------------------------------------------------------------------------
 
-export function useAdminUsers(q?: string) {
-  const url = q ? `/api/admin/users?q=${encodeURIComponent(q)}` : '/api/admin/users';
-  return useSWR<{ data: AdminUserRecord[] }>(url, fetcher);
+export interface AdminUsersQuery {
+  q?: string;
+  role?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface AdminUsersResponse {
+  data: AdminUserRecord[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export function useAdminUsers({ q, role, page = 1, pageSize = 25 }: AdminUsersQuery = {}) {
+  const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+  if (q) params.set('q', q);
+  if (role) params.set('role', role);
+  return useSWR<AdminUsersResponse>(`/api/admin/users?${params}`, fetcher, { keepPreviousData: true });
 }
 
 export async function updateAdminUser(
@@ -1051,6 +1136,15 @@ export async function updateAdminUser(
   body: Partial<Pick<AdminUserRecord, 'role' | 'status' | 'region' | 'name'>>,
 ): Promise<AdminUserRecord> {
   const result = await patch<AdminUserRecord>(`/api/admin/users/${id}`, body);
+  await mutate((key) => typeof key === 'string' && key.startsWith('/api/admin/users'));
+  return result;
+}
+
+export async function bulkUpdateAdminUsers(
+  ids: string[],
+  status: 'active' | 'suspended',
+): Promise<{ updated: number; skipped: number }> {
+  const result = await post<{ updated: number; skipped: number }>('/api/admin/users/bulk-status', { ids, status });
   await mutate((key) => typeof key === 'string' && key.startsWith('/api/admin/users'));
   return result;
 }
@@ -1079,6 +1173,12 @@ export async function createOcrScan(body: {
   const result = await post<OcrScanRecord>('/api/ocr-scans', body);
   await mutate('/api/ocr-scans');
   return result;
+}
+
+/** Optional AI second read of the plate text. Resolves with whatever the model could confirm. */
+export async function checkNameplateWithAi(rawText: string): Promise<NameplateAiSuggestion> {
+  const result = await post<{ suggestion: NameplateAiSuggestion }>('/api/ocr-scans/ai-check', { rawText });
+  return result.suggestion;
 }
 
 // ---------------------------------------------------------------------------

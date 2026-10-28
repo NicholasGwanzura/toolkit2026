@@ -8,6 +8,7 @@ export type AuditEntityType =
   | 'registration_application'
   | 'membership'
   | 'user'
+  | 'invite'
   | 'course'
   | 'exam_submission'
   | 'certificate_request'

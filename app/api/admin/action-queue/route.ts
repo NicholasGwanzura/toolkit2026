@@ -3,6 +3,7 @@ import { count, eq, inArray } from 'drizzle-orm';
 import { db } from '@/db/client';
 import {
   courses,
+  emailLog,
   occupationalAccidents,
   rewardRedemptions,
   supplierComplianceApplications,
@@ -24,8 +25,9 @@ export async function GET(req: Request) {
 
   const n = async (query: Promise<Array<{ total: number }>>) => Number((await query)[0]?.total ?? 0);
 
-  const [applicationCounts, coc, certApprovals, certToIssue, courseApprovals, reorders, compliance, accidents, rewards] = await Promise.all([
+  const [applicationCounts, emails, coc, certApprovals, certToIssue, courseApprovals, reorders, compliance, accidents, rewards] = await Promise.all([
     loadApplicationCounts(),
+    n(db.select({ total: count() }).from(emailLog).where(inArray(emailLog.status, ['failed', 'bounced', 'complained']))),
     n(db.select({ total: count() }).from(cocRequests).where(eq(cocRequests.status, 'submitted'))),
     n(db.select({ total: count() }).from(trainerCertificateRequests).where(eq(trainerCertificateRequests.status, 'submitted-for-admin-approval'))),
     n(db.select({ total: count() }).from(trainerCertificateRequests).where(eq(trainerCertificateRequests.status, 'admin-approved'))),
@@ -39,6 +41,7 @@ export async function GET(req: Request) {
   const counts: ActionCounts = {
     applications: applicationCounts.total.awaitingReview,
     applicationsAwaitingEmail: applicationCounts.total.awaitingEmail,
+    emailProblems: emails,
     cocRequests: coc,
     certificateApprovals: certApprovals,
     certificatesToIssue: certToIssue,

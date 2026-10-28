@@ -11,6 +11,7 @@ const ENTITY_LABELS: Record<string, string> = {
   registration_application: 'Registration application',
   membership: 'Membership',
   user: 'User',
+  invite: 'Invite',
   course: 'Course',
   exam_submission: 'Exam grading',
   certificate_request: 'Certificate request',

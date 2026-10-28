@@ -14,6 +14,7 @@ import {
   UserCheck,
 } from 'lucide-react';
 import { CertificateQRCode } from '@/components/CertificateQRCode';
+import { CertificationDocumentsPanel } from '@/components/CertificationDocumentsPanel';
 import { useAuth } from '@/lib/auth';
 import { ZIMBABWE_PROVINCES } from '@/constants/registry';
 import { useTechnicians, useCertificateRequests, createCertificateRequest, reviewCertificateRequest, useExamSubmissions, useCourses } from '@/lib/api';
@@ -582,6 +583,15 @@ export default function CertificationsPage() {
           </div>
         )}
       </div>
+
+      {/* Certification Documents */}
+      {session?.role === 'technician' && (
+        <div>
+          <div className="border border-gray-200 bg-white p-6 shadow-sm">
+            <CertificationDocumentsPanel />
+          </div>
+        </div>
+      )}
 
       {/* Exams */}
       <div>

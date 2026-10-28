@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { users, userStatusEnum } from '@/db/schema/index';
 import { requireRole } from '@/lib/server/auth';
+import { recordAuditEventSafe } from '@/lib/server/audit';
 import { VALID_ROLES } from '@/lib/roles';
 import { sql } from 'drizzle-orm';
 
@@ -78,6 +79,27 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const [updated] = await db.update(users).set(revokeSessions
     ? { ...update, sessionVersion: sql`${users.sessionVersion} + 1` }
     : update).where(eq(users.id, id)).returning();
+
+  const changes = [
+    body.role !== undefined && body.role !== existing.role ? `role ${existing.role} → ${body.role}` : null,
+    body.status !== undefined && body.status !== existing.status ? `status ${existing.status} → ${body.status}` : null,
+    body.region !== undefined && body.region !== existing.region ? `region ${existing.region} → ${body.region}` : null,
+    body.name !== undefined && body.name !== existing.name ? 'name changed' : null,
+  ].filter((entry): entry is string => entry !== null);
+
+  if (changes.length > 0) {
+    await recordAuditEventSafe({
+      entityType: 'user',
+      entityId: updated.id,
+      action: body.status !== undefined && body.status !== existing.status ? 'status-changed' : 'updated',
+      previousStatus: body.status !== undefined ? existing.status : undefined,
+      newStatus: body.status !== undefined ? updated.status : undefined,
+      performedBy: session.name,
+      performedByRole: session.role,
+      notes: changes.join('; '),
+    });
+  }
+
   const { passwordHash: _passwordHash, ...rest } = updated;
   return NextResponse.json(rest);
 }

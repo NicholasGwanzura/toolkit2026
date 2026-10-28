@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { buildActionQueue, totalWaiting, type ActionCounts } from './action-queue';
 
 const zero: ActionCounts = {
-  applications: 0, applicationsAwaitingEmail: 0, cocRequests: 0, certificateApprovals: 0, certificatesToIssue: 0,
+  applications: 0, applicationsAwaitingEmail: 0, emailProblems: 0, cocRequests: 0, certificateApprovals: 0, certificatesToIssue: 0,
   courseApprovals: 0, reorderReviews: 0, supplierCompliance: 0, openAccidents: 0, rewardRequests: 0,
 };
 
@@ -33,5 +33,11 @@ describe('buildActionQueue', () => {
   it('separates approving certificates from issuing them', () => {
     const items = buildActionQueue({ ...zero, certificateApprovals: 2, certificatesToIssue: 1 });
     expect(items.map((item) => item.label)).toEqual(['certificate requests to approve', 'approved certificate to issue']);
+  });
+
+  it('points delivery problems at the email log', () => {
+    const [item] = buildActionQueue({ ...zero, emailProblems: 4 });
+    expect(item).toMatchObject({ count: 4, href: '/admin/email-log', label: 'email delivery problems to review' });
+    expect(buildActionQueue({ ...zero, emailProblems: 1 })[0].label).toBe('email delivery problem to review');
   });
 });

@@ -1,6 +1,6 @@
 # Organization Admin Dashboard: Fact Sheet
 
-**Pages:** `/dashboard` ("Admin Dashboard"), `/admin` (Compliance Dashboard), `/nou-dashboard` (NOU Dashboard)  |  **Role in system:** `org_admin`
+**Pages:** `/dashboard` ("Admin Dashboard"), `/admin` (Compliance Report), `/nou-dashboard` (NOU Dashboard)  |  **Role in system:** `org_admin`
 
 ## Purpose
 Program-wide oversight: see everything that needs your action, monitor the technician registry, approve applications, courses, certificates, suppliers and reorders, and report on refrigerant volumes.
@@ -17,6 +17,7 @@ The first panel lists everything waiting on an administrator, with a count and a
 | Item | Where it links |
 |---|---|
 | Registration applications to review (applicants who have confirmed their email; a note says how many more are waiting on the applicant) | Applications |
+| Emails that failed, bounced or were marked as spam | Email Log |
 | COC requests to review | COC Requests |
 | Certificate requests to approve, and approved certificates to issue | Certifications |
 | Courses awaiting approval | Course Approvals |
@@ -38,14 +39,15 @@ These figures are counted in the database, so the page stays fast as the registr
 
 **Quick actions:** NOU Dashboard, COC Requests, Supplier Management, Safety Oversight.
 
-## Compliance Dashboard (`/admin`)
+## Compliance Report (`/admin`)
 - **Period selector:** Year to date (default), Last 12 months, All time. The cards, chart and PDF follow it.
 - **Cards:** GWP of Approved Reorders (potential impact of what was bought), Approved Volume (with the pending backlog right now), Active Technicians (with valid certificates), Natural Gas Share (share of approved volume that is R-290, R-600a, R-744, R-717 or R-1270).
 - **Chart:** Refrigerant Purchased, approved reorder volume per month. Rejected and pending reorders are not included.
-- **Leak Repairs, last 30 days:** the count and the latest five, taken from technicians' Field Toolkit logs. It says when the count may be cut short.
+- **Leak Repairs, last 30 days:** the count and the latest five, taken from technicians' Field Toolkit logs.
 - **Certificates expiring soon:** active technicians' certificates due within 90 days or already overdue, soonest first.
-- **Export PDF** and the occupational accidents section. An **Invite users** button sits at the top.
-- If any data fails to load, a red banner says so, so partial figures are not mistaken for final ones.
+- **Export PDF** and the occupational accidents section. Links at the top go to the **Admin Dashboard** and **Invite users**.
+- The figures are aggregated by the database, so the page does not download the registry or reorder history.
+- If the report fails to load, a banner says so, so partial figures are not mistaken for final ones.
 
 ## NOU Dashboard (`/nou-dashboard`)
 - **KPI cards:** Registered Technicians; Purchased Kg (approved purchase reorders); Recovered Kg (technicians' recovery logs in the field plus approved recovery returns from suppliers, split out in the note); Emissions Avoided (recovered kg times each gas's warming potential, in tonnes of CO2-equivalent, all time).
@@ -62,7 +64,7 @@ These figures are counted in the database, so the page stays fast as the registr
 
 ### How you are alerted to new applications
 1. An email to every active administrator as soon as someone applies, with the applicant's details and a Review button.
-2. A live count on the Applications item in the sidebar.
+2. Live counts on the matching sidebar items.
 3. The Needs your action panel on the dashboard.
 
 ## Other approvals
@@ -71,12 +73,12 @@ These figures are counted in the database, so the page stays fast as the registr
 - Certificate requests are labelled either **Linked to graded exam** or **Manual entry**.
 
 ## Menu (grouped)
-- **Home:** Dashboard, Compliance Dashboard
-- **Operations:** Learning Hub, Manage Courses, Field Operations, Field Toolkit, Safety Center
+- **Home:** Dashboard, Compliance Report
+- **Operations:** Learning Hub, Events Calendar, Manage Courses, Field Operations, Field Toolkit, Safety Center
 - **Tools:** WhatGas + Risk Engine, Sizing Tool
 - **Refrigerants:** Catalogue
 - **Suppliers:** Supplier Management, Invite Supplier, Supplier Compliance, Vendor Reorder, Verify Buyer, Supplier Approvals
-- **Registry and People:** Technician Registry, Certificate Verification, Certifications, Rewards, System Users, Applications, Applicants, Memberships, Email Log, Contractors, Invites
+- **Registry and People:** Technician Registry, Student Directory, Certificate Verification, Certifications, Rewards, System Users, Applications, Applicants, Memberships, Email Log, Contractors, Invites
 - **Reviews and Data:** NOU Dashboard, Course Approvals, COC Requests, Accidents Module, Reporting, Refrigerant Analytics, Refrigerants (WhatGas Sync)
 
 ## Notes for the fact sheet

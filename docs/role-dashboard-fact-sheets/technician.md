@@ -32,6 +32,7 @@ Dashboard, Learning Hub, Safety Center, Field Operations, Field Toolkit, WhatGas
 ## Key tools
 - **Field Operations:** three tabs: Schedule, Planner, Jobs & Logs.
 - **Job Planner** and **Request COC** (`/jobs/request-coc`).
+- **Certification documents.** On the Certification page you can upload a copy of your national ID and any trade, training or assessor certificates (PDF, JPG or PNG, up to 5 MB each, six files at most). Your trainer and HEVACRAZ administrators can open them from your registry profile when assessing certification, and you can remove a file to make room for another.
 - **Sizing Tool:** cooling-load calculator for freezers and cold rooms.
 - **WhatGas + Risk Engine:** refrigerant lookup and risk checks.
 

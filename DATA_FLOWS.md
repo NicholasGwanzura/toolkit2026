@@ -238,7 +238,7 @@ Save to localStorage (optional)
 
 #### DeepSeek Service
 - Endpoint: `/services/deepseek.ts`
-- Purpose: AI-powered sizing verification
+- Purpose: AI-powered sizing verification, plus an optional second read of OCR nameplate text (text only — photos never leave the device)
 - Status: **Live** when `DEEPSEEK_API_KEY` is configured
 
 #### Gemini Service  

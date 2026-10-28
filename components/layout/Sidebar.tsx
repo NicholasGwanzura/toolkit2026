@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ComponentType, SVGProps, useState } from 'react';
+import { ComponentType, SVGProps, useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 import {
     LayoutDashboard,
@@ -21,7 +21,6 @@ import {
     WifiOff,
     UserCircle,
     FlaskConical,
-    ShieldAlert,
     BarChart3,
     Database,
     FileText,
@@ -29,11 +28,23 @@ import {
     Mail,
     ChevronDown,
     HardHat,
+    GraduationCap,
 } from 'lucide-react';
 import { useAuth, logout } from '@/lib/auth';
 import { useEmergencyMode } from '@/lib/emergencyMode';
 import { UserProfileModal } from '@/components/UserProfileModal';
-import { useApplicationCounts } from '@/lib/api';
+import { useAdminActionQueue, type AdminActionItem } from '@/lib/api';
+
+type BadgeKey =
+    | 'applications'
+    | 'emailProblems'
+    | 'cocRequests'
+    | 'certificateRequests'
+    | 'courseApprovals'
+    | 'reorderReviews'
+    | 'supplierCompliance'
+    | 'openAccidents'
+    | 'rewardRequests';
 
 interface NavItem {
     name: string;
@@ -42,8 +53,8 @@ interface NavItem {
     roles: string[];
     exact?: boolean;
     children?: NavItem[];
-    /** Shows a live count pill next to the item. */
-    badge?: 'applications';
+    /** Shows a live count pill next to the item, taken from the admin action queue. */
+    badge?: BadgeKey;
 }
 
 interface NavSection {
@@ -117,10 +128,10 @@ const NAV_SECTIONS: NavSection[] = [
     {
         label: 'Admin Reviews',
         items: [
-            { name: 'NOU Dashboard', href: '/nou-dashboard', icon: AlertTriangle, roles: ['org_admin'] },
-            { name: 'Course Approvals', href: '/learn/approvals', icon: ShieldCheck, roles: ['org_admin'] },
-            { name: 'COC Requests', href: '/admin/coc-requests', icon: FileText, roles: ['org_admin'] },
-            { name: 'Accidents Module', href: '/admin/accidents', icon: AlertTriangle, roles: ['org_admin'] },
+            { name: 'NOU Dashboard', href: '/nou-dashboard', icon: AlertTriangle, roles: ['org_admin'], badge: 'reorderReviews' },
+            { name: 'Course Approvals', href: '/learn/approvals', icon: ShieldCheck, roles: ['org_admin'], badge: 'courseApprovals' },
+            { name: 'COC Requests', href: '/admin/coc-requests', icon: FileText, roles: ['org_admin'], badge: 'cocRequests' },
+            { name: 'Accidents Module', href: '/admin/accidents', icon: AlertTriangle, roles: ['org_admin'], badge: 'openAccidents' },
         ],
     },
     {
@@ -137,13 +148,14 @@ const ADMIN_NAV_SECTIONS: NavSection[] = [
     {
         items: [
             { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['org_admin'] },
-            { name: 'Compliance Dashboard', href: '/admin', icon: ShieldCheck, roles: ['org_admin'], exact: true },
+            { name: 'Compliance Report', href: '/admin', icon: ShieldCheck, roles: ['org_admin'], exact: true },
         ],
     },
     {
         label: 'Operations',
         items: [
             { name: 'Learning Hub', href: '/learn', icon: BookOpen, roles: ['org_admin'], exact: true },
+            { name: 'Events Calendar', href: '/training', icon: CalendarDays, roles: ['org_admin'] },
             { name: 'Manage Courses', href: '/learn/manage', icon: BookOpen, roles: ['org_admin'] },
             { name: 'Field Operations', href: '/field-operations', icon: Wrench, roles: ['org_admin'] },
             { name: 'Field Toolkit', href: '/field-toolkit', icon: Wrench, roles: ['org_admin'] },
@@ -168,7 +180,7 @@ const ADMIN_NAV_SECTIONS: NavSection[] = [
         items: [
             { name: 'Supplier Management', href: '/suppliers', icon: Factory, roles: ['org_admin'], exact: true },
             { name: 'Invite Supplier', href: '/admin/suppliers/add', icon: UserPlus, roles: ['org_admin'] },
-            { name: 'Supplier Compliance', href: '/supplier-compliance', icon: ShieldCheck, roles: ['org_admin'] },
+            { name: 'Supplier Compliance', href: '/supplier-compliance', icon: ShieldCheck, roles: ['org_admin'], badge: 'supplierCompliance' },
             { name: 'Vendor Reorder', href: '/suppliers/reorder', icon: Factory, roles: ['org_admin'] },
             { name: 'Verify Buyer', href: '/suppliers/verify-buyer', icon: ShieldCheck, roles: ['org_admin'] },
             { name: 'Supplier Approvals', href: '/suppliers/approvals', icon: ShieldCheck, roles: ['org_admin'] },
@@ -178,14 +190,15 @@ const ADMIN_NAV_SECTIONS: NavSection[] = [
         label: 'Registry & People',
         items: [
             { name: 'Technician Registry', href: '/technician-registry', icon: Users, roles: ['org_admin'] },
+            { name: 'Student Directory', href: '/admin/students', icon: GraduationCap, roles: ['org_admin'] },
             { name: 'Certificate Verification', href: '/verify-technician', icon: ShieldCheck, roles: ['org_admin'] },
-            { name: 'Certifications', href: '/certifications', icon: Award, roles: ['org_admin'] },
-            { name: 'Rewards', href: '/rewards', icon: Award, roles: ['org_admin'] },
+            { name: 'Certifications', href: '/certifications', icon: Award, roles: ['org_admin'], badge: 'certificateRequests' },
+            { name: 'Rewards', href: '/rewards', icon: Award, roles: ['org_admin'], badge: 'rewardRequests' },
             { name: 'System Users', href: '/admin/users', icon: Users, roles: ['org_admin'] },
             { name: 'Applications', href: '/admin/applications', icon: ShieldCheck, roles: ['org_admin'], badge: 'applications' },
             { name: 'Applicants', href: '/admin/applicants', icon: ClipboardList, roles: ['org_admin'] },
             { name: 'Memberships', href: '/admin/memberships', icon: Award, roles: ['org_admin'] },
-            { name: 'Email Log', href: '/admin/email-log', icon: Mail, roles: ['org_admin'] },
+            { name: 'Email Log', href: '/admin/email-log', icon: Mail, roles: ['org_admin'], badge: 'emailProblems' },
             { name: 'Audit Trail', href: '/admin/audit-trail', icon: ClipboardList, roles: ['org_admin'] },
             { name: 'Contractors', href: '/admin/contractors', icon: HardHat, roles: ['org_admin'] },
             { name: 'Invites', href: '/admin/invites', icon: UserPlus, roles: ['org_admin'] },
@@ -194,10 +207,10 @@ const ADMIN_NAV_SECTIONS: NavSection[] = [
     {
         label: 'Reviews & Data',
         items: [
-            { name: 'NOU Dashboard', href: '/nou-dashboard', icon: AlertTriangle, roles: ['org_admin'] },
-            { name: 'Course Approvals', href: '/learn/approvals', icon: ShieldCheck, roles: ['org_admin'] },
-            { name: 'COC Requests', href: '/admin/coc-requests', icon: FileText, roles: ['org_admin'] },
-            { name: 'Accidents Module', href: '/admin/accidents', icon: AlertTriangle, roles: ['org_admin'] },
+            { name: 'NOU Dashboard', href: '/nou-dashboard', icon: AlertTriangle, roles: ['org_admin'], badge: 'reorderReviews' },
+            { name: 'Course Approvals', href: '/learn/approvals', icon: ShieldCheck, roles: ['org_admin'], badge: 'courseApprovals' },
+            { name: 'COC Requests', href: '/admin/coc-requests', icon: FileText, roles: ['org_admin'], badge: 'cocRequests' },
+            { name: 'Accidents Module', href: '/admin/accidents', icon: AlertTriangle, roles: ['org_admin'], badge: 'openAccidents' },
             { name: 'Reporting', href: '/admin/reporting', icon: BarChart3, roles: ['org_admin'] },
             { name: 'Refrigerant Analytics', href: '/admin/refrigerant-analytics', icon: BarChart3, roles: ['org_admin'] },
             { name: 'Refrigerants (WhatGas Sync)', href: '/admin/refrigerants', icon: Database, roles: ['org_admin'] },
@@ -209,9 +222,33 @@ interface SidebarProps {
     onClose?: () => void;
 }
 
-function NavLink({ item, pathname, onClose }: { item: NavItem; pathname: string; onClose?: () => void }) {
-    const { data: applicationCounts } = useApplicationCounts(item.badge === 'applications');
-    const badgeCount = item.badge === 'applications' ? applicationCounts?.total.awaitingReview ?? 0 : 0;
+function badgeCountsFromQueue(items: AdminActionItem[] | undefined): Record<BadgeKey, number> {
+    const count = (key: string) => items?.find((item) => item.key === key)?.count ?? 0;
+    return {
+        applications: count('applications'),
+        emailProblems: count('emailProblems'),
+        cocRequests: count('cocRequests'),
+        certificateRequests: count('certificateApprovals') + count('certificatesToIssue'),
+        courseApprovals: count('courseApprovals'),
+        reorderReviews: count('reorderReviews'),
+        supplierCompliance: count('supplierCompliance'),
+        openAccidents: count('openAccidents'),
+        rewardRequests: count('rewardRequests'),
+    };
+}
+
+function NavLink({
+    item,
+    pathname,
+    badges,
+    onClose,
+}: {
+    item: NavItem;
+    pathname: string;
+    badges: Record<BadgeKey, number>;
+    onClose?: () => void;
+}) {
+    const badgeCount = item.badge ? badges[item.badge] : 0;
     const isActive = item.exact ? pathname === item.href : pathname === item.href || pathname.startsWith(`${item.href}/`);
     return (
         <Link
@@ -235,7 +272,7 @@ function NavLink({ item, pathname, onClose }: { item: NavItem; pathname: string;
             {badgeCount > 0 && (
                 <span
                     className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#F59E0B] px-1.5 text-[11px] font-bold text-[#1C1917]"
-                    aria-label={`${badgeCount} applications waiting for review`}
+                    aria-label={`${badgeCount} items waiting for review`}
                 >
                     {badgeCount}
                 </span>
@@ -249,6 +286,7 @@ function NavSectionGroup({
     section,
     index,
     pathname,
+    badges,
     isOpen,
     onToggle,
     onClose,
@@ -256,6 +294,7 @@ function NavSectionGroup({
     section: NavSection;
     index: number;
     pathname: string;
+    badges: Record<BadgeKey, number>;
     isOpen: boolean;
     onToggle: () => void;
     onClose?: () => void;
@@ -267,7 +306,7 @@ function NavSectionGroup({
             <div>
                 <div className="space-y-0.5">
                     {section.items.map(item => (
-                        <NavLink key={item.href} item={item} pathname={pathname} onClose={onClose} />
+                        <NavLink key={item.href} item={item} pathname={pathname} badges={badges} onClose={onClose} />
                     ))}
                 </div>
             </div>
@@ -299,7 +338,7 @@ function NavSectionGroup({
             {isOpen && (
                 <div className="mt-1 space-y-0.5">
                     {section.items.map(item => (
-                        <NavLink key={item.href} item={item} pathname={pathname} onClose={onClose} />
+                        <NavLink key={item.href} item={item} pathname={pathname} badges={badges} onClose={onClose} />
                     ))}
                 </div>
             )}
@@ -314,6 +353,8 @@ export function Sidebar({ className, onClose }: SidebarProps & { className?: str
     const { emergencyMode, toggleEmergencyMode } = useEmergencyMode();
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
     const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+    const { data: actionQueue } = useAdminActionQueue(role === 'org_admin');
+    const badges = useMemo(() => badgeCountsFromQueue(actionQueue?.items), [actionQueue]);
 
     const navSections = role === 'org_admin' ? ADMIN_NAV_SECTIONS : NAV_SECTIONS;
     const visibleSections = navSections.map(section => ({
@@ -367,6 +408,7 @@ export function Sidebar({ className, onClose }: SidebarProps & { className?: str
                                 section={section}
                                 index={i}
                                 pathname={pathname}
+                                badges={badges}
                                 isOpen={isOpen}
                                 onToggle={() => setExpandedSections(prev => ({ ...prev, [key]: !isOpen }))}
                                 onClose={onClose}

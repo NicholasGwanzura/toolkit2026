@@ -3,10 +3,12 @@ import { eq } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { invites } from '@/db/schema/index';
 import { requireRole } from '@/lib/server/auth';
+import { recordAuditEventSafe } from '@/lib/server/audit';
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  let session;
   try {
-    await requireRole(req, ['org_admin']);
+    session = await requireRole(req, ['org_admin']);
   } catch (e) {
     return e as Response;
   }
@@ -23,6 +25,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     .set({ status: 'revoked' })
     .where(eq(invites.id, id))
     .returning();
+
+  await recordAuditEventSafe({
+    entityType: 'invite',
+    entityId: updated.id,
+    action: 'revoked',
+    previousStatus: 'pending',
+    newStatus: 'revoked',
+    performedBy: session.name,
+    performedByRole: session.role,
+    notes: `Invite for ${updated.email}`,
+  });
 
   return NextResponse.json(updated);
 }

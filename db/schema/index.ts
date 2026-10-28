@@ -3,6 +3,7 @@ export * from './password-reset';
 export * from './courses';
 export * from './suppliers';
 export * from './technicians';
+export * from './technician-documents';
 export * from './supplier-ops';
 export * from './registrations';
 export * from './gas-logs';

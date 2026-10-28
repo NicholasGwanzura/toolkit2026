@@ -1,70 +1,65 @@
 import { NextResponse } from 'next/server';
 import { MAX_LIST_ROWS } from '@/lib/server/list-limits';
-import { asc } from 'drizzle-orm';
+import { asc, ne, or } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { trainingSessions } from '@/db/schema/index';
 import { requireRole } from '@/lib/server/auth';
+import { toTrainingSession } from '@/lib/server/request-serializers';
+import { validateTrainingSession } from '@/lib/training-session';
 import type { TrainingSession } from '@/types/index';
 
-function toTrainingSession(row: typeof trainingSessions.$inferSelect): TrainingSession {
-  return {
-    id: row.id,
-    title: row.title,
-    summary: row.summary,
-    venue: row.venue,
-    province: row.province,
-    startDate: row.startDate.toISOString(),
-    endDate: row.endDate.toISOString(),
-    feeUsd: Number(row.feeUsd),
-    seats: row.seats,
-    seatsRemaining: row.seatsRemaining,
-    trainerName: row.trainerName,
-    trainerEmail: row.trainerEmail,
-    status: row.status as TrainingSession['status'],
-  };
-}
-
 // Public GET — the marketing training schedule reads this without auth.
+// Old seeds inserted training sessions under the demo trainer account; hide them from every
+// calendar. scripts/remove-demo-training.ts deletes the rows when a DATABASE_URL is available.
 export async function GET() {
-  const rows = await db.select().from(trainingSessions).orderBy(asc(trainingSessions.startDate)).limit(MAX_LIST_ROWS);
+  const rows = await db
+    .select()
+    .from(trainingSessions)
+    .where(
+      or(
+        ne(trainingSessions.trainerName, 'Demo Trainer'),
+        ne(trainingSessions.trainerEmail, 'trainer@coolpro.demo')
+      )
+    )
+    .orderBy(asc(trainingSessions.startDate))
+    .limit(MAX_LIST_ROWS);
   return NextResponse.json(rows.map(toTrainingSession));
 }
 
 export async function POST(req: Request) {
   let session;
   try {
-    session = await requireRole(req, ['trainer', 'lecturer']);
+    session = await requireRole(req, ['trainer', 'lecturer', 'org_admin']);
   } catch (e) {
     return e as Response;
   }
 
   const body = await req.json().catch(() => ({})) as Partial<TrainingSession>;
+  const result = validateTrainingSession({
+    title: typeof body.title === 'string' ? body.title : '',
+    summary: typeof body.summary === 'string' ? body.summary : '',
+    venue: typeof body.venue === 'string' ? body.venue : '',
+    province: typeof body.province === 'string' ? body.province : '',
+    startDate: new Date(body.startDate ?? ''),
+    endDate: new Date(body.endDate ?? ''),
+    feeUsd: Number(body.feeUsd),
+    seats: Number(body.seats),
+  });
+  if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });
 
-  const required: Array<keyof TrainingSession> = ['title', 'summary', 'venue', 'province', 'startDate', 'endDate', 'feeUsd', 'seats'];
-  for (const key of required) {
-    if (body[key] === undefined || body[key] === null || body[key] === '') {
-      return NextResponse.json({ error: `${key} is required` }, { status: 400 });
-    }
-  }
-
-  const seats = Number(body.seats);
-  const feeUsd = Number(body.feeUsd);
-  if (!Number.isFinite(seats) || seats <= 0 || !Number.isFinite(feeUsd) || feeUsd < 0) {
-    return NextResponse.json({ error: 'seats and feeUsd must be valid numbers' }, { status: 400 });
-  }
-
+  const values = result.value;
   const [inserted] = await db
     .insert(trainingSessions)
     .values({
-      title: body.title!,
-      summary: body.summary!,
-      venue: body.venue!,
-      province: body.province!,
-      startDate: new Date(body.startDate!),
-      endDate: new Date(body.endDate!),
-      feeUsd: feeUsd.toString(),
-      seats,
-      seatsRemaining: seats,
+      title: values.title,
+      summary: values.summary,
+      venue: values.venue,
+      province: values.province,
+      startDate: values.startDate,
+      endDate: values.endDate,
+      feeUsd: values.feeUsd.toString(),
+      seats: values.seats,
+      seatsRemaining: values.seats,
       trainerName: session.name,
       trainerEmail: session.email,
       status: 'scheduled',

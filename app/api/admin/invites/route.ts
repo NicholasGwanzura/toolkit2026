@@ -4,6 +4,7 @@ import { and, desc, eq, lt } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { invites, users } from '@/db/schema/index';
 import { requireRole } from '@/lib/server/auth';
+import { recordAuditEventSafe } from '@/lib/server/audit';
 import { sendInviteEmail } from '@/lib/server/email';
 import { VALID_ROLES, type ValidRole } from '@/lib/roles';
 import { SITE_URL } from '@/lib/site-url';
@@ -109,6 +110,16 @@ export async function POST(req: Request) {
   const emailResult = await sendInviteEmail({
     email, inviteUrl: url, role, invitedBy: session.name,
     log: { entityType: 'invite', entityId: invite.id, label: role.replace('_', ' ') },
+  });
+
+  await recordAuditEventSafe({
+    entityType: 'invite',
+    entityId: invite.id,
+    action: 'invited',
+    newStatus: 'pending',
+    performedBy: session.name,
+    performedByRole: session.role,
+    notes: `${role.replace('_', ' ')} invite for ${email}`,
   });
 
   return NextResponse.json({ invite, inviteUrl: url, emailSent: emailResult.sent }, { status: 201 });

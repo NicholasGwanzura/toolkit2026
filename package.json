@@ -16,6 +16,7 @@
     "db:migrate:prod": "node scripts/migrate.mjs",
     "db:push": "drizzle-kit push",
     "db:seed": "tsx db/seed.ts",
+    "db:seed:courses": "tsx scripts/seed-free-courses.ts",
     "test": "vitest run"
   },
   "dependencies": {

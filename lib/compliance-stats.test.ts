@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { complianceKpis, expiringCertificates, monthlyApprovedKg, periodStart } from './compliance-stats';
+import { expiringCertificates, monthlyApprovedKg, periodStart, summarizeReorderTotals } from './compliance-stats';
 
 const NOW = Date.parse('2026-10-10T10:00:00Z');
 const gwp: Record<string, number> = { 'R-410A': 2088, 'R-290': 3 };
@@ -14,33 +14,34 @@ const reorders = [
   reorder('rejected', 'R-410A', 700, '2026-09-05T00:00:00Z'),
   reorder('pending_nou', 'R-410A', 50, '2026-10-01T00:00:00Z'),
 ];
-const kpis = (period: 'ytd' | '12m' | 'all') => complianceKpis({ reorders, period, now: NOW, gwpOf: (g) => gwp[g], naturalGases: natural });
+// The database has already applied the period filter, so these are the grouped totals it returns.
+const ytdGroups = [
+  { status: 'approved', gasType: 'R-410A', quantityKg: 100 },
+  { status: 'approved', gasType: 'R-290', quantityKg: 300 },
+  { status: 'rejected', gasType: 'R-410A', quantityKg: 700 },
+  { status: 'pending_nou', gasType: 'R-410A', quantityKg: 50 },
+];
+const kpis = (groups: Array<{ status: string; gasType: string; quantityKg: number }>, pendingReviewCount = 1) =>
+  summarizeReorderTotals(groups, { pendingReviewCount, gwpOf: (g) => gwp[g], naturalGases: natural });
 
-describe('complianceKpis', () => {
-  it('year to date counts only approved reorders since 1 January', () => {
-    expect(kpis('ytd')).toMatchObject({ approvedKg: 400, naturalSharePct: 75, pendingReviewCount: 1 });
-    expect(kpis('ytd').gwpImpactTonnes).toBe(Math.round((100 * 2088) / 1000 + (300 * 3) / 1000));
+describe('summarizeReorderTotals', () => {
+  it('counts only approved volume and weights it by GWP', () => {
+    expect(kpis(ytdGroups)).toMatchObject({ approvedKg: 400, naturalSharePct: 75, pendingReviewCount: 1 });
+    expect(kpis(ytdGroups).gwpImpactTonnes).toBe(Math.round((100 * 2088) / 1000 + (300 * 3) / 1000));
   });
 
-  it('last 12 months reaches back one year, all time takes everything approved', () => {
-    expect(kpis('12m').approvedKg).toBe(900);
-    expect(kpis('all').approvedKg).toBe(1800);
-  });
-
-  it('leaves out rejected and pending reorders from volume but counts pending as a backlog', () => {
-    expect(kpis('all').approvedKg).toBe(1800);
-    expect(kpis('all').pendingReviewCount).toBe(1);
+  it('leaves out rejected and pending reorders from volume but keeps the backlog count', () => {
+    expect(kpis(ytdGroups, 7)).toMatchObject({ approvedKg: 400, pendingReviewCount: 7 });
   });
 
   it('has no natural share when nothing was approved', () => {
-    expect(complianceKpis({ reorders: [], period: 'ytd', now: NOW, gwpOf: () => 1, naturalGases: natural })).toEqual({
+    expect(summarizeReorderTotals([], { pendingReviewCount: 0, gwpOf: () => 1, naturalGases: natural })).toEqual({
       approvedKg: 0, gwpImpactTonnes: 0, naturalSharePct: 0, pendingReviewCount: 0,
     });
   });
 
-  it('ignores reorders dated in the future or with a bad date', () => {
-    const odd = [reorder('approved', 'R-290', 999, '2027-01-01T00:00:00Z'), reorder('approved', 'R-290', 999, 'nope')];
-    expect(complianceKpis({ reorders: odd, period: 'all', now: NOW, gwpOf: () => 1, naturalGases: natural }).approvedKg).toBe(0);
+  it('ignores a group whose quantity is not a finite number', () => {
+    expect(kpis([{ status: 'approved', gasType: 'R-290', quantityKg: Number.NaN }]).approvedKg).toBe(0);
   });
 });
 

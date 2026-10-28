@@ -104,6 +104,11 @@ export async function POST(req: Request) {
   };
 
   resetRateLimit(failureKey);
+  await db
+    .update(users)
+    .set({ lastLoginAt: new Date() })
+    .where(eq(users.id, user.id))
+    .catch(() => undefined);
   const token = signSession(sessionPayload);
 
   return NextResponse.json(

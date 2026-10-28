@@ -3,6 +3,7 @@
 export interface ActionCounts {
   applications: number;
   applicationsAwaitingEmail: number;
+  emailProblems: number;
   cocRequests: number;
   certificateApprovals: number;
   certificatesToIssue: number;
@@ -32,6 +33,13 @@ export function buildActionQueue(counts: ActionCounts): ActionItem[] {
       label: plural(counts.applications, 'registration application to review', 'registration applications to review'),
       hint: counts.applicationsAwaitingEmail > 0 ? `${counts.applicationsAwaitingEmail} more waiting for the applicant to confirm their email` : undefined,
       href: '/admin/applications',
+    },
+    {
+      key: 'emailProblems',
+      count: counts.emailProblems,
+      label: plural(counts.emailProblems, 'email delivery problem to review', 'email delivery problems to review'),
+      hint: 'Bounced, failed or marked as spam in the email log',
+      href: '/admin/email-log',
     },
     { key: 'cocRequests', count: counts.cocRequests, label: plural(counts.cocRequests, 'COC request to review', 'COC requests to review'), href: '/admin/coc-requests' },
     { key: 'certificateApprovals', count: counts.certificateApprovals, label: plural(counts.certificateApprovals, 'certificate request to approve', 'certificate requests to approve'), href: '/certifications' },
