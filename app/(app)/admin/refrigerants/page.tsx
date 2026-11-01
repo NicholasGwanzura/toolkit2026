@@ -12,6 +12,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useWhatGasSyncStatus, triggerWhatGasSync, useRefrigerants } from '@/lib/api';
+import { whatGasCatalogueStale } from '@/lib/whatgas/freshness';
 import { refrigerantLabel } from '@/components/RefrigerantAutocomplete';
 import type { WhatGasSyncLog } from '@/types/index';
 
@@ -95,7 +96,7 @@ export default function AdminRefrigerantsPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Refrigerants — WhatGas Sync</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Refrigerant Sync</h1>
           <p className="mt-1 text-gray-500">
             UNEP OzonAction WhatGas is the authoritative source for refrigerant reference data.
           </p>
@@ -122,6 +123,12 @@ export default function AdminRefrigerantsPage() {
         <div className="border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-medium text-blue-800">
           {syncMessage}
         </div>
+      )}
+
+      {!syncLoading && whatGasCatalogueStale(lastSync?.finishedAt, new Date()) && (
+        <p role="alert" className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
+          The catalogue has not updated from WhatGas in over a day. It updates itself daily and retries hourly. Choose Sync Now to try straight away, and check Sync History below if it fails.
+        </p>
       )}
 
       {/* Stats */}

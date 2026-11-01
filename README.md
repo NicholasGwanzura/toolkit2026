@@ -64,6 +64,7 @@ once. Schema changes should be committed as SQL + a `db/migrations/meta/_journal
 
 Two GitHub Actions workflows keep the platform current:
 
+- The app also keeps the WhatGas catalogue fresh by itself: on a long-running server it checks hourly and syncs once a day (`instrumentation.ts`; set `WHATGAS_AUTO_SYNC=off` to disable).
 - `.github/workflows/cron.yml` — WhatGas incremental sync daily, full sync weekly, and
   technician/membership expiry reminders daily. Also supports manual dispatch.
 - `.github/workflows/health-check.yml` — hourly `GET /api/health`, which checks the app and

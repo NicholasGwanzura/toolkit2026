@@ -23,7 +23,7 @@ The first panel lists everything waiting on an administrator, with a count and a
 | Courses awaiting approval | Course Approvals |
 | Refrigerant reorders to review | NOU Dashboard |
 | Supplier compliance certificates to review | Supplier Compliance |
-| Accident reports still open or under investigation | Accidents Module |
+| Accident reports still open or under investigation | Accidents |
 | Reward requests to fulfil | Rewards |
 
 ### KPI cards
@@ -77,9 +77,9 @@ These figures are counted in the database, so the page stays fast as the registr
 - **Operations:** Learning Hub, Events Calendar, Manage Courses, Field Operations, Field Toolkit, Safety Center
 - **Tools:** WhatGas + Risk Engine, Sizing Tool
 - **Refrigerants:** Catalogue
-- **Suppliers:** Supplier Management, Invite Supplier, Supplier Compliance, Vendor Reorder, Verify Buyer, Supplier Approvals
+- **Suppliers:** Supplier Management, Invite Supplier, Supplier Compliance, Gas Reorders, Verify Buyer, Supplier Approvals
 - **Registry and People:** Technician Registry, Student Directory, Certificate Verification, Certifications, Rewards, System Users, Applications, Applicants, Memberships, Email Log, Contractors, Invites
-- **Reviews and Data:** NOU Dashboard, Course Approvals, COC Requests, Accidents Module, Reporting, Refrigerant Analytics, Refrigerants (WhatGas Sync)
+- **Reviews and Data:** NOU Dashboard, Course Approvals, COC Requests, Accidents, Reporting, Refrigerant Analytics, Refrigerant Sync
 
 ## Notes for the fact sheet
 - The Admin sidebar is separate from every other role's sidebar.

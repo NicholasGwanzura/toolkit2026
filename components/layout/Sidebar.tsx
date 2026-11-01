@@ -4,219 +4,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ComponentType, SVGProps, useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
-import {
-    LayoutDashboard,
-    CalendarDays,
-    Library,
-    BookOpen,
-    Calculator,
-    Factory,
-    Wrench,
-    ClipboardList,
-    Award,
-    Users,
-    ShieldCheck,
-    X,
-    AlertTriangle,
-    WifiOff,
-    UserCircle,
-    FlaskConical,
-    BarChart3,
-    Database,
-    FileText,
-    UserPlus,
-    Mail,
-    ChevronDown,
-    HardHat,
-    GraduationCap,
-} from 'lucide-react';
+import { AlertTriangle, ChevronDown, LifeBuoy, UserCircle, WifiOff, X } from 'lucide-react';
 import { useAuth, logout } from '@/lib/auth';
 import { useEmergencyMode } from '@/lib/emergencyMode';
 import { UserProfileModal } from '@/components/UserProfileModal';
 import { useAdminActionQueue, type AdminActionItem } from '@/lib/api';
-
-type BadgeKey =
-    | 'applications'
-    | 'emailProblems'
-    | 'cocRequests'
-    | 'certificateRequests'
-    | 'courseApprovals'
-    | 'reorderReviews'
-    | 'supplierCompliance'
-    | 'openAccidents'
-    | 'rewardRequests';
-
-interface NavItem {
-    name: string;
-    href: string;
-    icon: ComponentType<SVGProps<SVGSVGElement>>;
-    roles: string[];
-    exact?: boolean;
-    children?: NavItem[];
-    /** Shows a live count pill next to the item, taken from the admin action queue. */
-    badge?: BadgeKey;
-}
-
-interface NavSection {
-    label?: string;
-    items: NavItem[];
-}
-
-const NAV_SECTIONS: NavSection[] = [
-    {
-        items: [
-            { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['technician', 'trainer', 'lecturer', 'vendor', 'org_admin', 'student', 'contractor'] },
-        ],
-    },
-    {
-        label: 'Operations',
-        items: [
-            { name: 'Learning Hub', href: '/learn', icon: BookOpen, roles: ['technician', 'contractor', 'trainer', 'lecturer', 'org_admin', 'student'] },
-            { name: 'Events Calendar', href: '/events', icon: CalendarDays, roles: ['technician', 'contractor', 'trainer', 'lecturer', 'vendor', 'org_admin', 'student'] },
-            { name: 'Manage Courses', href: '/learn/manage', icon: BookOpen, roles: ['trainer', 'lecturer'] },
-            { name: 'Safety Center', href: '/safety-center', icon: ShieldCheck, roles: ['technician', 'contractor', 'trainer', 'lecturer', 'student'] },
-            { name: 'Resources', href: '/resources', icon: Library, roles: ['technician', 'contractor', 'trainer', 'lecturer'] },
-            { name: 'Field Operations', href: '/field-operations', icon: Wrench, roles: ['technician', 'contractor', 'org_admin'] },
-        ],
-    },
-    {
-        label: 'Field Tools',
-        items: [
-            { name: 'Field Toolkit', href: '/field-toolkit', icon: Wrench, roles: ['technician', 'contractor', 'org_admin'] },
-        ],
-    },
-    {
-        label: 'Tools',
-        items: [
-            { name: 'WhatGas + Risk Engine', href: '/whatgas', icon: FlaskConical, roles: ['technician', 'contractor', 'trainer', 'lecturer', 'org_admin', 'student'] },
-            { name: 'Sizing Tool', href: '/sizing-tool', icon: Calculator, roles: ['technician', 'contractor'] },
-        ],
-    },
-    {
-        label: 'Refrigerants',
-        items: [
-            { name: 'Refrigerant Catalogue', href: '/refrigerants', icon: Database, roles: ['technician', 'contractor', 'trainer', 'lecturer', 'vendor', 'org_admin', 'student'] },
-        ],
-    },
-    {
-        label: 'Compliance',
-        items: [
-            { name: 'Certification', href: '/certifications', icon: Award, roles: ['technician', 'contractor', 'trainer', 'lecturer', 'org_admin', 'student'] },
-            { name: 'Rewards', href: '/rewards', icon: Award, roles: ['technician', 'contractor', 'vendor', 'org_admin'] },
-            { name: 'Supplier Compliance', href: '/supplier-compliance', icon: ShieldCheck, roles: ['vendor'] },
-            { name: 'Supply Reports', href: '/suppliers', icon: Factory, roles: ['vendor', 'org_admin'] },
-            { name: 'Vendor Reorder', href: '/suppliers/reorder', icon: Factory, roles: ['vendor'] },
-            { name: 'Verify Buyer', href: '/suppliers/verify-buyer', icon: ShieldCheck, roles: ['vendor'] },
-            { name: 'Supplier Approvals', href: '/suppliers/approvals', icon: ShieldCheck, roles: ['org_admin'] },
-        ],
-    },
-    {
-        label: 'Registry',
-        items: [
-            { name: 'Technician Registry', href: '/technician-registry', icon: Users, roles: ['trainer', 'lecturer', 'org_admin'] },
-            { name: 'Certificate Verification', href: '/certificate-verification', icon: ShieldCheck, roles: ['trainer', 'lecturer', 'vendor', 'org_admin', 'contractor'] },
-        ],
-    },
-    {
-        label: 'People',
-        items: [
-            { name: 'System Users', href: '/admin/users', icon: Users, roles: ['org_admin'] },
-            { name: 'Applications', href: '/admin/applications', icon: ShieldCheck, roles: ['org_admin'], badge: 'applications' },
-            { name: 'Invites', href: '/admin/invites', icon: UserPlus, roles: ['org_admin'] },
-        ],
-    },
-    {
-        label: 'Admin Reviews',
-        items: [
-            { name: 'NOU Dashboard', href: '/nou-dashboard', icon: AlertTriangle, roles: ['org_admin'], badge: 'reorderReviews' },
-            { name: 'Course Approvals', href: '/learn/approvals', icon: ShieldCheck, roles: ['org_admin'], badge: 'courseApprovals' },
-            { name: 'COC Requests', href: '/admin/coc-requests', icon: FileText, roles: ['org_admin'], badge: 'cocRequests' },
-            { name: 'Accidents Module', href: '/admin/accidents', icon: AlertTriangle, roles: ['org_admin'], badge: 'openAccidents' },
-        ],
-    },
-    {
-        label: 'Reporting & Data',
-        items: [
-            { name: 'Reporting', href: '/admin/reporting', icon: BarChart3, roles: ['org_admin'] },
-            { name: 'Refrigerant Analytics', href: '/admin/refrigerant-analytics', icon: BarChart3, roles: ['org_admin'] },
-            { name: 'Refrigerants (WhatGas Sync)', href: '/admin/refrigerants', icon: Database, roles: ['org_admin'] },
-        ],
-    },
-];
-
-const ADMIN_NAV_SECTIONS: NavSection[] = [
-    {
-        items: [
-            { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['org_admin'] },
-            { name: 'Compliance Report', href: '/admin', icon: ShieldCheck, roles: ['org_admin'], exact: true },
-        ],
-    },
-    {
-        label: 'Operations',
-        items: [
-            { name: 'Learning Hub', href: '/learn', icon: BookOpen, roles: ['org_admin'], exact: true },
-            { name: 'Events Calendar', href: '/events', icon: CalendarDays, roles: ['org_admin'] },
-            { name: 'Manage Courses', href: '/learn/manage', icon: BookOpen, roles: ['org_admin'] },
-            { name: 'Field Operations', href: '/field-operations', icon: Wrench, roles: ['org_admin'] },
-            { name: 'Field Toolkit', href: '/field-toolkit', icon: Wrench, roles: ['org_admin'] },
-            { name: 'Safety Center', href: '/safety-center', icon: ShieldCheck, roles: ['org_admin'] },
-        ],
-    },
-    {
-        label: 'Tools',
-        items: [
-            { name: 'WhatGas + Risk Engine', href: '/whatgas', icon: FlaskConical, roles: ['org_admin'] },
-            { name: 'Sizing Tool', href: '/sizing-tool', icon: Calculator, roles: ['org_admin'] },
-        ],
-    },
-    {
-        label: 'Refrigerants',
-        items: [
-            { name: 'Refrigerant Catalogue', href: '/refrigerants', icon: Database, roles: ['org_admin'] },
-        ],
-    },
-    {
-        label: 'Suppliers',
-        items: [
-            { name: 'Supplier Management', href: '/suppliers', icon: Factory, roles: ['org_admin'], exact: true },
-            { name: 'Invite Supplier', href: '/admin/suppliers/add', icon: UserPlus, roles: ['org_admin'] },
-            { name: 'Supplier Compliance', href: '/supplier-compliance', icon: ShieldCheck, roles: ['org_admin'], badge: 'supplierCompliance' },
-            { name: 'Vendor Reorder', href: '/suppliers/reorder', icon: Factory, roles: ['org_admin'] },
-            { name: 'Verify Buyer', href: '/suppliers/verify-buyer', icon: ShieldCheck, roles: ['org_admin'] },
-            { name: 'Supplier Approvals', href: '/suppliers/approvals', icon: ShieldCheck, roles: ['org_admin'] },
-        ],
-    },
-    {
-        label: 'Registry & People',
-        items: [
-            { name: 'Technician Registry', href: '/technician-registry', icon: Users, roles: ['org_admin'] },
-            { name: 'Student Directory', href: '/admin/students', icon: GraduationCap, roles: ['org_admin'] },
-            { name: 'Certificate Verification', href: '/certificate-verification', icon: ShieldCheck, roles: ['org_admin'] },
-            { name: 'Certifications', href: '/certifications', icon: Award, roles: ['org_admin'], badge: 'certificateRequests' },
-            { name: 'Rewards', href: '/rewards', icon: Award, roles: ['org_admin'], badge: 'rewardRequests' },
-            { name: 'System Users', href: '/admin/users', icon: Users, roles: ['org_admin'] },
-            { name: 'Applications', href: '/admin/applications', icon: ShieldCheck, roles: ['org_admin'], badge: 'applications' },
-            { name: 'Applicants', href: '/admin/applicants', icon: ClipboardList, roles: ['org_admin'] },
-            { name: 'Memberships', href: '/admin/memberships', icon: Award, roles: ['org_admin'] },
-            { name: 'Email Log', href: '/admin/email-log', icon: Mail, roles: ['org_admin'], badge: 'emailProblems' },
-            { name: 'Audit Trail', href: '/admin/audit-trail', icon: ClipboardList, roles: ['org_admin'] },
-            { name: 'Contractors', href: '/admin/contractors', icon: HardHat, roles: ['org_admin'] },
-            { name: 'Invites', href: '/admin/invites', icon: UserPlus, roles: ['org_admin'] },
-        ],
-    },
-    {
-        label: 'Reviews & Data',
-        items: [
-            { name: 'NOU Dashboard', href: '/nou-dashboard', icon: AlertTriangle, roles: ['org_admin'], badge: 'reorderReviews' },
-            { name: 'Course Approvals', href: '/learn/approvals', icon: ShieldCheck, roles: ['org_admin'], badge: 'courseApprovals' },
-            { name: 'COC Requests', href: '/admin/coc-requests', icon: FileText, roles: ['org_admin'], badge: 'cocRequests' },
-            { name: 'Accidents Module', href: '/admin/accidents', icon: AlertTriangle, roles: ['org_admin'], badge: 'openAccidents' },
-            { name: 'Reporting', href: '/admin/reporting', icon: BarChart3, roles: ['org_admin'] },
-            { name: 'Refrigerant Analytics', href: '/admin/refrigerant-analytics', icon: BarChart3, roles: ['org_admin'] },
-            { name: 'Refrigerants (WhatGas Sync)', href: '/admin/refrigerants', icon: Database, roles: ['org_admin'] },
-        ],
-    },
-];
+import { activeHref, sectionsForRole, showsEmergencyMode, type BadgeKey, type NavItem, type NavSection } from './sidebar-nav';
 
 interface SidebarProps {
     onClose?: () => void;
@@ -239,24 +32,24 @@ function badgeCountsFromQueue(items: AdminActionItem[] | undefined): Record<Badg
 
 function NavLink({
     item,
-    pathname,
+    current,
     badges,
     onClose,
 }: {
     item: NavItem;
-    pathname: string;
+    current: string | null;
     badges: Record<BadgeKey, number>;
     onClose?: () => void;
 }) {
     const badgeCount = item.badge ? badges[item.badge] : 0;
-    const isActive = item.exact ? pathname === item.href : pathname === item.href || pathname.startsWith(`${item.href}/`);
+    const isActive = item.href === current;
     return (
         <Link
             href={item.href}
             onClick={onClose}
             aria-current={isActive ? 'page' : undefined}
             className={cn(
-                'group flex min-h-10 items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1C1917]',
+                'group flex min-h-11 items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1C1917]',
                 isActive
                     ? 'bg-white/[0.12] text-white shadow-sm'
                     : 'text-[#D6D3D1] hover:bg-white/[0.08] hover:text-white'
@@ -285,7 +78,8 @@ function NavLink({
 function NavSectionGroup({
     section,
     index,
-    pathname,
+    current,
+    waiting,
     badges,
     isOpen,
     onToggle,
@@ -293,20 +87,22 @@ function NavSectionGroup({
 }: {
     section: NavSection;
     index: number;
-    pathname: string;
+    current: string | null;
+    /** Items waiting for review anywhere in this section. */
+    waiting: number;
     badges: Record<BadgeKey, number>;
     isOpen: boolean;
     onToggle: () => void;
     onClose?: () => void;
 }) {
-    const hasActiveItem = section.items.some(item => item.exact ? pathname === item.href : pathname === item.href || pathname.startsWith(`${item.href}/`));
+    const hasActiveItem = section.items.some(item => item.href === current);
 
     if (!section.label) {
         return (
             <div>
                 <div className="space-y-0.5">
                     {section.items.map(item => (
-                        <NavLink key={item.href} item={item} pathname={pathname} badges={badges} onClose={onClose} />
+                        <NavLink key={item.href} item={item} current={current} badges={badges} onClose={onClose} />
                     ))}
                 </div>
             </div>
@@ -327,9 +123,15 @@ function NavSectionGroup({
             >
                 <span className="truncate">{section.label}</span>
                 {hasActiveItem && <span className="h-1.5 w-1.5 rounded-full bg-[#F59E0B]" aria-hidden="true" />}
+                {waiting > 0 && (
+                    <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#F59E0B] px-1.5 text-[11px] font-bold tracking-normal text-[#1C1917]" aria-label={`${waiting} items waiting for review`}>
+                        {waiting}
+                    </span>
+                )}
                 <ChevronDown
                     className={cn(
-                        'ml-auto h-3.5 w-3.5 transition-transform',
+                        'h-3.5 w-3.5 transition-transform',
+                        waiting === 0 && 'ml-auto',
                         isOpen ? 'rotate-180 text-[#F59E0B]' : 'text-[#78716C]'
                     )}
                     aria-hidden="true"
@@ -338,7 +140,7 @@ function NavSectionGroup({
             {isOpen && (
                 <div className="mt-1 space-y-0.5">
                     {section.items.map(item => (
-                        <NavLink key={item.href} item={item} pathname={pathname} badges={badges} onClose={onClose} />
+                        <NavLink key={item.href} item={item} current={current} badges={badges} onClose={onClose} />
                     ))}
                 </div>
             )}
@@ -349,18 +151,16 @@ function NavSectionGroup({
 export function Sidebar({ className, onClose }: SidebarProps & { className?: string }) {
     const pathname = usePathname();
     const { user } = useAuth();
-    const role = user?.role ?? 'technician';
+    // No role yet means still loading: show nothing rather than guessing the wrong menu.
+    const role = user?.role ?? null;
     const { emergencyMode, toggleEmergencyMode } = useEmergencyMode();
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
     const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
     const { data: actionQueue } = useAdminActionQueue(role === 'org_admin');
     const badges = useMemo(() => badgeCountsFromQueue(actionQueue?.items), [actionQueue]);
 
-    const navSections = role === 'org_admin' ? ADMIN_NAV_SECTIONS : NAV_SECTIONS;
-    const visibleSections = navSections.map(section => ({
-        ...section,
-        items: section.items.filter(item => item.roles.includes(role)),
-    })).filter(section => section.items.length > 0);
+    const visibleSections = useMemo(() => (role ? sectionsForRole(role) : []), [role]);
+    const current = useMemo(() => activeHref(visibleSections.flatMap(section => section.items), pathname), [visibleSections, pathname]);
 
     return (
         <div className={cn('flex flex-col h-full bg-[#1C1917] text-white', className)}>
@@ -396,18 +196,26 @@ export function Sidebar({ className, onClose }: SidebarProps & { className?: str
 
             {/* Navigation */}
             <nav className="flex-1 overflow-y-auto px-2 py-3 [scrollbar-color:#57534E_transparent]" aria-label="Primary navigation">
+                {!role && (
+                    <div className="space-y-2 px-1" aria-label="Loading navigation">
+                        {[0, 1, 2, 3, 4].map(item => <div key={item} className="h-9 animate-pulse rounded-lg bg-white/[0.06]" />)}
+                    </div>
+                )}
                 <div className="space-y-1">
                     {visibleSections.map((section, i) => {
                         const key = section.label ?? `primary-${i}`;
-                        const hasActiveItem = section.items.some(item => item.exact ? pathname === item.href : pathname === item.href || pathname.startsWith(`${item.href}/`));
-                        const isOpen = !section.label || (expandedSections[key] ?? hasActiveItem);
+                        const hasActiveItem = section.items.some(item => item.href === current);
+                        const waiting = section.items.reduce((sum, item) => sum + (item.badge ? badges[item.badge] : 0), 0);
+                        // Work waiting for review must never sit inside a closed section unnoticed.
+                        const isOpen = !section.label || (expandedSections[key] ?? (hasActiveItem || waiting > 0));
 
                         return (
                             <NavSectionGroup
                                 key={key}
                                 section={section}
                                 index={i}
-                                pathname={pathname}
+                                current={current}
+                                waiting={waiting}
                                 badges={badges}
                                 isOpen={isOpen}
                                 onToggle={() => setExpandedSections(prev => ({ ...prev, [key]: !isOpen }))}
@@ -418,9 +226,15 @@ export function Sidebar({ className, onClose }: SidebarProps & { className?: str
                 </div>
             </nav>
 
-            {/* Emergency Mode — field-technician concept, not relevant to admin oversight roles */}
-            {role !== 'org_admin' && (
-                <div className="px-2 pb-2 flex-shrink-0">
+            {/* Emergency Mode — for people on site or teaching it, not suppliers or admin oversight */}
+            {role && showsEmergencyMode(role) && (
+                <div className="space-y-1 px-2 pb-2 flex-shrink-0">
+                    {emergencyMode && (
+                        <Link href="/emergency-mode" onClick={onClose} className="flex min-h-11 items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1C1917]">
+                            <LifeBuoy className="h-4 w-4 flex-shrink-0 text-[#F59E0B]" aria-hidden="true" />
+                            Open emergency guide
+                        </Link>
+                    )}
                     <button
                         type="button"
                         onClick={toggleEmergencyMode}
@@ -449,7 +263,7 @@ export function Sidebar({ className, onClose }: SidebarProps & { className?: str
             <div className="p-3 border-t border-white/10 flex-shrink-0">
                 <button
                     onClick={() => setIsProfileModalOpen(true)}
-                    className="flex min-h-10 w-full items-center gap-2.5 rounded-lg p-2 text-left transition-colors hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1C1917]"
+                    className="flex min-h-11 w-full items-center gap-2.5 rounded-lg p-2 text-left transition-colors hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1C1917]"
                 >
                     <div className="w-8 h-8 flex items-center justify-center bg-[#292524] flex-shrink-0 rounded-full">
                         <UserCircle className="w-5 h-5 text-[#D6D3D1]" />

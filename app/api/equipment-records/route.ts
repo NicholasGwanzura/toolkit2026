@@ -25,7 +25,10 @@ function toEquipmentRecord(row: typeof equipmentRecords.$inferSelect): Equipment
     healthStatus: (row.healthStatus ?? undefined) as EquipmentRecord['healthStatus'],
     lastServiceDate: row.lastServiceDate,
     nextServiceDue: row.nextServiceDue,
-    status: row.status as EquipmentRecord['status'],
+    // Worked out on every read: a stored status would go out of date as the days pass.
+    status: /^\d{4}-\d{2}-\d{2}$/.test(row.nextServiceDue)
+      ? equipmentStatus(row.nextServiceDue, new Date().toISOString().slice(0, 10))
+      : row.status as EquipmentRecord['status'],
     technicianName: row.technicianName,
     serviceHistory: row.serviceHistory as EquipmentRecord['serviceHistory'],
     predictedFailureReason: row.predictedFailureReason ?? undefined,

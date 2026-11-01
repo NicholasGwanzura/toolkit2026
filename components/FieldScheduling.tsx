@@ -30,9 +30,9 @@ function statusStyles(status: EquipmentStatus) {
 
 async function seedPlannerJob(record: EquipmentRecord) {
     // Never guess a refrigerant: a wrong safety class would put the wrong checklist on the job.
-    const refrigerantDefinition = REFRIGERANT_REFERENCE[record.refrigerantType];
-    if (!refrigerantDefinition) {
-        throw new Error(`Refrigerant ${record.refrigerantType || '(unknown)'} on ${record.equipmentId} is not in the reference list. Create the job from the Planner and choose the refrigerant.`);
+    const refrigerantClass = REFRIGERANT_REFERENCE[record.refrigerantType]?.ashraeSafetyClass ?? record.ashraeSafetyClass;
+    if (!refrigerantClass) {
+        throw new Error(`${record.equipmentId} has no refrigerant safety class. Add one before scheduling.`);
     }
     await createPlannerJob({
         clientId: record.id,
@@ -41,7 +41,8 @@ async function seedPlannerJob(record: EquipmentRecord) {
         location: record.province,
         province: record.province,
         jobType: 'COLD_ROOM',
-        refrigerantClass: refrigerantDefinition.ashraeSafetyClass,
+        refrigerantClass,
+        ...(record.refrigerantId ? { refrigerantId: record.refrigerantId, refrigerantType: record.refrigerantType } : {}),
         status: 'scheduled',
         scheduledDate: record.nextServiceDue,
         preJobChecklistComplete: false,

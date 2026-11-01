@@ -26,7 +26,7 @@ Registered refrigerant distributors and suppliers. Suppliers register themselves
 Reorder Gas, Compliance, Verify Buyer, Rewards.
 
 ## Menu items available
-Dashboard, Refrigerant Catalogue, Rewards, Supplier Compliance, Supply Reports, Vendor Reorder, Verify Buyer, Certificate Verification.
+Dashboard, Refrigerant Catalogue, Rewards, Supplier Compliance, Supply Reports, Gas Reorders, Verify Buyer, Certificate Verification.
 
 ## Reorders
 - A reorder is either a **purchase of new stock** or a **return of recovered refrigerant**. You choose when you submit it, and NOU reporting uses that choice.
@@ -34,7 +34,7 @@ Dashboard, Refrigerant Catalogue, Rewards, Supplier Compliance, Supply Reports, 
 - Reorders go through two reviews, HEVACRAZ first, then NOU. You are notified in the app at each stage and if a reorder is rejected, with the reason.
 
 ## Key tools
-- **Vendor Reorder** (`/suppliers/reorder`) and **Verify Buyer** (`/suppliers/verify-buyer`): vendor-only.
+- **Gas Reorders** (`/suppliers/reorder`) and **Verify Buyer** (`/suppliers/verify-buyer`): vendor-only.
 - **Supplier Compliance Hub:** submit and track compliance applications.
 - **Supply Reporting** (`/suppliers`).
 
