@@ -7,6 +7,7 @@ import type { PlannerJob } from '@/types/index';
 import { isFieldWorkerRole } from '@/lib/field-worker';
 import { isValidIsoDate } from '@/lib/planner-conflicts';
 import { appendJobNote, outstandingChecklist, stampChecklist, validateTransition } from '@/lib/planner-lifecycle';
+import { lockTechnicianCharges, recordNewSystemCharge, removeNewSystemCharge } from '@/lib/server/planner-charge-log';
 
 function toPlannerJob(row: typeof plannerJobs.$inferSelect): PlannerJob {
   return {
@@ -26,6 +27,7 @@ function toPlannerJob(row: typeof plannerJobs.$inferSelect): PlannerJob {
     amount: row.amount ? Number(row.amount) : undefined,
     scheduledDate: row.scheduledDate,
     status: row.status as PlannerJob['status'],
+    newSystem: row.newSystem,
     preJobChecklistComplete: row.preJobChecklistComplete,
     checklistItems: row.checklistItems as PlannerJob['checklistItems'],
     notes: row.notes ?? undefined,
@@ -65,6 +67,11 @@ export async function PATCH(
     : existingItems;
 
   const amount = body.amount !== undefined ? body.amount : undefined;
+  // The gas actually used can be recorded or corrected until the job is closed.
+  const changesGas = Number.isInteger(body.refrigerantId) && typeof body.refrigerantType === 'string' && body.refrigerantType.trim() !== '';
+  if (changesGas && (existing.status === 'completed' || existing.status === 'cancelled')) {
+    return NextResponse.json({ error: 'The gas on a completed or cancelled job cannot be changed.' }, { status: 400 });
+  }
   if (body.status && body.status !== existing.status) {
     const problem = validateTransition({
       from: existing.status as PlannerJob['status'],
@@ -72,7 +79,9 @@ export async function PATCH(
       refrigerantClass: existing.refrigerantClass,
       checklist,
       note: body.note,
-      amount,
+      amount: amount !== undefined ? amount : existing.amount != null ? Number(existing.amount) : null,
+      newSystem: existing.newSystem,
+      refrigerantType: changesGas ? body.refrigerantType : existing.refrigerantType,
     });
     if (problem) {
       return NextResponse.json({ error: problem }, { status: 400 });
@@ -127,13 +136,27 @@ export async function PATCH(
     updateFields.preJobChecklistComplete = outstandingChecklist(checklist, existing.refrigerantClass).length === 0;
   }
   if (amount !== undefined) updateFields.amount = amount == null ? null : amount.toString();
+  if (changesGas) {
+    updateFields.refrigerantId = body.refrigerantId;
+    updateFields.refrigerantType = body.refrigerantType!.trim();
+  }
   updateFields.updatedAt = now;
 
-  const [updated] = await db
-    .update(plannerJobs)
-    .set(updateFields)
-    .where(eq(plannerJobs.id, id))
-    .returning();
+  // The job and its gas record change together: a job is never completed without its charge being counted.
+  const statusChanged = Boolean(body.status) && body.status !== existing.status;
+  const [updated] = await db.transaction(async (tx) => {
+    const rows = await tx
+      .update(plannerJobs)
+      .set(updateFields)
+      .where(eq(plannerJobs.id, id))
+      .returning();
+    if (existing.newSystem && statusChanged && (body.status === 'completed' || body.status === 'cancelled')) {
+      await lockTechnicianCharges(tx, existing.technicianId);
+      if (body.status === 'completed') await recordNewSystemCharge(tx, rows[0], now);
+      else await removeNewSystemCharge(tx, id);
+    }
+    return rows;
+  });
 
   return NextResponse.json(toPlannerJob(updated));
 }

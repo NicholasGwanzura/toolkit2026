@@ -64,11 +64,14 @@ export interface TransitionInput {
     /** The note supplied with this transition (not the job's existing notes). */
     note?: string | null;
     amount?: number | null;
+    /** New systems must record the gas and charge before they can be completed. */
+    newSystem?: boolean;
+    refrigerantType?: string | null;
 }
 
 /** Returns an error message, or null when the transition is allowed. */
 export function validateTransition(input: TransitionInput): string | null {
-    const { from, to, refrigerantClass, checklist, note, amount } = input;
+    const { from, to, refrigerantClass, checklist, note, amount, newSystem, refrigerantType } = input;
     if (!(STATUS_TRANSITIONS[from] ?? []).includes(to)) {
         return `Cannot transition from "${from}" to "${to}"`;
     }
@@ -82,6 +85,10 @@ export function validateTransition(input: TransitionInput): string | null {
 
     if (to === 'completed' && from !== 'completed' && !note?.trim()) {
         return 'Add a completion note describing the work done before completing the job.';
+    }
+    if (to === 'completed' && from !== 'completed' && newSystem) {
+        if (!refrigerantType?.trim()) return 'Record the gas used in this new system before completing the job.';
+        if (amount == null || !Number.isFinite(amount) || amount <= 0) return 'Record the charge in kg for this new system before completing the job.';
     }
     if (to === 'cancelled' && !note?.trim()) {
         return 'Add a reason for cancelling the job.';

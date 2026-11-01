@@ -18,6 +18,24 @@ describe('outstandingChecklist', () => {
     });
 });
 
+describe('validateTransition for a new system', () => {
+    const base = { from: 'in-progress' as const, to: 'completed' as const, refrigerantClass: 'A1', checklist: [], note: 'Installed', newSystem: true };
+    it('needs the gas and a charge above zero', () => {
+        expect(validateTransition({ ...base, amount: 4.5 })).toMatch(/gas used/);
+        expect(validateTransition({ ...base, refrigerantType: 'R-32' })).toMatch(/charge in kg/);
+        expect(validateTransition({ ...base, refrigerantType: 'R-32', amount: 0 })).toMatch(/charge in kg/);
+    });
+    it('completes once both are recorded', () => {
+        expect(validateTransition({ ...base, refrigerantType: 'R-32', amount: 4.5 })).toBeNull();
+    });
+    it('does not ask other jobs for them', () => {
+        expect(validateTransition({ ...base, newSystem: false })).toBeNull();
+    });
+    it('only applies on completion', () => {
+        expect(validateTransition({ ...base, to: 'follow-up' })).toBeNull();
+    });
+});
+
 describe('validateTransition', () => {
     const base = { from: 'scheduled' as const, to: 'in-progress' as const, refrigerantClass: 'A3', checklist: [item('a', true)] };
     it('allows starting with a complete checklist', () => {

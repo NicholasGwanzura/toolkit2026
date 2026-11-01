@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { examState, progressPercent, sanitizeCompletedModules } from './course-progress';
+import { allModulesComplete, examState, progressPercent, sanitizeCompletedModules } from './course-progress';
 
 describe('sanitizeCompletedModules', () => {
   it('keeps valid module numbers, sorted and unique', () => {
@@ -24,6 +24,23 @@ describe('progressPercent', () => {
     expect(progressPercent(3, 3)).toBe(100);
     expect(progressPercent(9, 3)).toBe(100);
     expect(progressPercent(0, 0)).toBe(0);
+  });
+});
+
+describe('allModulesComplete', () => {
+  it('needs every module ticked off', () => {
+    expect(allModulesComplete([0, 1, 2], 3)).toBe(true);
+    expect(allModulesComplete([2, 0], 3)).toBe(false);
+    expect(allModulesComplete(undefined, 3)).toBe(false);
+  });
+
+  it('does not count repeats or modules that no longer exist', () => {
+    expect(allModulesComplete([0, 0, 1], 3)).toBe(false);
+    expect(allModulesComplete([0, 1, 7], 3)).toBe(false);
+  });
+
+  it('has nothing to finish on a course with no modules', () => {
+    expect(allModulesComplete([], 0)).toBe(true);
   });
 });
 

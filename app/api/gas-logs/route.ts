@@ -1,4 +1,4 @@
-import { and, eq, gte, lte, sql } from 'drizzle-orm';
+import { and, eq, gte, like, lte, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { NextResponse } from 'next/server';
 import { db } from '@/db/client';
@@ -6,6 +6,8 @@ import { gasUsageLogs, plannerJobs, refrigerants, supplierApplications } from '@
 import { requireRole } from '@/lib/server/auth';
 import type { RefrigerantLog } from '@/types/index';
 import { isFieldWorkerRole } from '@/lib/field-worker';
+import { numericReference, PLANNER_CHARGE_LOG_PREFIX, repeatsJobCharge } from '@/lib/planner-charge';
+import { lockTechnicianCharges } from '@/lib/server/planner-charge-log';
 
 const gasLogSchema = z.object({
   id: z.uuid(),
@@ -21,12 +23,6 @@ const gasLogSchema = z.object({
   approvedSupplierId: z.uuid().optional(),
 });
 const gasLogBatchSchema = z.object({ logs: z.array(gasLogSchema).min(1).max(100) });
-
-function numericReference(value: string | null | undefined): string | null {
-  if (!value || !/^-?\d+(?:\.\d+)?$/.test(value.trim())) return null;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed.toString() : null;
-}
 
 function toRefrigerantLog(row: typeof gasUsageLogs.$inferSelect): RefrigerantLog {
   return {
@@ -106,37 +102,48 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Supplier must be an approved supplier' }, { status: 400 });
   }
 
-  const inserted = await db
-    .insert(gasUsageLogs)
-    .values(
-      logs.map((log) => ({
-        clientLogId: log.id,
-        technicianId: session.id,
-        technicianName: session.name,
-        clientName: log.clientName,
-        location: log.location ?? '',
-        plannerJobId: log.plannerJobId ?? null,
-        jobType: log.jobType,
-        refrigerantId: log.refrigerantId ?? null,
-        refrigerantType: log.refrigerantId
-          ? (refrigerantById.get(log.refrigerantId)?.ashraeCode || refrigerantById.get(log.refrigerantId)?.odsName || log.refrigerantType)
-          : log.refrigerantType,
-        refrigerantClass: log.refrigerantId ? refrigerantById.get(log.refrigerantId)?.ashraeSafetyGroup ?? null : null,
-        amount: log.amount.toString(),
-        actionType: log.actionType,
-        timestamp: new Date(log.timestamp),
-        approvedSupplierId: log.approvedSupplierId ?? null,
-        approvedSupplierName: log.approvedSupplierId ? suppliersById.get(log.approvedSupplierId)?.companyName ?? null : null,
-        supplierVerified: Boolean(log.approvedSupplierId),
-        odp: log.refrigerantId ? numericReference(refrigerantById.get(log.refrigerantId)?.odp) : null,
-        gwp: log.refrigerantId ? numericReference(refrigerantById.get(log.refrigerantId)?.gwp) : null,
-        co2EqEmissions: null,
-        ashraeSafetyClass: log.refrigerantId ? refrigerantById.get(log.refrigerantId)?.ashraeSafetyGroup ?? null : null,
-        supplierId: log.approvedSupplierId ?? null,
-      }))
-    )
-    .onConflictDoNothing({ target: gasUsageLogs.clientLogId })
-    .returning();
+  const inserted = await db.transaction(async (tx) => {
+    await lockTechnicianCharges(tx, session.id);
+    // A charge that a completed new-system job already counted is not counted again.
+    const jobCharges = await tx
+      .select({ clientName: gasUsageLogs.clientName, refrigerantType: gasUsageLogs.refrigerantType, amount: gasUsageLogs.amount, timestamp: gasUsageLogs.timestamp, plannerJobId: gasUsageLogs.plannerJobId })
+      .from(gasUsageLogs)
+      .where(and(eq(gasUsageLogs.technicianId, session.id), like(gasUsageLogs.clientLogId, `${PLANNER_CHARGE_LOG_PREFIX}%`)));
+    const fresh = logs.filter((log) => !repeatsJobCharge(log, jobCharges));
+
+    const inserted = fresh.length === 0 ? [] : await tx
+      .insert(gasUsageLogs)
+      .values(
+        fresh.map((log) => ({
+          clientLogId: log.id,
+          technicianId: session.id,
+          technicianName: session.name,
+          clientName: log.clientName,
+          location: log.location ?? '',
+          plannerJobId: log.plannerJobId ?? null,
+          jobType: log.jobType,
+          refrigerantId: log.refrigerantId ?? null,
+          refrigerantType: log.refrigerantId
+            ? (refrigerantById.get(log.refrigerantId)?.ashraeCode || refrigerantById.get(log.refrigerantId)?.odsName || log.refrigerantType)
+            : log.refrigerantType,
+          refrigerantClass: log.refrigerantId ? refrigerantById.get(log.refrigerantId)?.ashraeSafetyGroup ?? null : null,
+          amount: log.amount.toString(),
+          actionType: log.actionType,
+          timestamp: new Date(log.timestamp),
+          approvedSupplierId: log.approvedSupplierId ?? null,
+          approvedSupplierName: log.approvedSupplierId ? suppliersById.get(log.approvedSupplierId)?.companyName ?? null : null,
+          supplierVerified: Boolean(log.approvedSupplierId),
+          odp: log.refrigerantId ? numericReference(refrigerantById.get(log.refrigerantId)?.odp) : null,
+          gwp: log.refrigerantId ? numericReference(refrigerantById.get(log.refrigerantId)?.gwp) : null,
+          co2EqEmissions: null,
+          ashraeSafetyClass: log.refrigerantId ? refrigerantById.get(log.refrigerantId)?.ashraeSafetyGroup ?? null : null,
+          supplierId: log.approvedSupplierId ?? null,
+        }))
+      )
+      .onConflictDoNothing({ target: gasUsageLogs.clientLogId })
+      .returning();
+    return inserted;
+  });
 
   return NextResponse.json(inserted.map(toRefrigerantLog), { status: 201 });
 }

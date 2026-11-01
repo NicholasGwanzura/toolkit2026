@@ -27,6 +27,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const modulesResult = validateCourseModules(row.modules, id);
   if (modulesResult.error) return NextResponse.json({ error: modulesResult.error }, { status: 400 });
 
+  if (!Array.isArray(row.examQuestions) || row.examQuestions.length === 0) {
+    return NextResponse.json({ error: 'This course has no exam questions. Send it back to the trainer: learners cannot pass a course without an exam.' }, { status: 400 });
+  }
+
   const [updated] = await db
     .update(courses)
     .set({ status: 'approved', rejectionReason: null, modules: modulesResult.modules!, updatedAt: new Date() })

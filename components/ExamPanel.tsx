@@ -14,7 +14,19 @@ export function ExamPanel({ courseId, enrolled }: { courseId: string; enrolled: 
 
   if (!enrolled) return null;
   if (error) return <p role="alert" className="mt-3 text-xs text-red-600">Could not load the exam: {error.message}</p>;
-  if (!exam || !exam.hasExam) return null;
+  if (!exam) return null;
+  if (!exam.hasExam) {
+    if (!exam.modulesComplete) return null;
+    return (
+      <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 text-sm">
+        <div className="flex items-center gap-2">
+          <GraduationCap className="h-4 w-4 text-gray-500" aria-hidden="true" />
+          <span className="font-semibold text-gray-900">Exam</span>
+        </div>
+        <p className="mt-2 text-xs text-gray-600">You have finished the modules, but this course has no exam questions yet. Ask your trainer or HEVACRAZ when the exam will be ready.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 px-3 py-3">
@@ -29,7 +41,7 @@ export function ExamPanel({ courseId, enrolled }: { courseId: string; enrolled: 
         {exam.canAttempt && <Button onClick={() => setOpen(true)}>{exam.last ? `Try again (${exam.attemptsLeft} left)` : 'Take the exam'}</Button>}
       </div>
       {!exam.passed && !exam.waitingForGrading && exam.attemptsLeft === 0 && <p className="mt-2 text-xs text-gray-600">You have used all {exam.maxAttempts} attempts. Ask your trainer or HEVACRAZ to reset it.</p>}
-      {!exam.canAttempt && !exam.passed && !exam.waitingForGrading && exam.attemptsLeft > 0 && <p className="mt-2 text-xs text-gray-600">Finish the modules, then take the exam when you are ready.</p>}
+      {!exam.canAttempt && !exam.passed && !exam.waitingForGrading && exam.attemptsLeft > 0 && <p className="mt-2 text-xs text-gray-600">Finish all the modules to unlock the exam.</p>}
       {exam.last?.feedback && exam.last.feedback !== 'Marked automatically.' && <p className="mt-2 text-xs text-gray-700"><span className="font-semibold">Trainer feedback:</span> {exam.last.feedback}</p>}
       {open && <ExamDialog courseId={courseId} onClose={() => setOpen(false)} />}
     </div>

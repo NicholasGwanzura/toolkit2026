@@ -131,6 +131,8 @@ export interface PlannerJob {
   clientId: string;
   clientName: string;
   equipmentId?: string;
+  /** A newly installed system: the gas and charge must be recorded to complete the job. */
+  newSystem?: boolean;
   location: string;
   province: string;
   district?: string;

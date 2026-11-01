@@ -63,6 +63,7 @@ function CourseCard({ course, saved, enrolled }: { course: ManagedCourse; saved?
   const shown = pending ?? savedModules ?? legacy.completedModules;
   const started = enrolled || Boolean(saved) || legacy.started || pending !== null;
   const completionPercent = progressPercent(shown.length, course.modules.length);
+  const finished = enrolled && completionPercent === 100;
 
   async function persist(next: number[]) {
     setPending(next);
@@ -145,7 +146,7 @@ function CourseCard({ course, saved, enrolled }: { course: ManagedCourse; saved?
             onClick={handleStartCourse}
             className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#FF6B35] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF6B35] focus-visible:ring-offset-2"
           >
-            {started ? 'Continue course' : 'Start course'}
+            {finished ? 'Review course' : started ? 'Continue course' : 'Start course'}
           </button>
           <button
             type="button"

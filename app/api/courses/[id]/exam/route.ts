@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import { and, eq, sql } from 'drizzle-orm';
 import { db } from '@/db/client';
-import { courseEnrollments, courses, examSubmissions } from '@/db/schema/index';
+import { courseEnrollments, courseProgress, courses, examSubmissions } from '@/db/schema/index';
 import { requireRole } from '@/lib/server/auth';
 import { recordAuditEvent } from '@/lib/server/audit';
 import { notifyUser } from '@/lib/server/notifications';
 import { notificationTemplates } from '@/lib/notification-templates';
 import { MAX_EXAM_ATTEMPTS } from '@/lib/server/lms-validation';
+import { allModulesComplete } from '@/lib/course-progress';
 import { checkSubmittedAnswers, markExam, toLearnerQuestions, type ExamQuestion } from '@/lib/exam';
 
 // The exam a learner takes from a course page. Questions come from the course the trainer wrote.
@@ -16,7 +17,7 @@ const LEARNER_ROLES = ['student', 'technician', 'contractor'];
 
 async function loadContext(courseId: string, userId: string) {
   const [course] = await db
-    .select({ id: courses.id, title: courses.title, status: courses.status, passMark: courses.passMark, examQuestions: courses.examQuestions })
+    .select({ id: courses.id, title: courses.title, status: courses.status, passMark: courses.passMark, modules: courses.modules, examQuestions: courses.examQuestions })
     .from(courses)
     .where(eq(courses.id, courseId))
     .limit(1);
@@ -28,6 +29,13 @@ async function loadContext(courseId: string, userId: string) {
     .where(and(eq(courseEnrollments.courseId, courseId), eq(courseEnrollments.userId, userId)))
     .limit(1);
   if (!enrollment) return { error: NextResponse.json({ error: 'Start the course before taking its exam.' }, { status: 403 }) } as const;
+
+  const [progress] = await db
+    .select({ completedModules: courseProgress.completedModules })
+    .from(courseProgress)
+    .where(and(eq(courseProgress.courseId, courseId), eq(courseProgress.userId, userId)))
+    .limit(1);
+  const moduleCount = Array.isArray(course.modules) ? course.modules.length : 0;
 
   const attempts = await db
     .select({ status: examSubmissions.status, passed: examSubmissions.passed, score: examSubmissions.score, feedback: examSubmissions.feedback, submittedAt: examSubmissions.submittedAt })
@@ -41,6 +49,7 @@ async function loadContext(courseId: string, userId: string) {
   return {
     course,
     questions: (course.examQuestions ?? []) as ExamQuestion[],
+    modulesComplete: allModulesComplete(progress?.completedModules, moduleCount),
     gradedCount: graded.length,
     passed,
     waiting,
@@ -60,12 +69,13 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   if ('error' in context) return context.error;
 
   const attemptsLeft = Math.max(0, MAX_EXAM_ATTEMPTS - context.gradedCount);
-  const canAttempt = context.questions.length > 0 && !context.passed && !context.waiting && attemptsLeft > 0;
+  const canAttempt = context.questions.length > 0 && context.modulesComplete && !context.passed && !context.waiting && attemptsLeft > 0;
   return NextResponse.json({
     courseId: context.course.id,
     courseTitle: context.course.title,
     passMark: context.course.passMark,
     hasExam: context.questions.length > 0,
+    modulesComplete: context.modulesComplete,
     maxAttempts: MAX_EXAM_ATTEMPTS,
     attemptsLeft,
     passed: context.passed,
@@ -99,6 +109,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     if (context.gradedCount >= MAX_EXAM_ATTEMPTS) {
       return { response: NextResponse.json({ error: `You have used all ${MAX_EXAM_ATTEMPTS} attempts. Ask your trainer or HEVACRAZ to reset the exam.` }, { status: 409 }) } as const;
     }
+
+    if (!context.modulesComplete) return { response: NextResponse.json({ error: 'Finish all the modules before taking the exam.' }, { status: 409 }) } as const;
 
     const checked = checkSubmittedAnswers(context.questions, body?.answers);
     if (!checked.ok) return { response: NextResponse.json({ error: checked.error }, { status: 400 }) } as const;

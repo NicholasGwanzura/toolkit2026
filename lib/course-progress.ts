@@ -15,6 +15,11 @@ export function progressPercent(completed: number, total: number): number {
   return Math.min(100, Math.round((completed / total) * 100));
 }
 
+/** The exam opens once every module is ticked off. A course with no modules has nothing to finish first. */
+export function allModulesComplete(completed: unknown, moduleCount: number): boolean {
+  return sanitizeCompletedModules(completed, moduleCount).length >= moduleCount;
+}
+
 export type ExamState = 'not-taken' | 'awaiting-grading' | 'passed' | 'failed';
 
 /** Where a learner stands on one course's exam, given their submissions for it. */

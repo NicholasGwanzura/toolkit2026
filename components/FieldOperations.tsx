@@ -14,7 +14,8 @@ import {
 import { useClientSession } from '@/lib/useClientSession';
 import { useEquipmentRecords, useGasLogs, useInstallations, usePlannerJobs } from '@/lib/api';
 import FieldScheduling from '@/components/FieldScheduling';
-import JobPlanner from '@/components/JobPlanner';
+import JobActions from '@/components/JobActions';
+import JobPlanner, { isoDate } from '@/components/JobPlanner';
 import { JobTypeLabels, type Installation, type PlannerJob, type RefrigerantLog } from '@/types/index';
 import { cn } from '@/lib/utils';
 
@@ -41,7 +42,7 @@ const TAB_CONFIG: Array<{
     {
         id: 'logs',
         label: 'Jobs & Logs',
-        description: 'Completed jobs, installations, and refrigerant records.',
+        description: 'Start and complete jobs, plus installations and refrigerant records.',
         icon: ClipboardList,
     },
 ];
@@ -118,6 +119,7 @@ function JobsAndLogsPanel() {
             technicianName: job.technicianName,
             detail: [
                 JobTypeLabels[job.jobType] ?? job.jobType,
+                job.newSystem ? 'New system' : '',
                 job.refrigerantType ? `${job.refrigerantType}${job.amount ? ` · ${job.amount} kg` : ''}` : '',
             ].filter(Boolean).join(' · '),
             job,
@@ -202,7 +204,12 @@ function JobsAndLogsPanel() {
                                     <StatusPill status={record.status} />
                                     <p className="text-xs text-gray-500">{record.detail}</p>
                                 </div>
-                                {record.job?.status === 'completed' ? (
+                                {record.job && record.job.status !== 'completed' && (
+                                    <div className="lg:col-span-full">
+                                        <JobActions job={record.job} allJobs={plannerJobs} today={isoDate(new Date())} />
+                                    </div>
+                                )}
+                                {record.job?.status === 'completed' && (
                                     <button
                                         type="button"
                                         onClick={() => router.push(`/jobs/request-coc?jobId=${record.job?.id}`)}
@@ -210,14 +217,6 @@ function JobsAndLogsPanel() {
                                     >
                                         <FileText className="h-3.5 w-3.5" />
                                         Request COC
-                                    </button>
-                                ) : (
-                                    <button
-                                        type="button"
-                                        onClick={() => router.push('/field-operations?tab=planner')}
-                                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-50"
-                                    >
-                                        Open planner
                                     </button>
                                 )}
                             </div>
@@ -245,6 +244,7 @@ export default function FieldOperations() {
     const activeTab = getTab(searchParams.get('tab'));
     const { data: equipment = [] } = useEquipmentRecords();
     const { data: jobs = [] } = usePlannerJobs();
+    const openJobs = jobs.filter(job => job.status !== 'completed' && job.status !== 'cancelled').length;
 
     if (!session || !['technician', 'contractor', 'org_admin'].includes(session.role)) {
         return (
@@ -281,7 +281,7 @@ export default function FieldOperations() {
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                         <SummaryCard label="Equipment" value={equipment.length} />
                         <SummaryCard label="Jobs" value={jobs.length} />
-                        <SummaryCard label="Open work" value={jobs.filter(job => job.status !== 'completed' && job.status !== 'cancelled').length} />
+                        <SummaryCard label="Open work" value={openJobs} />
                     </div>
                 </div>
             </div>
@@ -313,6 +313,21 @@ export default function FieldOperations() {
                     );
                 })}
             </div>
+
+            {activeTab === 'schedule' && openJobs > 0 && (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-100 bg-blue-50 px-5 py-4">
+                    <p className="text-sm font-semibold text-blue-900">
+                        You have {openJobs} open {openJobs === 1 ? 'job' : 'jobs'} to start or complete.
+                    </p>
+                    <button
+                        type="button"
+                        onClick={() => router.push('/field-operations?tab=planner')}
+                        className="min-h-11 rounded-lg bg-[#D97706] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#b45309]"
+                    >
+                        Go to my jobs
+                    </button>
+                </div>
+            )}
 
             {activeTab === 'schedule' && <FieldScheduling />}
             {activeTab === 'planner' && <JobPlanner />}

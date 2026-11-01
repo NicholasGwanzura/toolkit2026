@@ -3,9 +3,11 @@
 import { useState } from 'react';
 import { ClipboardCheck, Play, ShieldAlert } from 'lucide-react';
 import { updatePlannerJob } from '@/lib/api';
-import { outstandingChecklist } from '@/lib/planner-lifecycle';
+import { DEFAULT_PLANNER_SAFETY_CHECKLIST } from '@/constants/job-planner';
+import { isFlammableClass, outstandingChecklist } from '@/lib/planner-lifecycle';
 import { findConflicts, isPastDate } from '@/lib/planner-conflicts';
-import type { PlannerJob, Technician } from '@/types/index';
+import { RefrigerantAutocomplete, refrigerantLabel } from '@/components/RefrigerantAutocomplete';
+import type { PlannerJob, Refrigerant, Technician } from '@/types/index';
 
 type Panel = 'none' | 'checklist' | 'complete' | 'follow-up' | 'edit' | 'cancel';
 
@@ -28,9 +30,15 @@ export default function JobActions({ job, allJobs, technicians, today }: JobActi
     const [editDate, setEditDate] = useState(job.scheduledDate);
     const [editLocation, setEditLocation] = useState(job.location);
     const [editTechnician, setEditTechnician] = useState(job.technicianId);
-    const [amount, setAmount] = useState(job.amount != null ? String(job.amount) : '');
+    // On a new system the planned amount is only an estimate, so the real charge starts blank.
+    const [amount, setAmount] = useState(job.amount != null && !job.newSystem ? String(job.amount) : '');
+    const [gas, setGas] = useState<Refrigerant | null>(null);
 
-    const outstanding = outstandingChecklist(job.checklistItems, job.refrigerantClass);
+    // A flammable job saved without a checklist would otherwise be stuck, with nothing to tick.
+    const checklistItems = job.checklistItems.length === 0 && isFlammableClass(job.refrigerantClass)
+        ? DEFAULT_PLANNER_SAFETY_CHECKLIST.map(item => ({ ...item, completed: false }))
+        : job.checklistItems;
+    const outstanding = outstandingChecklist(checklistItems, job.refrigerantClass);
     const blocked = outstanding.length > 0;
 
     const run = async (action: () => Promise<unknown>, after?: () => void) => {
@@ -49,7 +57,7 @@ export default function JobActions({ job, allJobs, technicians, today }: JobActi
 
     const toggleItem = (itemId: string, completed: boolean) =>
         run(() => updatePlannerJob(job.id, {
-            checklistItems: job.checklistItems.map(item => (item.id === itemId ? { ...item, completed } : item)),
+            checklistItems: checklistItems.map(item => (item.id === itemId ? { ...item, completed } : item)),
         }));
 
     const conflicts = findConflicts(allJobs, editTechnician, editDate, job.id);
@@ -65,12 +73,13 @@ export default function JobActions({ job, allJobs, technicians, today }: JobActi
     const submitStatus = (status: 'completed' | 'follow-up' | 'cancelled') => {
         const parsed = amount.trim() === '' ? undefined : Number(amount);
         return run(
-            () => updatePlannerJob(job.id, { status, note, ...(status === 'completed' && parsed !== undefined ? { amount: parsed } : {}) }),
+            () => updatePlannerJob(job.id, { status, note, ...(status === 'completed' && parsed !== undefined ? { amount: parsed } : {}), ...(status === 'completed' && gas ? { refrigerantId: gas.id, refrigerantType: refrigerantLabel(gas) } : {}) }),
             () => { setPanel('none'); setNote(''); },
         );
     };
 
     const isDone = job.status === 'completed' || job.status === 'cancelled';
+    const newSystemIncomplete = job.newSystem && !isDone && (!(gas || job.refrigerantType) || !(Number(amount) > 0));
     if (job.status === 'cancelled') return null;
 
     return (
@@ -115,10 +124,10 @@ export default function JobActions({ job, allJobs, technicians, today }: JobActi
                 <p className="text-xs text-amber-700">Tick every required checklist item before starting.</p>
             )}
 
-            {panel === 'checklist' && (
+            {(panel === 'checklist' || (panel === 'complete' && blocked && job.status === 'scheduled')) && (
                 <div className="space-y-1.5 border border-gray-200 bg-gray-50 p-3">
-                    {job.checklistItems.length === 0 && <p className="text-xs text-gray-500">No checklist recorded for this job.</p>}
-                    {job.checklistItems.map(item => (
+                    {checklistItems.length === 0 && <p className="text-xs text-gray-500">No checklist recorded for this job.</p>}
+                    {checklistItems.map(item => (
                         <label key={item.id} className="flex items-start gap-2 text-xs text-gray-700">
                             <input type="checkbox" checked={item.completed} disabled={busy} onChange={event => toggleItem(item.id, event.target.checked)} className="mt-0.5" />
                             <span>
@@ -176,14 +185,29 @@ export default function JobActions({ job, allJobs, technicians, today }: JobActi
                         <textarea value={note} onChange={event => setNote(event.target.value)} rows={3}
                             className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-normal outline-none focus:border-blue-300" />
                     </label>
-                    {panel === 'complete' && !isDone && job.refrigerantType && (
+                    {panel === 'complete' && !isDone && job.newSystem && (
+                        <>
+                            <div className="text-xs font-semibold text-gray-600">
+                                <p className="mb-1">Gas used (required)</p>
+                                <RefrigerantAutocomplete value={gas} onSelect={setGas}
+                                    placeholder={job.refrigerantType ? `Planned: ${job.refrigerantType}. Search to change` : 'Search gas, e.g. R290, R-32'} />
+                            </div>
+                            <label className="block text-xs font-semibold text-gray-600">
+                                Charge, kg (required)
+                                <input type="number" min="0" step="0.001" value={amount} onChange={event => setAmount(event.target.value)}
+                                    placeholder={job.amount ? `Estimated ${job.amount} kg` : 'e.g. 4.5'}
+                                    className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-normal outline-none focus:border-blue-300" />
+                            </label>
+                        </>
+                    )}
+                    {panel === 'complete' && !isDone && !job.newSystem && job.refrigerantType && (
                         <label className="block text-xs font-semibold text-gray-600">
                             Refrigerant used ({job.refrigerantType}), kg
                             <input type="number" min="0" step="0.001" value={amount} onChange={event => setAmount(event.target.value)}
                                 className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-normal outline-none focus:border-blue-300" />
                         </label>
                     )}
-                    <button type="button" disabled={busy || !note.trim()} onClick={() => submitStatus(panel === 'complete' ? 'completed' : panel === 'cancel' ? 'cancelled' : 'follow-up')}
+                    <button type="button" disabled={busy || !note.trim() || (panel === 'complete' && newSystemIncomplete)} onClick={() => submitStatus(panel === 'complete' ? 'completed' : panel === 'cancel' ? 'cancelled' : 'follow-up')}
                         className="w-full rounded-lg bg-[#D97706] px-3 py-2 text-xs font-semibold text-white hover:bg-[#b45309] disabled:opacity-60">
                         {busy ? 'Saving…' : panel === 'complete' ? 'Mark job complete' : panel === 'cancel' ? 'Cancel this job' : 'Save follow-up'}
                     </button>

@@ -14,6 +14,7 @@ export const plannerJobs = pgTable('planner_jobs', {
   clientName: text('client_name').notNull(),
   // Register id of the equipment this job services, when it came from an equipment alert.
   equipmentId: text('equipment_id'),
+  newSystem: boolean('new_system').notNull().default(false),
   location: text('location').notNull(),
   province: text('province').notNull(),
   district: text('district'),

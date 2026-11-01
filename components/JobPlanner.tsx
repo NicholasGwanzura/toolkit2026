@@ -24,7 +24,7 @@ interface PlannerFormState {
     jobType: JobType; refrigerantClass: RefrigerantSafetyClass;
     refrigerant: Refrigerant | null; amount: number;
     scheduledDate: string; technicianId: string; technicianName: string;
-    preJobChecklistComplete: boolean; notes: string;
+    preJobChecklistComplete: boolean; notes: string; newSystem: boolean;
 }
 
 function slugify(value: string): string {
@@ -61,7 +61,7 @@ const REF_STYLES: Partial<Record<RefrigerantSafetyClass, string>> = {
 };
 function refStyle(c: RefrigerantSafetyClass) { return REF_STYLES[c] ?? 'bg-gray-100 text-gray-600'; }
 
-function isoDate(date: Date) {
+export function isoDate(date: Date) {
     const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
     return local.toISOString().slice(0, 10);
 }
@@ -92,7 +92,7 @@ export default function JobPlanner() {
         jobType: 'COLD_ROOM', refrigerantClass: 'A1',
         refrigerant: null, amount: 0,
         scheduledDate: daysFromToday(0), technicianId: '',
-        technicianName: '', preJobChecklistComplete: false, notes: '',
+        technicianName: '', preJobChecklistComplete: false, notes: '', newSystem: false,
     });
 
     const formNewJobConflicts = findConflicts(jobs, formData.technicianId || session?.id, formData.scheduledDate);
@@ -104,7 +104,9 @@ export default function JobPlanner() {
             (!searchTerm || job.clientName.toLowerCase().includes(q) || job.location.toLowerCase().includes(q) || job.technicianName.toLowerCase().includes(q)) &&
             (!selectedClient || job.clientId === selectedClient) &&
             (!selectedStatus || job.status === selectedStatus) &&
-            job.scheduledDate >= startDate && job.scheduledDate <= endDate
+            // Overdue work stays listed until it is finished, or it could never be completed.
+            (job.scheduledDate >= startDate || job.status === 'scheduled' || job.status === 'in-progress' || job.status === 'follow-up') &&
+            job.scheduledDate <= endDate
         );
     }), [jobs, searchTerm, selectedClient, selectedStatus, startDate, endDate]);
 
@@ -153,6 +155,7 @@ export default function JobPlanner() {
                 refrigerantType: formData.refrigerant ? refrigerantLabel(formData.refrigerant) : undefined,
                 amount: formData.amount > 0 ? formData.amount : undefined,
                 status: 'scheduled', scheduledDate: formData.scheduledDate,
+                newSystem: formData.newSystem,
                 technicianId: selectedTechnician?.id,
                 technicianName: selectedTechnician?.name,
                 preJobChecklistComplete: formData.preJobChecklistComplete,
@@ -161,7 +164,7 @@ export default function JobPlanner() {
             });
             setShowModal(false);
             setNotice(`Job created for ${created.clientName} on ${formatDateShort(created.scheduledDate)}.`);
-            setFormData(prev => ({ ...prev, jobType: 'COLD_ROOM', refrigerantClass: 'A1', refrigerant: null, scheduledDate: addDays(prev.scheduledDate, 1), preJobChecklistComplete: false, notes: '' }));
+            setFormData(prev => ({ ...prev, jobType: 'COLD_ROOM', refrigerantClass: 'A1', refrigerant: null, scheduledDate: addDays(prev.scheduledDate, 1), preJobChecklistComplete: false, notes: '', newSystem: false }));
             setTimeout(() => setNotice(''), 4000);
         } catch (err) {
             setNotice(err instanceof Error ? err.message : 'Failed to create job.');
@@ -296,6 +299,7 @@ export default function JobPlanner() {
                                             {job.status.replace('-', ' ')}
                                         </span>
                                     </div>
+                                    {job.newSystem && <p className="mb-3 text-xs font-semibold text-[#b45309]">New system</p>}
 
                                     <div className="grid grid-cols-3 gap-3 border-t border-gray-100 pt-3 text-xs">
                                         <div>
@@ -309,7 +313,7 @@ export default function JobPlanner() {
                                             </span>
                                         </div>
                                         <div>
-                                            <p className="font-semibold uppercase tracking-wide text-gray-400">Gas Used</p>
+                                            <p className="font-semibold uppercase tracking-wide text-gray-400">{job.newSystem ? 'Gas / Charge' : 'Gas Used'}</p>
                                             <p className="mt-1 font-medium text-gray-900">{job.refrigerantType || '—'}{job.amount ? ` · ${job.amount} kg` : ''}</p>
                                         </div>
                                     </div>
@@ -385,6 +389,13 @@ export default function JobPlanner() {
                                     </select>
                                     <p className="mt-1 text-xs text-gray-400">{JobTypeDescriptions[formData.jobType]}</p>
                                 </div>
+                                <label className="md:col-span-2 flex items-start gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-700">
+                                    <input type="checkbox" checked={formData.newSystem} onChange={e => setFormData(p => ({ ...p, newSystem: e.target.checked }))} className="mt-0.5 h-4 w-4 accent-[#D97706]" />
+                                    <span>
+                                        <span className="block font-semibold">This is a new system</span>
+                                        <span className="block text-xs text-gray-500">The gas used and charge in kg must be recorded to complete the job.</span>
+                                    </span>
+                                </label>
                                 <div>
                                     <label className="mb-1.5 block text-sm font-semibold text-gray-700">Refrigerant Class</label>
                                     <select value={formData.refrigerantClass}

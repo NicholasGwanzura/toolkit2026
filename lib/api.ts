@@ -239,6 +239,8 @@ export interface CourseExamState {
   courseTitle: string;
   passMark: number;
   hasExam: boolean;
+  /** Every module is ticked off, which is what opens the exam. */
+  modulesComplete: boolean;
   maxAttempts: number;
   attemptsLeft: number;
   passed: boolean;
@@ -710,6 +712,8 @@ export function useCourseProgress(enabled = true) {
 export async function saveCourseProgress(courseId: string, completedModules: number[]): Promise<void> {
   await put(`/api/courses/${courseId}/progress`, { completedModules });
   await mutate('/api/course-progress');
+  // Finishing the last module is what opens the exam.
+  await mutate(`/api/courses/${courseId}/exam`);
 }
 
 export interface NotificationEntry {
@@ -913,10 +917,12 @@ export async function createPlannerJob(
 
 export async function updatePlannerJob(
   id: string,
-  body: Partial<Pick<PlannerJob, 'status' | 'notes' | 'checklistItems' | 'amount' | 'scheduledDate' | 'location' | 'technicianId'>> & { note?: string },
+  body: Partial<Pick<PlannerJob, 'status' | 'notes' | 'checklistItems' | 'amount' | 'refrigerantId' | 'refrigerantType' | 'scheduledDate' | 'location' | 'technicianId'>> & { note?: string },
 ): Promise<PlannerJob> {
   const result = await patch<PlannerJob>(`/api/planner-jobs/${id}`, body);
   await mutate('/api/planner-jobs');
+  // Completing a new system adds its charge to the gas records.
+  await mutate((key) => typeof key === 'string' && (key.startsWith('/api/gas-logs') || key.startsWith('/api/jobs/gas-usage')));
   return result;
 }
 
