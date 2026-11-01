@@ -927,6 +927,8 @@ export async function updatePlannerJob(
 ): Promise<PlannerJob> {
   const result = await patch<PlannerJob>(`/api/planner-jobs/${id}`, body);
   await mutate('/api/planner-jobs');
+  // Completing a service job moves its equipment on.
+  await mutate('/api/equipment-records');
   // Completing a new system adds its charge to the gas records.
   await mutate((key) => typeof key === 'string' && (key.startsWith('/api/gas-logs') || key.startsWith('/api/jobs/gas-usage')));
   return result;
@@ -944,6 +946,17 @@ export async function createEquipmentRecord(body: Record<string, unknown>): Prom
   const result = await post<EquipmentRecord>('/api/equipment-records', body);
   await mutate('/api/equipment-records');
   return result;
+}
+
+export async function updateEquipmentRecord(id: string, body: Record<string, unknown>): Promise<EquipmentRecord> {
+  const result = await patch<EquipmentRecord>(`/api/equipment-records/${id}`, body);
+  await mutate('/api/equipment-records');
+  return result;
+}
+
+export async function archiveEquipmentRecord(id: string): Promise<void> {
+  await del(`/api/equipment-records/${id}`);
+  await mutate('/api/equipment-records');
 }
 
 export function useEquipmentRecords() {

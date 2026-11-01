@@ -1,7 +1,8 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { BellRing, ChevronRight, Plus, Search, TimerReset } from 'lucide-react';
+import { Archive, BellRing, ChevronRight, Pencil, Plus, Search, TimerReset, X } from 'lucide-react';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { useRouter } from 'next/navigation';
 import { AddEquipmentDialog } from '@/components/AddEquipmentDialog';
 import { useClientSession } from '@/lib/useClientSession';
@@ -13,7 +14,7 @@ import {
 } from '@/types/index';
 import { DEFAULT_PLANNER_SAFETY_CHECKLIST } from '@/constants/job-planner';
 import { REFRIGERANT_REFERENCE } from '@/constants/refrigerants';
-import { useEquipmentRecords, usePlannerJobs, createPlannerJob } from '@/lib/api';
+import { archiveEquipmentRecord, useEquipmentRecords, usePlannerJobs, createPlannerJob } from '@/lib/api';
 
 type ViewScope = 'own' | 'fleet';
 
@@ -65,6 +66,9 @@ export default function FieldScheduling() {
     const [message, setMessage] = useState('');
     const [schedulingId, setSchedulingId] = useState<string | null>(null);
     const [adding, setAdding] = useState(false);
+    const [editing, setEditing] = useState<EquipmentRecord | null>(null);
+    const [archiving, setArchiving] = useState<EquipmentRecord | null>(null);
+    const isAdmin = session?.role === 'org_admin';
     const { data: plannerJobs = [] } = usePlannerJobs();
 
     const filteredRecords = useMemo(() => {
@@ -78,7 +82,7 @@ export default function FieldScheduling() {
             const scopeMatch =
                 scope === 'fleet' ||
                 !session ||
-                record.technicianName === session.name;
+                (record.technicianId ? record.technicianId === session.id : record.technicianName === session.name);
 
             const statusMatch = !statusFilter || record.status === statusFilter;
             const provinceMatch = !provinceFilter || record.province === provinceFilter;
@@ -145,14 +149,38 @@ export default function FieldScheduling() {
         setMessage(`Showing service history for ${record.equipmentId}.`);
     };
 
+    const handleArchive = async () => {
+        if (!archiving) return;
+        const record = archiving;
+        setArchiving(null);
+        try {
+            await archiveEquipmentRecord(record.id);
+            if (selectedRecord?.id === record.id) setSelectedRecord(null);
+            setMessage(`${record.equipmentId} archived.`);
+        } catch (err) {
+            setMessage(err instanceof Error ? err.message : 'Could not archive the equipment.');
+        }
+    };
+
     const uniqueRefrigerants = Array.from(new Set(records.map(record => record.refrigerantType))).sort();
 
     return (
         <div className="space-y-6">
-            {adding && <AddEquipmentDialog onClose={() => setAdding(false)} onAdded={(id) => { setAdding(false); setMessage(`${id} added to your register.`); }} />}
+            {adding && <AddEquipmentDialog onClose={() => setAdding(false)} onSaved={(id) => { setAdding(false); setMessage(`${id} added to the register.`); }} />}
+            {editing && <AddEquipmentDialog key={editing.id} record={editing} onClose={() => setEditing(null)} onSaved={(id) => { setEditing(null); setSelectedRecord(null); setMessage(`${id} updated.`); }} />}
+            <ConfirmModal
+                open={archiving !== null}
+                variant="warning"
+                title={`Archive ${archiving?.equipmentId ?? ''}?`}
+                description="It leaves the register and stops raising alerts. Its service history is kept."
+                confirmLabel="Archive"
+                onConfirm={() => void handleArchive()}
+                onCancel={() => setArchiving(null)}
+            />
             {message && (
-                <div className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-medium text-blue-800">
-                    {message}
+                <div role="status" className="flex items-start justify-between gap-3 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-medium text-blue-800">
+                    <span>{message}</span>
+                    <button type="button" onClick={() => setMessage('')} aria-label="Dismiss message" className="-m-2 shrink-0 rounded-lg p-2 hover:bg-blue-100"><X className="h-4 w-4" aria-hidden="true" /></button>
                 </div>
             )}
 
@@ -195,6 +223,7 @@ export default function FieldScheduling() {
                                     <option value="overdue">Overdue</option>
                                 </select>
                             </div>
+                            {isAdmin && (
                             <div>
                                 <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500">Scope</label>
                                 <button
@@ -206,6 +235,7 @@ export default function FieldScheduling() {
                                     <TimerReset className="h-4 w-4 text-gray-400" />
                                 </button>
                             </div>
+                            )}
                         </div>
 
                         <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -298,6 +328,12 @@ export default function FieldScheduling() {
                                                         View History
                                                         <ChevronRight className="h-3.5 w-3.5" />
                                                     </button>
+                                                    <button type="button" onClick={() => setEditing(record)} aria-label={`Edit ${record.equipmentId}`} title="Edit" className="inline-flex items-center rounded-lg border border-gray-200 bg-white p-2 text-gray-700 transition hover:bg-gray-50">
+                                                        <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                                                    </button>
+                                                    <button type="button" onClick={() => setArchiving(record)} aria-label={`Archive ${record.equipmentId}`} title="Archive" className="inline-flex items-center rounded-lg border border-gray-200 bg-white p-2 text-gray-700 transition hover:bg-gray-50">
+                                                        <Archive className="h-3.5 w-3.5" aria-hidden="true" />
+                                                    </button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -378,6 +414,7 @@ export default function FieldScheduling() {
                             <h2 className="text-lg font-bold text-gray-900">Service History</h2>
                             <p className="text-sm text-gray-500">{selectedRecord.equipmentId}</p>
                             <div className="mt-4 space-y-3">
+                                {selectedRecord.serviceHistory.length === 0 && <p className="text-sm text-gray-500">No services recorded yet. Completing a job for this equipment adds one here.</p>}
                                 {selectedRecord.serviceHistory.map(item => (
                                     <div key={`${selectedRecord.id}-${item.date}`} className="border border-gray-200 bg-gray-50 p-4">
                                         <div className="flex items-center justify-between gap-3">

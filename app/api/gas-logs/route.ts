@@ -110,8 +110,9 @@ export async function POST(req: Request) {
       .from(gasUsageLogs)
       .where(and(eq(gasUsageLogs.technicianId, session.id), like(gasUsageLogs.clientLogId, `${PLANNER_CHARGE_LOG_PREFIX}%`)));
     const fresh = logs.filter((log) => !repeatsJobCharge(log, jobCharges));
+    if (fresh.length === 0) return null;
 
-    const inserted = fresh.length === 0 ? [] : await tx
+    const inserted = await tx
       .insert(gasUsageLogs)
       .values(
         fresh.map((log) => ({
@@ -144,6 +145,9 @@ export async function POST(req: Request) {
       .returning();
     return inserted;
   });
+
+  // Refused with the reason, so the technician sees why rather than the log vanishing.
+  if (!inserted) return NextResponse.json({ error: 'This charge is already recorded from a completed new-system job, so it was not added again. You can discard it.' }, { status: 409 });
 
   return NextResponse.json(inserted.map(toRefrigerantLog), { status: 201 });
 }

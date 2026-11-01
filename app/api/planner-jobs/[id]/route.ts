@@ -7,6 +7,7 @@ import type { PlannerJob } from '@/types/index';
 import { isFieldWorkerRole } from '@/lib/field-worker';
 import { isValidIsoDate } from '@/lib/planner-conflicts';
 import { appendJobNote, outstandingChecklist, stampChecklist, validateTransition } from '@/lib/planner-lifecycle';
+import { recordEquipmentService } from '@/lib/server/equipment-records';
 import { lockTechnicianCharges, recordNewSystemCharge, removeNewSystemCharge } from '@/lib/server/planner-charge-log';
 
 function toPlannerJob(row: typeof plannerJobs.$inferSelect): PlannerJob {
@@ -150,6 +151,7 @@ export async function PATCH(
       .set(updateFields)
       .where(eq(plannerJobs.id, id))
       .returning();
+    if (statusChanged && body.status === 'completed') await recordEquipmentService(tx, rows[0], body.note, now);
     if (existing.newSystem && statusChanged && (body.status === 'completed' || body.status === 'cancelled')) {
       await lockTechnicianCharges(tx, existing.technicianId);
       if (body.status === 'completed') await recordNewSystemCharge(tx, rows[0], now);

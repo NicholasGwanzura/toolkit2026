@@ -169,6 +169,7 @@ export interface EquipmentRecord {
   lastServiceDate: string;
   nextServiceDue: string;
   status: EquipmentStatus;
+  technicianId?: string;
   technicianName: string;
   serviceHistory: PlannerServiceRecord[];
   predictedFailureReason?: string;

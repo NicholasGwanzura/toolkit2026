@@ -75,7 +75,8 @@ function daysFromToday(days: number) {
 export default function JobPlanner() {
     const session = useClientSession();
     const todayIso = isoDate(new Date());
-    const { data: techniciansData } = useTechnicians();
+    const canAssign = session?.role === 'org_admin';
+    const { data: techniciansData } = useTechnicians(undefined, canAssign);
     const technicians = techniciansData ?? [];
     const { data: jobsData, isLoading: jobsLoading } = usePlannerJobs();
     const jobs = jobsData ?? [];
@@ -423,6 +424,7 @@ export default function JobPlanner() {
                                     <input type="date" value={formData.scheduledDate} onChange={e => setFormData(p => ({ ...p, scheduledDate: e.target.value }))}
                                         className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm outline-none focus:border-blue-300 focus:bg-white" />
                                 </div>
+                                {canAssign ? (
                                 <div>
                                     <label className="mb-1.5 block text-sm font-semibold text-gray-700">Technician</label>
                                     <select value={formData.technicianId} onChange={e => {
@@ -434,6 +436,12 @@ export default function JobPlanner() {
                                         {technicians.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                                     </select>
                                 </div>
+                                ) : (
+                                    <div>
+                                        <p className="mb-1.5 text-sm font-semibold text-gray-700">Technician</p>
+                                        <p className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-700">Assigned to you</p>
+                                    </div>
+                                )}
                                 {(isPastDate(formData.scheduledDate, todayIso) || formNewJobConflicts.length > 0) && (
                                     <div className="md:col-span-2 space-y-1 border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
                                         {isPastDate(formData.scheduledDate, todayIso) && <p>This date is in the past.</p>}

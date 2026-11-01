@@ -19,7 +19,10 @@ export const equipmentRecords = pgTable('equipment_records', {
   lastServiceDate: text('last_service_date').notNull(),
   nextServiceDue: text('next_service_due').notNull(),
   status: equipmentStatusEnum('status').notNull().default('normal'),
+  technicianId: uuid('technician_id'),
   technicianName: text('technician_name').notNull(),
+  // Archived equipment leaves the register but keeps its history.
+  archivedAt: timestamp('archived_at', { withTimezone: true }),
   serviceHistory: jsonb('service_history').notNull().default([]),
   predictedFailureReason: text('predicted_failure_reason'),
   recommendedAction: text('recommended_action'),

@@ -1,40 +1,12 @@
 import { NextResponse } from 'next/server';
 import { MAX_LIST_ROWS } from '@/lib/server/list-limits';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { equipmentRecords } from '@/db/schema/index';
 import { requireRole } from '@/lib/server/auth';
-import type { EquipmentRecord } from '@/types/index';
 import { isFieldWorkerRole } from '@/lib/field-worker';
+import { ownedBy, toEquipmentRecord } from '@/lib/server/equipment-records';
 import { equipmentStatus, validateNewEquipment } from '@/lib/equipment-record';
-
-function toEquipmentRecord(row: typeof equipmentRecords.$inferSelect): EquipmentRecord {
-  return {
-    id: row.id,
-    clientId: row.clientId ?? undefined,
-    equipmentId: row.equipmentId,
-    clientName: row.clientName,
-    manufacturer: row.manufacturer ?? undefined,
-    model: row.model ?? undefined,
-    province: row.province,
-    refrigerantId: row.refrigerantId ?? undefined,
-    refrigerantType: row.refrigerantType,
-    refrigerantClass: (row.refrigerantClass ?? undefined) as EquipmentRecord['refrigerantClass'],
-    ashraeSafetyClass: row.ashraeSafetyClass as EquipmentRecord['ashraeSafetyClass'],
-    serialNumber: row.serialNumber ?? undefined,
-    healthStatus: (row.healthStatus ?? undefined) as EquipmentRecord['healthStatus'],
-    lastServiceDate: row.lastServiceDate,
-    nextServiceDue: row.nextServiceDue,
-    // Worked out on every read: a stored status would go out of date as the days pass.
-    status: /^\d{4}-\d{2}-\d{2}$/.test(row.nextServiceDue)
-      ? equipmentStatus(row.nextServiceDue, new Date().toISOString().slice(0, 10))
-      : row.status as EquipmentRecord['status'],
-    technicianName: row.technicianName,
-    serviceHistory: row.serviceHistory as EquipmentRecord['serviceHistory'],
-    predictedFailureReason: row.predictedFailureReason ?? undefined,
-    recommendedAction: row.recommendedAction ?? undefined,
-  };
-}
 
 export async function GET(req: Request) {
   let session;
@@ -45,8 +17,8 @@ export async function GET(req: Request) {
   }
 
   const rows = isFieldWorkerRole(session.role)
-    ? await db.select().from(equipmentRecords).where(eq(equipmentRecords.technicianName, session.name)).limit(MAX_LIST_ROWS)
-    : await db.select().from(equipmentRecords).limit(MAX_LIST_ROWS);
+    ? await db.select().from(equipmentRecords).where(and(isNull(equipmentRecords.archivedAt), ownedBy(session))).limit(MAX_LIST_ROWS)
+    : await db.select().from(equipmentRecords).where(isNull(equipmentRecords.archivedAt)).limit(MAX_LIST_ROWS);
   return NextResponse.json(rows.map(toEquipmentRecord));
 }
 
@@ -66,7 +38,7 @@ export async function POST(req: Request) {
   const [existing] = await db
     .select({ id: equipmentRecords.id })
     .from(equipmentRecords)
-    .where(and(eq(equipmentRecords.equipmentId, equipment.equipmentId), eq(equipmentRecords.technicianName, session.name)))
+    .where(and(eq(equipmentRecords.equipmentId, equipment.equipmentId), isNull(equipmentRecords.archivedAt), ownedBy(session)))
     .limit(1);
   if (existing) return NextResponse.json({ error: `${equipment.equipmentId} is already on your register.` }, { status: 409 });
 
@@ -76,6 +48,7 @@ export async function POST(req: Request) {
       ...equipment,
       refrigerantClass: equipment.ashraeSafetyClass,
       status: equipmentStatus(equipment.nextServiceDue, new Date().toISOString().slice(0, 10)),
+      technicianId: session.id,
       technicianName: session.name,
     })
     .returning();

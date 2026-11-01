@@ -1,5 +1,5 @@
 // Adding equipment to the register. Pure and shared by the form and the server.
-import type { EquipmentStatus, RefrigerantSafetyClass } from '@/types/index';
+import type { EquipmentStatus, PlannerServiceRecord, RefrigerantSafetyClass } from '@/types/index';
 
 export const SAFETY_CLASSES: RefrigerantSafetyClass[] = ['A1', 'A2L', 'A2', 'A3', 'B1', 'B2L', 'B2', 'B3'];
 export const DUE_SOON_DAYS = 30;
@@ -29,7 +29,7 @@ export interface NewEquipment {
 }
 
 const text = (value: unknown, max: number) => (typeof value === 'string' ? value.trim().slice(0, max) : '');
-const validDate = (value: string) => ISO_DATE.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
+export const isIsoDate = (value: string) => ISO_DATE.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
 
 /** Cleans what the form sent. Returns the record, or the first problem in plain words. */
 export function validateNewEquipment(value: unknown): { ok: true; equipment: NewEquipment } | { ok: false; error: string } {
@@ -45,8 +45,8 @@ export function validateNewEquipment(value: unknown): { ok: true; equipment: New
   if (!province) return { ok: false, error: 'Choose the province.' };
   if (!refrigerantType) return { ok: false, error: 'Choose the refrigerant.' };
   if (!SAFETY_CLASSES.includes(raw.ashraeSafetyClass as RefrigerantSafetyClass)) return { ok: false, error: 'Choose the refrigerant safety class.' };
-  if (!validDate(lastServiceDate)) return { ok: false, error: 'Enter the last service date.' };
-  if (!validDate(nextServiceDue)) return { ok: false, error: 'Enter the next service date.' };
+  if (!isIsoDate(lastServiceDate)) return { ok: false, error: 'Enter the last service date.' };
+  if (!isIsoDate(nextServiceDue)) return { ok: false, error: 'Enter the next service date.' };
   if (nextServiceDue < lastServiceDate) return { ok: false, error: 'The next service date cannot be before the last one.' };
   return {
     ok: true,
@@ -64,4 +64,19 @@ export function validateNewEquipment(value: unknown): { ok: true; equipment: New
       refrigerantId: Number.isInteger(raw.refrigerantId) ? (raw.refrigerantId as number) : undefined,
     },
   };
+}
+
+/** Used when a record's own dates give no usable interval. */
+export const DEFAULT_SERVICE_INTERVAL_DAYS = 180;
+
+/** The next service after one done today keeps the interval the record already had. */
+export function nextServiceAfter(lastServiceDate: string, nextServiceDue: string, serviced: string): string {
+  const interval = isIsoDate(lastServiceDate) && isIsoDate(nextServiceDue) ? dayNumber(nextServiceDue) - dayNumber(lastServiceDate) : 0;
+  const days = interval > 0 ? interval : DEFAULT_SERVICE_INTERVAL_DAYS;
+  return new Date((dayNumber(serviced) + days) * 86_400_000).toISOString().slice(0, 10);
+}
+
+/** Newest first, one entry per job, so re-completing a job after follow-up does not add a second. */
+export function addServiceRecord(history: PlannerServiceRecord[] | null | undefined, entry: PlannerServiceRecord): PlannerServiceRecord[] {
+  return [entry, ...(history ?? []).filter((item) => item.id !== entry.id)];
 }
