@@ -323,7 +323,7 @@ export default function ManageTechniciansPage() {
           </button>
           <button
             onClick={exportCSV}
-            className="px-4 py-2 bg-[#FF6B35] text-white hover:bg-[#e55a25] transition-colors flex items-center gap-2 font-semibold shadow-lg shadow-orange-500/20"
+            className="px-4 py-2 bg-[#B45309] text-white hover:bg-[#92400E] transition-colors flex items-center gap-2 font-semibold shadow-lg shadow-orange-500/20"
           >
             <Download className="h-4 w-4" />
             Export Registry

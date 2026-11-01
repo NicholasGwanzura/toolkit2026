@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkSubmittedAnswers, markExam, toLearnerQuestions, validateExamQuestions, type ExamQuestion } from './exam';
+import { checkSubmittedAnswers, markExam, toLearnerQuestions, validateExamQuestions, type ExamQuestion, countedAttempts, toModuleFeedback } from './exam';
 
 let counter = 0;
 const id = () => `gen-${++counter}`;
@@ -81,5 +81,51 @@ describe('checkSubmittedAnswers and markExam', () => {
       expect(result.answers[1]).toEqual({ question: 'Describe the steps after a leak.', answer: 'Isolate and ventilate' });
     }
     expect(checkSubmittedAnswers(qs, [{ questionId: qs[0].id, choice: 2 }, { questionId: qs[1].id, text: ' ' }]).ok).toBe(false);
+  });
+});
+
+describe('per-module results', () => {
+  const qs: ExamQuestion[] = [
+    { id: 'a', type: 'choice', text: 'A', options: ['x', 'y'], correctIndex: 0, moduleIndex: 1 },
+    { id: 'b', type: 'choice', text: 'B', options: ['x', 'y'], correctIndex: 1, moduleIndex: 1 },
+    { id: 'c', type: 'choice', text: 'C', options: ['x', 'y'], correctIndex: 1, moduleIndex: 0 },
+    { id: 'd', type: 'choice', text: 'D', options: ['x', 'y'], correctIndex: 1 },
+  ];
+  it('counts by module, in order, leaving out unlinked questions', () => {
+    const result = markExam(qs, [{ questionId: 'a', choice: 0 }, { questionId: 'b', choice: 0 }, { questionId: 'c', choice: 1 }, { questionId: 'd', choice: 1 }]);
+    expect(result.byModule).toEqual([{ moduleIndex: 0, correct: 1, total: 1 }, { moduleIndex: 1, correct: 1, total: 2 }]);
+  });
+  it('keeps the link when saved and hides it from nobody but the answer key', () => {
+    const checked = validateExamQuestions([{ id: 'a', type: 'choice', text: 'A', options: ['x', 'y'], correctIndex: 0, moduleIndex: 2 }]);
+    expect(checked.ok && checked.questions[0].moduleIndex).toBe(2);
+    expect(toLearnerQuestions(qs)[0]).not.toHaveProperty('correctIndex');
+  });
+  it('ignores a bad module number', () => {
+    const checked = validateExamQuestions([{ id: 'a', type: 'written', text: 'A', moduleIndex: -1 }]);
+    expect(checked.ok && checked.questions[0]).not.toHaveProperty('moduleIndex');
+  });
+});
+
+describe('countedAttempts', () => {
+  const attempts = [
+    { status: 'graded', submittedAt: '2026-01-01T00:00:00Z' },
+    { status: 'graded', submittedAt: '2026-03-01T00:00:00Z' },
+    { status: 'pending', submittedAt: '2026-03-02T00:00:00Z' },
+  ];
+  it('counts every graded attempt when never reset', () => {
+    expect(countedAttempts(attempts)).toHaveLength(2);
+  });
+  it('counts only attempts after a reset', () => {
+    expect(countedAttempts(attempts, '2026-02-01T00:00:00Z')).toHaveLength(1);
+    expect(countedAttempts(attempts, new Date('2026-04-01T00:00:00Z'))).toHaveLength(0);
+  });
+});
+
+describe('toModuleFeedback', () => {
+  it('says only whether a module needs review, never the counts', () => {
+    expect(toModuleFeedback([{ moduleIndex: 0, correct: 3, total: 3 }, { moduleIndex: 1, correct: 2, total: 3 }])).toEqual([
+      { moduleIndex: 0, needsReview: false },
+      { moduleIndex: 1, needsReview: true },
+    ]);
   });
 });

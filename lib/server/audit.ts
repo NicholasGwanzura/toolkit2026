@@ -16,7 +16,8 @@ export type AuditEntityType =
   | 'supplier_reorder'
   | 'trade_permit'
   | 'supplier_compliance'
-  | 'accident';
+  | 'accident'
+  | 'course_enrollment';
 
 export interface RecordAuditEventInput {
   entityType: AuditEntityType;

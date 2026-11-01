@@ -43,6 +43,8 @@ export const courseEnrollments = pgTable('course_enrollments', {
   courseId: uuid('course_id').notNull().references(() => courses.id, { onDelete: 'cascade' }),
   userId: uuid('user_id').notNull(),
   enrolledAt: timestamp('enrolled_at', { withTimezone: true }).defaultNow().notNull(),
+  // When a trainer last gave this learner fresh exam attempts. Attempts before it no longer count; results are kept.
+  examAttemptsResetAt: timestamp('exam_attempts_reset_at', { withTimezone: true }),
 }, (table) => [unique('course_enrollments_course_user_unique').on(table.courseId, table.userId)]);
 
 // Matches ExamSubmission interface

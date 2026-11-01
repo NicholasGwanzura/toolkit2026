@@ -18,7 +18,7 @@ interface ConfirmModalProps {
 
 const CONFIRM_STYLES: Record<string, string> = {
   danger:  'bg-red-600 hover:bg-red-700 text-white',
-  warning: 'bg-[#FF6B35] hover:bg-[#e55a25] text-white',
+  warning: 'bg-[#B45309] hover:bg-[#92400E] text-white',
   default: 'bg-[#2C2420] hover:bg-[#3d342f] text-white',
 };
 

@@ -8,7 +8,7 @@ import { notifyUser } from '@/lib/server/notifications';
 import { notificationTemplates } from '@/lib/notification-templates';
 import { MAX_EXAM_ATTEMPTS } from '@/lib/server/lms-validation';
 import { allModulesComplete } from '@/lib/course-progress';
-import { checkSubmittedAnswers, markExam, toLearnerQuestions, type ExamQuestion } from '@/lib/exam';
+import { checkSubmittedAnswers, countedAttempts, markExam, toModuleFeedback, toLearnerQuestions, type ExamQuestion } from '@/lib/exam';
 
 // The exam a learner takes from a course page. Questions come from the course the trainer wrote.
 // The answer key never leaves this file: learners get the questions only, and are marked here.
@@ -24,7 +24,7 @@ async function loadContext(courseId: string, userId: string) {
   if (!course || course.status !== 'approved') return { error: NextResponse.json({ error: 'This course is not available.' }, { status: 404 }) } as const;
 
   const [enrollment] = await db
-    .select({ id: courseEnrollments.id })
+    .select({ id: courseEnrollments.id, resetAt: courseEnrollments.examAttemptsResetAt })
     .from(courseEnrollments)
     .where(and(eq(courseEnrollments.courseId, courseId), eq(courseEnrollments.userId, userId)))
     .limit(1);
@@ -50,7 +50,7 @@ async function loadContext(courseId: string, userId: string) {
     course,
     questions: (course.examQuestions ?? []) as ExamQuestion[],
     modulesComplete: allModulesComplete(progress?.completedModules, moduleCount),
-    gradedCount: graded.length,
+    gradedCount: countedAttempts(attempts, enrollment.resetAt).length,
     passed,
     waiting,
     last: last ? { status: last.status, score: last.score !== null ? Number(last.score) : undefined, passed: last.passed ?? undefined, feedback: last.feedback ?? undefined } : undefined,
@@ -159,5 +159,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     passed,
     passMark: course.passMark,
     needsTrainer: result.needsTrainer,
+    byModule: autoGraded ? toModuleFeedback(result.byModule) : undefined,
   }, { status: 201 });
 }

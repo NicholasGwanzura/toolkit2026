@@ -147,7 +147,7 @@ export function ImageAnnotationWorkbench() {
                                         event.stopPropagation();
                                         setAnnotations((current) => current.filter((item) => item.id !== annotation.id));
                                     }}
-                                    className="absolute flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white bg-[#D97706] text-xs font-bold text-white shadow-lg"
+                                    className="absolute flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white bg-[#B45309] text-xs font-bold text-white shadow-lg"
                                     style={{ left: `${annotation.x}%`, top: `${annotation.y}%` }}
                                 >
                                     {index + 1}

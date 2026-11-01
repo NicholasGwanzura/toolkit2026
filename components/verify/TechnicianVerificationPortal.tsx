@@ -300,7 +300,7 @@ export default function TechnicianVerificationPortal({
 
       <main className={isPublic ? 'mx-auto max-w-5xl px-3 py-8 sm:px-4 md:px-6 md:py-14' : 'mx-auto max-w-5xl'}>
         <div className={isPublic ? 'mb-10 text-center' : 'mb-8'}>
-          <div className={`mb-6 flex h-16 w-16 items-center justify-center bg-[#D97706] ${isPublic ? 'mx-auto' : ''}`}>
+          <div className={`mb-6 flex h-16 w-16 items-center justify-center bg-[#B45309] ${isPublic ? 'mx-auto' : ''}`}>
             <ShieldCheck className="h-8 w-8 text-white" />
           </div>
           <h1 className={`mb-4 font-bold text-slate-900 ${isPublic ? 'text-4xl' : 'text-2xl'}`}>{heading}</h1>

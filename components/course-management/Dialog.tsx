@@ -30,12 +30,12 @@ export function Dialog({ isOpen, onOpenChange, title, description, children, siz
         <AriaDialog className="flex min-h-0 flex-1 flex-col outline-none">
           {({ close }) => (
             <>
-              <div className="flex items-start justify-between gap-4 border-b border-stone-200 px-5 py-4">
+              <div className="flex items-start justify-between gap-4 border-b border-gray-200 px-5 py-4">
                 <div className="min-w-0">
-                  <Heading slot="title" className="text-lg font-semibold text-stone-900">{title}</Heading>
-                  {description && <p className="mt-1 text-sm text-stone-600">{description}</p>}
+                  <Heading slot="title" className="text-lg font-semibold text-gray-900">{title}</Heading>
+                  {description && <p className="mt-1 text-sm text-gray-600">{description}</p>}
                 </div>
-                <button type="button" onClick={close} aria-label="Close" className="rounded-full p-2 text-stone-500 transition hover:bg-stone-100">
+                <button type="button" onClick={close} aria-label="Close" className="rounded-full p-2 text-gray-500 transition hover:bg-gray-100">
                   <X className="h-5 w-5" aria-hidden="true" />
                 </button>
               </div>

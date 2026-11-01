@@ -369,7 +369,7 @@ export function OcrNameplateScanner({ onUseRefrigerant }: OcrNameplateScannerPro
                         Read the model, serial, refrigerant and factory charge from a photo. Recognition runs on this device.
                     </p>
                 </div>
-                <label className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 bg-[#D97706] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#b45309]">
+                <label className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 bg-[#B45309] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#92400E]">
                     <Camera className="h-4 w-4" />
                     Upload or use camera
                     <input type="file" accept="image/*" capture="environment" onChange={handleFileChange} className="hidden" />
@@ -417,7 +417,7 @@ export function OcrNameplateScanner({ onUseRefrigerant }: OcrNameplateScannerPro
                                         Clear crop
                                     </button>
                                 )}
-                                <button type="button" onClick={runScan} disabled={isScanning} className="ml-auto inline-flex min-h-9 items-center gap-2 bg-[#D97706] px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-[#b45309] disabled:opacity-60">
+                                <button type="button" onClick={runScan} disabled={isScanning} className="ml-auto inline-flex min-h-9 items-center gap-2 bg-[#B45309] px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-[#92400E] disabled:opacity-60">
                                     {isScanning ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <ScanText className="h-3.5 w-3.5" />}
                                     {isScanning ? 'Reading plate…' : result ? 'Scan again' : 'Scan nameplate'}
                                 </button>
@@ -619,7 +619,7 @@ export function OcrNameplateScanner({ onUseRefrigerant }: OcrNameplateScannerPro
                                             onClick={confirmScan}
                                             disabled={isSaving || confirmed || !hasAnyDetails(result)}
                                             title={hasAnyDetails(result) ? undefined : 'Enter at least one detail from the plate before saving'}
-                                            className="inline-flex min-h-10 flex-1 items-center justify-center gap-2 bg-[#D97706] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#b45309] disabled:cursor-not-allowed disabled:opacity-60"
+                                            className="inline-flex min-h-10 flex-1 items-center justify-center gap-2 bg-[#B45309] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#92400E] disabled:cursor-not-allowed disabled:opacity-60"
                                         >
                                             {isSaving ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                                             {isSaving ? 'Saving…' : confirmed ? 'Confirmed' : 'Confirm and save'}

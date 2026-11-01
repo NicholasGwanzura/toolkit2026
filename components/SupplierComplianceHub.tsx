@@ -151,7 +151,7 @@ export default function SupplierComplianceHub({
 
                     <button
                         type="submit"
-                        className="mt-5 inline-flex items-center gap-2 bg-[#FF6B35] px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+                        className="mt-5 inline-flex items-center gap-2 bg-[#B45309] px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90"
                     >
                         <ShieldCheck className="h-4 w-4" />
                         Submit Certificate Request

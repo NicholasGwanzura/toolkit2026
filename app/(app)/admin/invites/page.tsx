@@ -153,7 +153,7 @@ export default function AdminInvitesPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="inline-flex items-center gap-2 bg-[#D97706] px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+            className="inline-flex items-center gap-2 bg-[#B45309] px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
           >
             <UserPlus className="h-4 w-4" />
             {submitting ? 'Creating…' : 'Create invite'}

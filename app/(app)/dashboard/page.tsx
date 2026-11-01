@@ -255,7 +255,7 @@ export default function DashboardPage() {
                 <p className="text-[#78716C]">Please log in to view the dashboard</p>
                 <a
                     href="/login"
-                    className="px-4 py-2 bg-[#D97706] text-white hover:bg-[#b45309] transition-colors"
+                    className="px-4 py-2 bg-[#B45309] text-white hover:bg-[#92400E] transition-colors"
                 >
                     Go to Login
                 </a>

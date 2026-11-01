@@ -67,9 +67,9 @@ export default function CertificationsPage() {
     examSubmissionId: '',
     technicianId: '',
     courseTitle: '',
-    examDate: '2026-04-05',
-    theoryScore: '78',
-    practicalScore: '84',
+    examDate: new Date().toISOString().slice(0, 10),
+    theoryScore: '',
+    practicalScore: '',
     notes: '',
   });
 
@@ -136,7 +136,10 @@ export default function CertificationsPage() {
   const handleTrainerSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     const technician = (techniciansData ?? []).find(item => item.id === trainerForm.technicianId);
-    const theoryScore = Number(trainerForm.theoryScore);
+    const linked = trainerForm.examSubmissionId !== '';
+    const validMark = (value: string) => value.trim() !== '' && Number(value) >= 0 && Number(value) <= 100;
+    // A linked exam supplies the theory score on the server.
+    const theoryScore = linked ? 0 : Number(trainerForm.theoryScore);
     const practicalScore = Number(trainerForm.practicalScore);
 
     if (!session || !technician || !trainerForm.courseTitle || !trainerForm.examDate) {
@@ -144,8 +147,8 @@ export default function CertificationsPage() {
       return;
     }
 
-    if (!Number.isFinite(theoryScore) || !Number.isFinite(practicalScore)) {
-      setNotice('Theory and practical scores must be valid numbers.');
+    if ((!linked && !validMark(trainerForm.theoryScore)) || !validMark(trainerForm.practicalScore)) {
+      setNotice(linked ? 'Enter the practical score the learner actually earned, from 0 to 100.' : 'Enter the theory and practical scores the learner actually earned, from 0 to 100.');
       return;
     }
 
@@ -166,8 +169,8 @@ export default function CertificationsPage() {
       setTrainerForm((current) => ({
         ...current,
         examSubmissionId: '',
-        theoryScore: '78',
-        practicalScore: '84',
+        theoryScore: '',
+        practicalScore: '',
         notes: '',
       }));
     } catch (err) {
@@ -381,7 +384,9 @@ export default function CertificationsPage() {
                   disabled={trainerForm.examSubmissionId !== ''}
                   value={trainerForm.theoryScore}
                   onChange={(event) => setTrainerForm((current) => ({ ...current, theoryScore: event.target.value }))}
-                  placeholder="Theory %"
+                  required={trainerForm.examSubmissionId === ''}
+                  aria-label="Theory score, percent"
+                  placeholder={trainerForm.examSubmissionId !== '' ? 'From the exam' : 'Theory %'}
                   className="rounded-lg border border-gray-200 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <input
@@ -390,6 +395,8 @@ export default function CertificationsPage() {
                   max="100"
                   value={trainerForm.practicalScore}
                   onChange={(event) => setTrainerForm((current) => ({ ...current, practicalScore: event.target.value }))}
+                  required
+                  aria-label="Practical score, percent"
                   placeholder="Practical %"
                   className="rounded-lg border border-gray-200 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
                 />
@@ -406,7 +413,7 @@ export default function CertificationsPage() {
 
             <button
               type="submit"
-              className="mt-5 rounded-lg inline-flex items-center gap-2 bg-[#FF6B35] px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+              className="mt-5 rounded-lg inline-flex items-center gap-2 bg-[#B45309] px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90"
             >
               <Send className="h-4 w-4" />
               Submit for Admin Approval
@@ -480,10 +487,6 @@ export default function CertificationsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Certification</h1>
           <p className="text-gray-500 mt-1">Your issued certificates, training history &amp; available assessments</p>
         </div>
-        <div className="flex items-center gap-2 bg-blue-50 px-4 py-2 border border-blue-100">
-          <ShieldCheck className="h-5 w-5 text-blue-600" />
-          <span className="text-sm font-semibold text-blue-700">Accredited by SA-RACA</span>
-        </div>
       </div>
 
       {/* Issued Certificates */}
@@ -496,7 +499,7 @@ export default function CertificationsPage() {
           <div className="bg-white border border-dashed border-gray-200 p-8 text-center">
             <Award className="h-10 w-10 text-gray-200 mx-auto mb-3" />
             <p className="text-sm font-semibold text-gray-500">No certificates issued yet</p>
-            <p className="text-xs text-gray-400 mt-1">Complete an assessment below to begin the certification process.</p>
+            <p className="text-xs text-gray-400 mt-1">Pass a course exam in the Learning Hub. Your trainer then requests your certificate.</p>
           </div>
         ) : (
           <div className="grid gap-4">

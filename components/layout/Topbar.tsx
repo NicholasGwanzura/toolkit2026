@@ -34,7 +34,7 @@ export function Topbar({ onMenuClick, title }: { onMenuClick: () => void; title?
                             onClick={() => setShowUserMenu(!showUserMenu)}
                             className="flex items-center gap-2 px-2 py-1.5 text-sm font-medium text-[#1C1917] hover:bg-[#F5F5F4] transition-colors"
                         >
-                            <div className="h-7 w-7 bg-[#D97706] flex items-center justify-center text-white text-xs font-bold">
+                            <div className="h-7 w-7 bg-[#B45309] flex items-center justify-center text-white text-xs font-bold">
                                 {session.name.charAt(0).toUpperCase()}
                             </div>
                             <span className="hidden md:block">{session.name.split(' ')[0]}</span>

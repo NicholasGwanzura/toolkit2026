@@ -9,6 +9,7 @@ import {
   cancelTrainingSession,
 } from '@/lib/api';
 import type { UserSession } from '@/lib/auth';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 
 type SessionFormState = {
   title: string;
@@ -124,8 +125,10 @@ export default function TrainerLearningHub({ session }: { session: UserSession }
     setForm(emptyForm(session.region));
   };
 
+  const [toCancel, setToCancel] = useState<(typeof sessions)[number] | null>(null);
+
   const handleCancelTraining = async (entry: (typeof sessions)[number]) => {
-    if (!window.confirm(`Cancel "${entry.title}"? It will be removed from the training calendar.`)) return;
+    setToCancel(null);
     try {
       await cancelTrainingSession(entry.id);
       if (editingId === entry.id) stopEdit();
@@ -186,7 +189,7 @@ export default function TrainerLearningHub({ session }: { session: UserSession }
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleCancelTraining(sessionItem)}
+                        onClick={() => setToCancel(sessionItem)}
                         className="inline-flex items-center gap-1.5 border border-red-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-50"
                       >
                         <XCircle className="h-3.5 w-3.5" /> Cancel
@@ -272,7 +275,7 @@ export default function TrainerLearningHub({ session }: { session: UserSession }
             <button
               type="submit"
               disabled={submitting}
-              className="inline-flex items-center gap-2 bg-[#FF6B35] px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center gap-2 bg-[#B45309] px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {editingId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
               {submitting ? 'Saving…' : editingId ? 'Save Changes' : 'Add Training Course'}
@@ -296,6 +299,7 @@ export default function TrainerLearningHub({ session }: { session: UserSession }
           )}
         </form>
       </section>
+      <ConfirmModal open={toCancel !== null} title={`Cancel "${toCancel?.title ?? ''}"?`} description="It will be removed from the training calendar." confirmLabel="Cancel session" cancelLabel="Keep session" onConfirm={() => { if (toCancel) void handleCancelTraining(toCancel); }} onCancel={() => setToCancel(null)} />
     </div>
   );
 }

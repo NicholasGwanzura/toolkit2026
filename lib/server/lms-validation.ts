@@ -7,7 +7,7 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{
 
 export const MAX_EXAM_ANSWERS = 100;
 /** How many times a learner may sit one course exam while still failing. */
-export const MAX_EXAM_ATTEMPTS = 3;
+export { MAX_EXAM_ATTEMPTS } from '@/lib/exam';
 export const DEFAULT_PASS_MARK = 70;
 /** CPD credits for a certificate that is not linked to a course (a manually entered request). */
 export const DEFAULT_CPD_CREDITS = 12;

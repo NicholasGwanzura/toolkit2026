@@ -61,60 +61,61 @@ export function ModuleEditor({ courseId, module, index, count, readOnly, open, o
   };
 
   return (
-    <li className="rounded-lg border border-stone-200 bg-white">
+    <li className="rounded-lg border border-gray-200 bg-white">
       <div className="flex items-center gap-2 px-3 py-2">
         <button type="button" onClick={onToggle} aria-expanded={open} aria-controls={panelId} className="flex min-w-0 flex-1 items-center gap-3 rounded p-1 text-left">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-stone-100 text-xs font-bold text-stone-700">{index + 1}</span>
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-bold text-gray-700">{index + 1}</span>
           <span className="min-w-0">
-            <span className="block truncate font-semibold text-stone-900">{module.title.trim() || 'Untitled module'}</span>
-            <span className="block text-xs text-stone-500">
+            <span className="block truncate font-semibold text-gray-900">{module.title.trim() || 'Untitled module'}</span>
+            <span className="block text-xs text-gray-500">
               {module.minutes} min{attachments.length > 0 ? `, ${attachments.length} file${attachments.length === 1 ? '' : 's'}` : ''}
               {incomplete && <span className="ml-2 font-semibold text-amber-700">Needs a title and content</span>}
             </span>
           </span>
-          <ChevronDown className={cn('ml-auto h-4 w-4 shrink-0 text-stone-400 transition', open && 'rotate-180')} aria-hidden="true" />
+          <ChevronDown className={cn('ml-auto h-4 w-4 shrink-0 text-gray-400 transition', open && 'rotate-180')} aria-hidden="true" />
         </button>
         {!readOnly && (
           <div className="flex shrink-0 items-center">
-            <button type="button" onClick={() => onMove(-1)} disabled={index === 0} aria-label={`Move module ${index + 1} up`} className="rounded p-2 text-stone-500 hover:bg-stone-100 disabled:opacity-30"><ArrowUp className="h-4 w-4" aria-hidden="true" /></button>
-            <button type="button" onClick={() => onMove(1)} disabled={index === count - 1} aria-label={`Move module ${index + 1} down`} className="rounded p-2 text-stone-500 hover:bg-stone-100 disabled:opacity-30"><ArrowDown className="h-4 w-4" aria-hidden="true" /></button>
-            <button type="button" onClick={onRemove} disabled={count === 1} aria-label={`Remove module ${index + 1}`} title={count === 1 ? 'A course needs at least one module' : undefined} className="rounded p-2 text-stone-500 hover:bg-rose-50 hover:text-rose-700 disabled:opacity-30"><Trash2 className="h-4 w-4" aria-hidden="true" /></button>
+            <button type="button" onClick={() => onMove(-1)} disabled={index === 0} aria-label={`Move module ${index + 1} up`} className="rounded p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-30"><ArrowUp className="h-4 w-4" aria-hidden="true" /></button>
+            <button type="button" onClick={() => onMove(1)} disabled={index === count - 1} aria-label={`Move module ${index + 1} down`} className="rounded p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-30"><ArrowDown className="h-4 w-4" aria-hidden="true" /></button>
+            <button type="button" onClick={onRemove} disabled={count === 1} aria-label={`Remove module ${index + 1}`} title={count === 1 ? 'A course needs at least one module' : undefined} className="rounded p-2 text-gray-500 hover:bg-rose-50 hover:text-rose-700 disabled:opacity-30"><Trash2 className="h-4 w-4" aria-hidden="true" /></button>
           </div>
         )}
       </div>
 
       {open && (
-        <div id={panelId} className="space-y-4 border-t border-stone-200 p-4">
+        <div id={panelId} className="space-y-4 border-t border-gray-200 p-4">
           <Input label="Module title" value={module.title} onChange={(value) => onChange({ title: value })} isDisabled={readOnly} />
           <div className="space-y-1.5">
-            <label htmlFor={`${panelId}-content`} className="text-sm font-medium text-stone-800">Learning content</label>
+            <label htmlFor={`${panelId}-content`} className="text-sm font-medium text-gray-800">Learning content</label>
             <textarea
               id={`${panelId}-content`}
               rows={8}
               value={module.content}
               disabled={readOnly}
               onChange={(e) => onChange({ content: e.target.value })}
-              className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm leading-6 outline-none transition focus:border-[#D97706] focus:ring-2 focus:ring-[#D97706]/20 disabled:bg-stone-50 disabled:text-stone-500"
+              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm leading-6 outline-none transition focus:border-[#D97706] focus:ring-2 focus:ring-[#D97706]/20 disabled:bg-gray-50 disabled:text-gray-500"
             />
+            <p className="text-xs text-gray-500">Start a line with # for a heading or - for a list. Web addresses become links for learners.</p>
           </div>
           <div className="max-w-40">
             <Input label="Time (minutes)" type="number" value={String(module.minutes)} onChange={(value) => onChange({ minutes: Number(value) })} isDisabled={readOnly} hint="1 to 480" />
           </div>
 
           <div className="space-y-2">
-            <p className="text-sm font-medium text-stone-800">Files for learners</p>
-            {attachments.length === 0 && <p className="text-xs text-stone-500">No files attached. PDFs, images and documents work.</p>}
+            <p className="text-sm font-medium text-gray-800">Files for learners</p>
+            {attachments.length === 0 && <p className="text-xs text-gray-500">No files attached. PDFs, images and documents work.</p>}
             <ul className="space-y-1.5">
               {attachments.map((attachment) => (
-                <li key={attachment.id} className="flex items-center justify-between gap-3 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2">
-                  <span className="flex min-w-0 items-center gap-2 text-sm text-stone-800">
-                    <Paperclip className="h-3.5 w-3.5 shrink-0 text-stone-400" aria-hidden="true" />
+                <li key={attachment.id} className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                  <span className="flex min-w-0 items-center gap-2 text-sm text-gray-800">
+                    <Paperclip className="h-3.5 w-3.5 shrink-0 text-gray-400" aria-hidden="true" />
                     <span className="truncate">{attachment.fileName}</span>
-                    <span className="shrink-0 text-xs text-stone-500">{fileSize(attachment.sizeBytes)}</span>
+                    <span className="shrink-0 text-xs text-gray-500">{fileSize(attachment.sizeBytes)}</span>
                   </span>
                   <span className="flex shrink-0 items-center">
-                    <button type="button" onClick={() => void download(attachment)} aria-label={`Download ${attachment.fileName}`} className="rounded p-2 text-stone-500 hover:bg-white hover:text-blue-700"><Download className="h-4 w-4" aria-hidden="true" /></button>
-                    {!readOnly && <button type="button" onClick={() => onRemoveAttachment(attachment)} aria-label={`Remove ${attachment.fileName}`} className="rounded p-2 text-stone-500 hover:bg-white hover:text-rose-700"><X className="h-4 w-4" aria-hidden="true" /></button>}
+                    <button type="button" onClick={() => void download(attachment)} aria-label={`Download ${attachment.fileName}`} className="rounded p-2 text-gray-500 hover:bg-white hover:text-blue-700"><Download className="h-4 w-4" aria-hidden="true" /></button>
+                    {!readOnly && <button type="button" onClick={() => onRemoveAttachment(attachment)} aria-label={`Remove ${attachment.fileName}`} className="rounded p-2 text-gray-500 hover:bg-white hover:text-rose-700"><X className="h-4 w-4" aria-hidden="true" /></button>}
                   </span>
                 </li>
               ))}
@@ -122,7 +123,7 @@ export function ModuleEditor({ courseId, module, index, count, readOnly, open, o
             {!readOnly && (
               <div>
                 <input ref={fileInput} type="file" multiple className="hidden" onChange={(e) => void upload(e)} aria-label={`Add files to module ${index + 1}`} />
-                <button type="button" onClick={() => fileInput.current?.click()} disabled={progress !== null} className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-dashed border-stone-300 px-3 py-2 text-sm font-semibold text-stone-700 transition hover:border-[#D97706] hover:text-[#b45309] disabled:opacity-60">
+                <button type="button" onClick={() => fileInput.current?.click()} disabled={progress !== null} className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-dashed border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 transition hover:border-[#D97706] hover:text-[#B45309] disabled:opacity-60">
                   {progress !== null ? <><Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> Uploading {progress}%</> : <><Paperclip className="h-4 w-4" aria-hidden="true" /> Add files</>}
                 </button>
               </div>

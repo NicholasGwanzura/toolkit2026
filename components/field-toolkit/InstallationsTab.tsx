@@ -181,7 +181,7 @@ export default function InstallationsTab({ checklist, onChecklistUsed, onGoToChe
         <button
           type="button"
           onClick={() => { setNotice(null); setFormOpen(true); }}
-          className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#D97706] px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-[#D97706]/30 transition hover:bg-[#b45309] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2"
+          className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#B45309] px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-[#D97706]/30 transition hover:bg-[#92400E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2"
         >
           <PlusCircle className="h-4 w-4" aria-hidden="true" />
           Record installation
@@ -262,7 +262,7 @@ export default function InstallationsTab({ checklist, onChecklistUsed, onGoToChe
               <button type="button" onClick={() => setFormOpen(false)} className="min-h-11 rounded-xl border border-[#E7E5E4] bg-white px-4 py-2 text-sm font-semibold text-[#57534E] transition hover:bg-[#FAFAF9]">
                 Cancel
               </button>
-              <button type="submit" form="new-installation" disabled={saving} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#D97706] px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#b45309] disabled:opacity-60">
+              <button type="submit" form="new-installation" disabled={saving} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#B45309] px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#92400E] disabled:opacity-60">
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Save className="h-4 w-4" aria-hidden="true" />}
                 {saving ? 'Saving…' : 'Save installation'}
               </button>
@@ -475,7 +475,7 @@ function InstallationCard({ installation, onRequestCoc, cocRequest }: { installa
               type="button"
               disabled={!confirmed}
               onClick={() => { setCocOpen(false); onRequestCoc(installation); }}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#D97706] px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#b45309] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#B45309] px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#92400E] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <FileCheck className="h-4 w-4" aria-hidden="true" />
               Send for review

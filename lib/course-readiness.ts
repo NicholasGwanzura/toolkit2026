@@ -8,7 +8,7 @@ export interface CourseDraft {
   cpdCredits: number;
   modules: Array<{ title: string; content: string; minutes: number }>;
   /** The exam questions. Optional so older callers still work. */
-  examQuestions?: Array<{ type: 'choice' | 'written'; text: string; options?: string[]; correctIndex?: number }>;
+  examQuestions?: Array<{ type: 'choice' | 'written'; text: string; options?: string[]; correctIndex?: number; moduleIndex?: number }>;
 }
 
 export interface ReadinessItem {
@@ -99,7 +99,7 @@ export function courseReadiness(course: CourseDraft): { items: ReadinessItem[]; 
 export function isDirty(a: CourseDraft, b: CourseDraft): boolean {
   const pick = (c: CourseDraft) => JSON.stringify({
     t: c.title, d: c.description, p: c.passMark, c: c.cpdCredits,
-    q: (c.examQuestions ?? []).map((x) => [x.type, x.text, x.options ?? [], x.correctIndex ?? -1]),
+    q: (c.examQuestions ?? []).map((x) => [x.type, x.text, x.options ?? [], x.correctIndex ?? -1, x.moduleIndex ?? -1]),
     m: c.modules.map((m) => [m.title, m.content, m.minutes, (m as { attachments?: Array<{ id: string }> }).attachments?.map((x) => x.id) ?? []]),
   });
   return pick(a) !== pick(b);

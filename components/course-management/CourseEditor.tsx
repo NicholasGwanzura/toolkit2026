@@ -182,7 +182,7 @@ export function CourseEditor({ courseId }: { courseId: string }) {
   };
 
   if (error) return <p role="alert" className="border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">Could not open this course: {error.message}. <Link href="/learn/manage" className="font-semibold underline">Back to courses</Link></p>;
-  if (isLoading || !course || !draft || !readiness) return <p className="p-4 text-sm text-stone-500">Opening the course…</p>;
+  if (isLoading || !course || !draft || !readiness) return <p className="p-4 text-sm text-gray-500">Opening the course…</p>;
 
   const readOnly = !editable;
   const minutes = totalMinutes(draft.modules);
@@ -190,14 +190,14 @@ export function CourseEditor({ courseId }: { courseId: string }) {
   return (
     <div className="space-y-5">
       <div>
-        <Link href="/learn/manage" className="inline-flex items-center gap-1.5 text-sm font-semibold text-stone-600 hover:text-stone-900"><ArrowLeft className="h-4 w-4" aria-hidden="true" /> All courses</Link>
+        <Link href="/learn/manage" className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-600 hover:text-gray-900"><ArrowLeft className="h-4 w-4" aria-hidden="true" /> All courses</Link>
         <div className="mt-3 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="truncate text-2xl font-bold text-stone-900">{draft.title.trim() || 'Untitled course'}</h1>
+              <h1 className="truncate text-2xl font-bold text-gray-900">{draft.title.trim() || 'Untitled course'}</h1>
               <StatusPill status={course.status} />
             </div>
-            <p className="mt-1 text-sm text-stone-600">{draft.modules.length} module{draft.modules.length === 1 ? '' : 's'}, {formatMinutes(minutes)}, pass mark {draft.passMark}%, {draft.cpdCredits} CPD credits</p>
+            <p className="mt-1 text-sm text-gray-600">{draft.modules.length} module{draft.modules.length === 1 ? '' : 's'}, {formatMinutes(minutes)}, pass mark {draft.passMark}%, {draft.cpdCredits} CPD credits</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             {editable && <SaveIndicator state={saveState} />}
@@ -214,8 +214,8 @@ export function CourseEditor({ courseId }: { courseId: string }) {
         </div>
       )}
       {readOnly && (
-        <div className="flex gap-3 border border-stone-200 bg-stone-50 p-4 text-sm text-stone-800">
-          <Lock className="mt-0.5 h-5 w-5 shrink-0 text-stone-500" aria-hidden="true" />
+        <div className="flex gap-3 border border-gray-200 bg-gray-50 p-4 text-sm text-gray-800">
+          <Lock className="mt-0.5 h-5 w-5 shrink-0 text-gray-500" aria-hidden="true" />
           <p><span className="font-semibold">{STATUS_META[course.status].label}.</span> {STATUS_META[course.status].hint}</p>
         </div>
       )}
@@ -233,14 +233,14 @@ export function CourseEditor({ courseId }: { courseId: string }) {
           <div className="max-w-2xl space-y-5">
             <Input label="Course title" value={draft.title} onChange={(value) => update({ title: value })} isDisabled={readOnly} hint={`${draft.title.trim().length} of ${MAX_TITLE} characters`} />
             <div className="space-y-1.5">
-              <label htmlFor="course-description" className="text-sm font-medium text-stone-800">Description</label>
-              <textarea id="course-description" rows={5} value={draft.description} disabled={readOnly} onChange={(e) => update({ description: e.target.value })} className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm leading-6 outline-none transition focus:border-[#D97706] focus:ring-2 focus:ring-[#D97706]/20 disabled:bg-stone-50 disabled:text-stone-500" />
-              <p className="text-xs text-stone-500">{draft.description.trim().length} of {MAX_DESCRIPTION} characters. Learners read this before they enrol.</p>
+              <label htmlFor="course-description" className="text-sm font-medium text-gray-800">Description</label>
+              <textarea id="course-description" rows={5} value={draft.description} disabled={readOnly} onChange={(e) => update({ description: e.target.value })} className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm leading-6 outline-none transition focus:border-[#D97706] focus:ring-2 focus:ring-[#D97706]/20 disabled:bg-gray-50 disabled:text-gray-500" />
+              <p className="text-xs text-gray-500">{draft.description.trim().length} of {MAX_DESCRIPTION} characters. Learners read this before they enrol.</p>
             </div>
             <div className="grid gap-5 sm:grid-cols-2">
               <div className="space-y-2">
                 <Slider label="Pass mark" minValue={1} maxValue={100} value={draft.passMark} onChange={(value) => update({ passMark: Number(value) })} isDisabled={readOnly} />
-                <p className="text-xs text-stone-500">A learner needs at least {draft.passMark}% in the exam to pass. Learners get three attempts.</p>
+                <p className="text-xs text-gray-500">A learner needs at least {draft.passMark}% in the exam to pass. Learners get three attempts.</p>
               </div>
               <Input label="CPD credits" type="number" value={String(draft.cpdCredits)} onChange={(value) => update({ cpdCredits: Number(value) })} isDisabled={readOnly} hint="0 to 100. Printed on certificates for this course." />
             </div>
@@ -273,39 +273,39 @@ export function CourseEditor({ courseId }: { courseId: string }) {
         </TabPanel>
 
         <TabPanel id="exam" className="pt-5">
-          <ExamEditor questions={draft.examQuestions} readOnly={readOnly} onChange={(examQuestions) => update({ examQuestions })} />
+          <ExamEditor questions={draft.examQuestions} modules={draft.modules.map((m) => m.title)} readOnly={readOnly} onChange={(examQuestions) => update({ examQuestions })} />
         </TabPanel>
 
         <TabPanel id="review" className="pt-5">
           <div className="grid gap-6 lg:grid-cols-[1fr_1.1fr]">
             <section aria-labelledby="readiness-heading" className="space-y-3">
-              <h2 id="readiness-heading" className="text-lg font-semibold text-stone-900">Ready to submit?</h2>
+              <h2 id="readiness-heading" className="text-lg font-semibold text-gray-900">Ready to submit?</h2>
               <ul className="space-y-2">
                 {readiness.items.map((item) => (
                   <li key={item.id} className="flex items-start gap-2.5 text-sm">
                     {item.ok ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-label="Done" /> : <Circle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-label="Still to do" />}
-                    <span className={item.ok ? 'text-stone-600' : 'font-medium text-stone-900'}>
+                    <span className={item.ok ? 'text-gray-600' : 'font-medium text-gray-900'}>
                       {item.label}
-                      {!item.ok && editable && <button type="button" onClick={() => setSection(item.section)} className="ml-2 font-semibold text-[#b45309] underline">Fix</button>}
+                      {!item.ok && editable && <button type="button" onClick={() => setSection(item.section)} className="ml-2 font-semibold text-[#B45309] underline">Fix</button>}
                     </span>
                   </li>
                 ))}
               </ul>
               {editable && (readiness.ready
                 ? <p className="flex items-center gap-2 text-sm font-medium text-emerald-700"><Check className="h-4 w-4" aria-hidden="true" /> Everything is in place. You can submit it for approval.</p>
-                : <p className="text-sm text-stone-600">Finish the items above, then the Submit button becomes available.</p>)}
-              <p className="text-xs text-stone-500">Once submitted, the course is locked while an administrator reviews it. If they send it back, you will see why here.</p>
+                : <p className="text-sm text-gray-600">Finish the items above, then the Submit button becomes available.</p>)}
+              <p className="text-xs text-gray-500">Once submitted, the course is locked while an administrator reviews it. If they send it back, you will see why here.</p>
             </section>
             <section aria-labelledby="preview-heading" className="space-y-3">
-              <h2 id="preview-heading" className="text-lg font-semibold text-stone-900">What learners will see</h2>
-              <div className="space-y-3 rounded-lg border border-stone-200 bg-stone-50 p-4">
-                <p className="font-semibold text-stone-900">{draft.title.trim() || 'Untitled course'}</p>
-                <p className="whitespace-pre-line text-sm leading-6 text-stone-700">{draft.description.trim() || 'No description yet.'}</p>
+              <h2 id="preview-heading" className="text-lg font-semibold text-gray-900">What learners will see</h2>
+              <div className="space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                <p className="font-semibold text-gray-900">{draft.title.trim() || 'Untitled course'}</p>
+                <p className="whitespace-pre-line text-sm leading-6 text-gray-700">{draft.description.trim() || 'No description yet.'}</p>
                 <ol className="space-y-2">
                   {draft.modules.map((module, index) => (
-                    <li key={index} className="rounded border border-stone-200 bg-white p-3">
-                      <p className="text-sm font-semibold text-stone-900">{index + 1}. {module.title.trim() || 'Untitled module'} <span className="font-normal text-stone-500">({module.minutes} min)</span></p>
-                      <p className="mt-1 line-clamp-3 whitespace-pre-line text-sm text-stone-600">{module.content.trim() || 'No content yet.'}</p>
+                    <li key={index} className="rounded border border-gray-200 bg-white p-3">
+                      <p className="text-sm font-semibold text-gray-900">{index + 1}. {module.title.trim() || 'Untitled module'} <span className="font-normal text-gray-500">({module.minutes} min)</span></p>
+                      <p className="mt-1 line-clamp-3 whitespace-pre-line text-sm text-gray-600">{module.content.trim() || 'No content yet.'}</p>
                     </li>
                   ))}
                 </ol>
@@ -325,7 +325,7 @@ export function CourseEditor({ courseId }: { courseId: string }) {
 function SaveIndicator({ state }: { state: SaveState }) {
   return (
     <p className="text-sm" role="status" aria-live="polite">
-      {state.kind === 'saving' && <span className="inline-flex items-center gap-1.5 text-stone-600"><Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> Saving…</span>}
+      {state.kind === 'saving' && <span className="inline-flex items-center gap-1.5 text-gray-600"><Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> Saving…</span>}
       {state.kind === 'saved' && <span className="inline-flex items-center gap-1.5 text-emerald-700"><Check className="h-4 w-4" aria-hidden="true" /> Saved {state.at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>}
       {state.kind === 'waiting' && <span className="inline-flex items-center gap-1.5 text-amber-700"><AlertTriangle className="h-4 w-4" aria-hidden="true" /> {state.reason}</span>}
       {state.kind === 'error' && <span className="inline-flex items-center gap-1.5 text-rose-700"><AlertTriangle className="h-4 w-4" aria-hidden="true" /> Not saved: {state.message}</span>}

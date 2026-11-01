@@ -8,9 +8,12 @@ import {
     approveCourse,
     rejectCourse,
     unpublishCourse,
+    getCourseMaterialDownloadUrl,
     type ManagedCourse,
 } from '@/lib/platformStore';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import { RichText } from '@/components/learn/RichText';
+import { CheckCircle2, Download, FileText } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -41,13 +44,21 @@ function ReviewPanel({
     const [showRejectForm, setShowRejectForm] = useState(false);
     const [notice, setNotice] = useState('');
     const [saving, setSaving] = useState(false);
+    const questions = course.examQuestions ?? [];
+
+    async function openFile(r2Key: string) {
+        try {
+            window.open(await getCourseMaterialDownloadUrl(course.id, r2Key), '_blank', 'noopener,noreferrer');
+        } catch (err) {
+            setNotice(err instanceof Error ? err.message : 'Could not open the file.');
+        }
+    }
 
     async function handleApprove() {
         setSaving(true);
         try {
             const updated = await approveCourse(course.id);
             onApproved(updated);
-            setNotice('Course approved.');
         } catch (err) {
             setNotice((err as Error).message);
         } finally {
@@ -61,7 +72,6 @@ function ReviewPanel({
         try {
             const updated = await rejectCourse(course.id, rejectReason.trim());
             onRejected(updated);
-            setNotice('Course rejected.');
         } catch (err) {
             setNotice((err as Error).message);
         } finally {
@@ -100,7 +110,41 @@ function ReviewPanel({
                                 </p>
                                 <span className="text-xs text-gray-400">{mod.minutes} min</span>
                             </div>
-                            <p className="whitespace-pre-line break-words text-sm leading-6 text-gray-600">{mod.content}</p>
+                            <RichText text={mod.content} />
+                            {(mod.attachments ?? []).map(file => (
+                                <button key={file.id} type="button" onClick={() => void openFile(file.r2Key)} className="flex min-h-11 w-full items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-left text-sm text-gray-700 hover:border-blue-300 hover:text-blue-700">
+                                    <span className="flex min-w-0 items-center gap-2"><FileText className="h-4 w-4 shrink-0 text-gray-400" aria-hidden="true" /><span className="truncate">{file.fileName}</span></span>
+                                    <Download className="h-4 w-4 shrink-0" aria-hidden="true" />
+                                </button>
+                            ))}
+                        </div>
+                    ))}
+                </div>
+
+                <div className="space-y-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
+                        Exam ({questions.length} question{questions.length === 1 ? '' : 's'}, pass mark {course.passMark}%)
+                    </p>
+                    {questions.length === 0 && (
+                        <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm font-medium text-rose-800">
+                            This course has no exam questions, so it cannot be approved. Reject it with a note asking the trainer to add them.
+                        </p>
+                    )}
+                    {questions.map((question, index) => (
+                        <div key={question.id} className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                            <p className="text-sm font-semibold text-gray-900">{index + 1}. {question.text}</p>
+                            {question.type === 'written' ? (
+                                <p className="mt-1 text-xs text-gray-500">Written answer, graded by the trainer.</p>
+                            ) : (
+                                <ul className="mt-2 space-y-1">
+                                    {(question.options ?? []).map((option, optionIndex) => (
+                                        <li key={optionIndex} className={`flex items-start gap-2 text-sm ${optionIndex === question.correctIndex ? 'font-semibold text-emerald-800' : 'text-gray-700'}`}>
+                                            {optionIndex === question.correctIndex ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-label="Correct answer" /> : <span className="w-4 shrink-0" aria-hidden="true" />}
+                                            {option}
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
                         </div>
                     ))}
                 </div>
@@ -112,15 +156,15 @@ function ReviewPanel({
                                 <button
                                     type="button"
                                     onClick={handleApprove}
-                                    disabled={saving}
-                                    className="bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
+                                    disabled={saving || questions.length === 0}
+                                    className="min-h-11 rounded-lg bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                     Approve
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setShowRejectForm(true)}
-                                    className="border border-red-300 bg-white px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+                                    className="min-h-11 rounded-lg border border-red-300 bg-white px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50"
                                 >
                                     Reject
                                 </button>
@@ -142,14 +186,14 @@ function ReviewPanel({
                                         type="button"
                                         onClick={handleReject}
                                         disabled={saving}
-                                        className="bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
+                                        className="min-h-11 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
                                     >
                                         Confirm Rejection
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => { setShowRejectForm(false); setRejectReason(''); }}
-                                        className="border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-600 transition hover:bg-gray-50"
+                                        className="min-h-11 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-600 transition hover:bg-gray-50"
                                     >
                                         Cancel
                                     </button>
@@ -224,6 +268,7 @@ export default function LearnApprovalsPage() {
 
     const [selected, setSelected] = useState<ManagedCourse | null>(null);
     const [returning, setReturning] = useState<ManagedCourse | null>(null);
+    const [outcome, setOutcome] = useState('');
 
     if (authLoading) {
         return (
@@ -251,24 +296,30 @@ export default function LearnApprovalsPage() {
     const canAct = true;
 
     function handleApproved(updated: ManagedCourse) {
-        void updated;
+        setOutcome(`"${updated.title}" is approved and live for learners. ${updated.lecturerName} has been told.`);
         setSelected(null);
     }
 
     function handleRejected(updated: ManagedCourse) {
-        void updated;
+        setOutcome(`"${updated.title}" went back to ${updated.lecturerName} with your reason.`);
         setSelected(null);
     }
 
     return (
         <div className="space-y-6">
             <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-400">NOU Oversight</p>
-                <h1 className="mt-2 text-2xl font-bold text-gray-900">Course Approvals</h1>
+                <h1 className="text-2xl font-bold text-gray-900">Course Approvals</h1>
                 <p className="mt-1 text-sm text-gray-500">
                     Review trainer and lecturer course submissions. Approve or reject with a mandatory reason.
                 </p>
             </div>
+
+            {outcome && (
+                <div role="status" className="flex items-start justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900">
+                    <span>{outcome}</span>
+                    <button type="button" onClick={() => setOutcome('')} className="shrink-0 font-semibold underline">Dismiss</button>
+                </div>
+            )}
 
             {selected && (
                 <ReviewPanel
@@ -301,7 +352,7 @@ export default function LearnApprovalsPage() {
                         {courses.length === 0 && (
                             <tr>
                                 <td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-400">
-                                    No courses are pending NOU review.
+                                    No courses are waiting for review.
                                 </td>
                             </tr>
                         )}
@@ -312,11 +363,11 @@ export default function LearnApprovalsPage() {
                                 <td className="px-4 py-3 text-gray-500">{formatDate(course.updatedAt)}</td>
                                 <td className="px-4 py-3 text-gray-600">{course.modules.length}</td>
                                 <td className="px-4 py-3">
-                                    <StatusBadge status="pending" label="Pending NOU" />
+                                    <StatusBadge status="pending" label="Awaiting approval" />
                                 </td>
                                 <td className="px-4 py-3 text-right">
                                     <button
-                                        onClick={() => setSelected(course)}
+                                        onClick={() => { setOutcome(''); setSelected(course); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                                         className="text-sm font-semibold text-blue-600 hover:underline"
                                     >
                                         Review
@@ -337,6 +388,9 @@ export default function LearnApprovalsPage() {
                     </p>
                 </div>
                 <table className="w-full text-sm">
+                    <thead className="sr-only">
+                        <tr><th>Course title</th><th>Lecturer</th><th>Approved</th><th>Actions</th></tr>
+                    </thead>
                     <tbody className="divide-y divide-gray-100">
                         {approvedCourses.length === 0 && (
                             <tr>

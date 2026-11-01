@@ -299,7 +299,7 @@ export default function AdminUsersPage() {
         </div>
         <Link
           href="/admin/invites"
-          className="inline-flex shrink-0 items-center justify-center gap-2 bg-[#D97706] px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
+          className="inline-flex shrink-0 items-center justify-center gap-2 bg-[#B45309] px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
         >
           <UserPlus className="h-4 w-4" />
           Invite users

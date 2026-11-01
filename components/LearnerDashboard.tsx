@@ -1,10 +1,12 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Award, BookOpen, CheckCircle2, ClipboardCheck, Clock3 } from 'lucide-react';
+import { ArrowRight, Award, BookOpen, CheckCircle2, ClipboardCheck } from 'lucide-react';
 import { useCourses, useExamSubmissions, type ExamSubmission } from '@/lib/platformStore';
+import { useCourseProgress } from '@/lib/api';
+import { courseToContinue } from '@/lib/course-journey';
 import type { UserSession } from '@/lib/session-types';
-import { isFieldWorkerRole } from '@/lib/field-worker';
 import DashboardEventsCalendar from '@/components/dashboard/DashboardEventsCalendar';
 
 function formatDate(iso: string) {
@@ -21,9 +23,10 @@ function statusClasses(submission: ExamSubmission) {
   return submission.passed ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700';
 }
 
-export default function LearnerDashboard({ session }: { session: UserSession }) {
+export default function LearnerDashboard({ session, children }: { session: UserSession; children?: ReactNode }) {
   const { data: courses, error: coursesError, isLoading: coursesLoading } = useCourses();
   const { data: submissions, error: submissionsError, isLoading: submissionsLoading } = useExamSubmissions();
+  const { data: progress } = useCourseProgress();
 
   const approvedCourses = (courses ?? []).filter(course => course.status === 'approved');
   const learnerSubmissions = submissions ?? [];
@@ -31,24 +34,23 @@ export default function LearnerDashboard({ session }: { session: UserSession }) 
   const recentSubmissions = [...learnerSubmissions]
     .sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime())
     .slice(0, 3);
-  const nextCourse = approvedCourses[0];
+  const next = courseToContinue(approvedCourses, progress ?? []);
   const loading = coursesLoading || submissionsLoading;
 
   return (
     <section className="space-y-5" aria-labelledby="learner-overview-title">
       <div className="rounded-2xl bg-slate-950 px-5 py-6 text-white shadow-sm sm:px-7">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-300">Learner overview</p>
-            <h2 id="learner-overview-title" className="mt-2 text-2xl font-bold tracking-tight">Welcome back, {session.name}</h2>
+          <div className="min-w-0">
+            <h2 id="learner-overview-title" className="text-2xl font-bold tracking-tight">Welcome back, {session.name}</h2>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
-              Pick up where you left off, review your assessment results, and keep building your RAC skills.
+              {next ? <>{next.begun ? 'Pick up where you left off in ' : 'Up next: '}<span className="font-semibold text-white">{next.course.title}</span>.</> : 'You have finished the modules in every available course. Check your exam results below.'}
             </p>
           </div>
-          {nextCourse && (
-            <a href="#available-courses" className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-[#FF6B35] px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950">
-              Continue learning <ArrowRight className="h-4 w-4" aria-hidden="true" />
-            </a>
+          {next && (
+            <Link href={`/learn/${next.course.id}`} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-[#B45309] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#92400E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950">
+              {next.begun ? 'Continue learning' : 'Start learning'} <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
           )}
         </div>
       </div>
@@ -60,8 +62,8 @@ export default function LearnerDashboard({ session }: { session: UserSession }) 
       ) : (
         <div className="grid gap-3 sm:grid-cols-3">
           <SummaryCard icon={<BookOpen className="h-5 w-5" aria-hidden="true" />} label="Available courses" value={approvedCourses.length} tone="blue" />
-          <SummaryCard icon={<ClipboardCheck className="h-5 w-5" aria-hidden="true" />} label="Assessments submitted" value={learnerSubmissions.length} tone="amber" />
-          <SummaryCard icon={<Award className="h-5 w-5" aria-hidden="true" />} label="Assessments passed" value={passedAssessments} tone="green" />
+          <SummaryCard icon={<ClipboardCheck className="h-5 w-5" aria-hidden="true" />} label="Exams submitted" value={learnerSubmissions.length} tone="amber" />
+          <SummaryCard icon={<Award className="h-5 w-5" aria-hidden="true" />} label="Exams passed" value={passedAssessments} tone="green" />
         </div>
       )}
 
@@ -69,82 +71,54 @@ export default function LearnerDashboard({ session }: { session: UserSession }) 
         <p role="alert" className="text-sm text-red-600">Some learner summary data could not be loaded. Your course list is still available below.</p>
       )}
 
-      <DashboardEventsCalendar />
+      <div id="available-courses" className="scroll-mt-4 space-y-3">
+        <h3 className="text-lg font-bold text-gray-900">Your courses</h3>
+        {children}
+      </div>
 
       <div className="grid gap-5 lg:grid-cols-[1.25fr_1fr]">
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-400">Next step</p>
-              <h3 className="mt-1 text-lg font-bold text-gray-900">{nextCourse ? nextCourse.title : 'No approved courses yet'}</h3>
-            </div>
-            <Clock3 className="h-5 w-5 text-gray-400" aria-hidden="true" />
+        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm" aria-labelledby="recent-assessments-title">
+          <div className="flex items-center justify-between gap-3">
+            <h3 id="recent-assessments-title" className="text-lg font-bold text-gray-900">Recent exams</h3>
+            <span className="text-xs font-medium text-gray-500">{learnerSubmissions.length} total</span>
           </div>
-          <p className="mt-2 text-sm leading-6 text-gray-600">
-            {nextCourse
-              ? `${nextCourse.modules.length} modules are ready. Start with the curriculum below and mark each module complete as you go.`
-              : 'Your trainer or lecturer will publish approved courses here when they are ready.'}
-          </p>
-          {nextCourse && <p className="mt-3 text-xs font-medium text-gray-500">By {nextCourse.lecturerName}</p>}
-        </div>
-
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-400">Your pathway</p>
-              <h3 className="mt-1 text-lg font-bold text-gray-900">Learn → assess → certify</h3>
+          {recentSubmissions.length === 0 ? (
+            <p className="mt-4 text-sm text-gray-500">No exams submitted yet. Finish a course&apos;s modules to unlock its exam.</p>
+          ) : (
+            <div className="mt-4 divide-y divide-gray-100">
+              {recentSubmissions.map(submission => (
+                <div key={submission.id} className="flex flex-col gap-2 py-3 first:pt-0 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-gray-900">{submission.courseTitle}</p>
+                    <p className="mt-1 text-xs text-gray-500">Submitted {formatDate(submission.submittedAt)}{submission.score !== undefined ? `, ${submission.score}%` : ''}</p>
+                  </div>
+                  <span className={`inline-flex w-fit rounded-full px-2.5 py-1 text-xs font-semibold ${statusClasses(submission)}`}>
+                    {statusLabel(submission)}
+                  </span>
+                </div>
+              ))}
             </div>
-            <CheckCircle2 className="h-5 w-5 text-emerald-600" aria-hidden="true" />
-          </div>
-          <p className="mt-2 text-sm leading-6 text-gray-600">Complete the curriculum, submit an assessment, and follow up with your trainer when your result is ready.</p>
-          {isFieldWorkerRole(session.role) && (
-            <Link href="/certifications" className="mt-3 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-blue-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">
-              View certifications <ArrowRight className="h-4 w-4" aria-hidden="true" />
-            </Link>
           )}
         </div>
-      </div>
 
-      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm" aria-labelledby="recent-assessments-title">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-400">Activity</p>
-            <h3 id="recent-assessments-title" className="mt-1 text-lg font-bold text-gray-900">Recent assessments</h3>
+        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <h3 className="text-lg font-bold text-gray-900">How it works</h3>
+            <CheckCircle2 className="h-5 w-5 text-emerald-600" aria-hidden="true" />
           </div>
-          <span className="text-xs font-medium text-gray-500">{learnerSubmissions.length} total</span>
-        </div>
-        {recentSubmissions.length === 0 ? (
-          <p className="mt-4 text-sm text-gray-500">No assessments submitted yet. Start a course to begin your learning pathway.</p>
-        ) : (
-          <div className="mt-4 divide-y divide-gray-100">
-            {recentSubmissions.map(submission => (
-              <div key={submission.id} className="flex flex-col gap-2 py-3 first:pt-0 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-gray-900">{submission.courseTitle}</p>
-                  <p className="mt-1 text-xs text-gray-500">Submitted {formatDate(submission.submittedAt)}{submission.score !== undefined ? ` · ${submission.score}%` : ''}</p>
-                </div>
-                <span className={`inline-flex w-fit rounded-full px-2.5 py-1 text-xs font-semibold ${statusClasses(submission)}`}>
-                  {statusLabel(submission)}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div id="available-courses">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-400">Course library</p>
-            <h3 className="mt-1 text-lg font-bold text-gray-900">Available courses</h3>
-          </div>
+          <p className="mt-2 text-sm leading-6 text-gray-600">Finish the modules, pass the exam, and your trainer requests your certificate. HEVACRAZ then reviews and issues it.</p>
+          <Link href="/certifications" className="mt-3 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-blue-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">
+            View certifications <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          </Link>
         </div>
       </div>
+
+      <DashboardEventsCalendar />
     </section>
   );
 }
 
-function SummaryCard({ icon, label, value, tone }: { icon: React.ReactNode; label: string; value: number; tone: 'blue' | 'amber' | 'green' }) {
+function SummaryCard({ icon, label, value, tone }: { icon: ReactNode; label: string; value: number; tone: 'blue' | 'amber' | 'green' }) {
   const colors = {
     blue: 'bg-blue-50 text-blue-700',
     amber: 'bg-amber-50 text-amber-700',

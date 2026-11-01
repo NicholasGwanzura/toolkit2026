@@ -228,12 +228,18 @@ function JobsAndLogsPanel() {
     );
 }
 
-function SummaryCard({ label, value }: { label: string; value: number }) {
-    return (
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+function SummaryCard({ label, value, onClick }: { label: string; value: number; onClick?: () => void }) {
+    const content = (
+        <>
             <p className="text-sm font-semibold text-gray-500">{label}</p>
             <p className="mt-2 text-3xl font-bold text-gray-900">{value}</p>
-        </div>
+        </>
+    );
+    if (!onClick) return <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">{content}</div>;
+    return (
+        <button type="button" onClick={onClick} className="rounded-xl border border-gray-200 bg-white p-5 text-left shadow-sm transition hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-400">
+            {content}
+        </button>
     );
 }
 
@@ -279,9 +285,9 @@ export default function FieldOperations() {
                         </p>
                     </div>
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                        <SummaryCard label="Equipment" value={equipment.length} />
-                        <SummaryCard label="Jobs" value={jobs.length} />
-                        <SummaryCard label="Open work" value={openJobs} />
+                        <SummaryCard label="Equipment" value={equipment.length} onClick={() => router.push('/field-operations?tab=schedule')} />
+                        <SummaryCard label="Jobs" value={jobs.length} onClick={() => router.push('/field-operations?tab=logs')} />
+                        <SummaryCard label="Open work" value={openJobs} onClick={() => router.push('/field-operations?tab=planner')} />
                     </div>
                 </div>
             </div>
@@ -322,7 +328,7 @@ export default function FieldOperations() {
                     <button
                         type="button"
                         onClick={() => router.push('/field-operations?tab=planner')}
-                        className="min-h-11 rounded-lg bg-[#D97706] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#b45309]"
+                        className="min-h-11 rounded-lg bg-[#B45309] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#92400E]"
                     >
                         Go to my jobs
                     </button>

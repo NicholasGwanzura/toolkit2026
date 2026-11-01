@@ -15,6 +15,6 @@ export default function EditCoursePage() {
     if (!isLoading && !allowed) router.replace('/dashboard');
   }, [isLoading, allowed, router]);
 
-  if (isLoading || !allowed) return <p className="p-4 text-sm text-stone-500">Loading…</p>;
+  if (isLoading || !allowed) return <p className="p-4 text-sm text-gray-500">Loading…</p>;
   return <CourseEditor courseId={id} />;
 }

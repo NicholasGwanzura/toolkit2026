@@ -258,7 +258,7 @@ export default function GasRegisterTab({ prefill, onPrefillConsumed }: GasRegist
           <button
             type="button"
             onClick={() => { setErrors({}); setFormOpen(true); }}
-            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#D97706] px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-[#D97706]/30 transition hover:bg-[#b45309] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2"
+            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#B45309] px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-[#D97706]/30 transition hover:bg-[#92400E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2"
           >
             <PlusCircle className="h-4 w-4" aria-hidden="true" />
             New log entry
@@ -411,7 +411,7 @@ export default function GasRegisterTab({ prefill, onPrefillConsumed }: GasRegist
               <button type="button" onClick={() => setFormOpen(false)} className="min-h-11 rounded-xl border border-[#E7E5E4] bg-white px-4 py-2 text-sm font-semibold text-[#57534E] transition hover:bg-[#FAFAF9]">
                 Cancel
               </button>
-              <button type="submit" form="new-gas-log" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#D97706] px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#b45309]">
+              <button type="submit" form="new-gas-log" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#B45309] px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#92400E]">
                 <Save className="h-4 w-4" aria-hidden="true" />
                 Save log entry
               </button>
@@ -431,7 +431,7 @@ export default function GasRegisterTab({ prefill, onPrefillConsumed }: GasRegist
                   aria-pressed={form.actionType === action}
                   className={`min-h-12 rounded-xl border px-2 py-2 text-sm font-semibold transition ${
                     form.actionType === action
-                      ? 'border-[#D97706] bg-[#D97706] text-white shadow-sm'
+                      ? 'border-[#D97706] bg-[#B45309] text-white shadow-sm'
                       : 'border-[#E7E5E4] bg-white text-[#57534E] hover:border-[#D97706] hover:text-[#b45309]'
                   }`}
                 >
@@ -545,7 +545,7 @@ function SyncBanner({ isOnline, syncing, pending, failedCount, onRetry }: { isOn
             <p className="mt-1 text-xs text-amber-700">Saved on this device, not yet on the central database.</p>
           </div>
         </div>
-        {!syncing && <button type="button" onClick={onRetry} className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl bg-[#D97706] px-4 py-2 text-sm font-semibold text-white hover:bg-[#b45309]"><RefreshCw className="h-4 w-4" aria-hidden="true" />Sync now</button>}
+        {!syncing && <button type="button" onClick={onRetry} className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl bg-[#B45309] px-4 py-2 text-sm font-semibold text-white hover:bg-[#92400E]"><RefreshCw className="h-4 w-4" aria-hidden="true" />Sync now</button>}
       </div>
     );
   }

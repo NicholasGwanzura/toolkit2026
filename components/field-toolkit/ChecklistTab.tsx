@@ -193,7 +193,7 @@ export default function ChecklistTab({ saved, onSave, onGoToInstallations }: Che
             <p className="text-sm font-semibold text-[#1C1917]" aria-live="polite">{doneItems} of {totalItems} · {percent}%</p>
           </div>
           <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[#E7E5E4]" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent} aria-label="Checklist progress">
-            <div className={`h-2 rounded-full transition-all ${complete ? 'bg-[#5A7D5A]' : 'bg-[#D97706]'}`} style={{ width: `${percent}%` }} />
+            <div className={`h-2 rounded-full transition-all ${complete ? 'bg-[#5A7D5A]' : 'bg-[#B45309]'}`} style={{ width: `${percent}%` }} />
           </div>
           <p className="mt-2 text-xs text-[#78716C]">
             {complete
@@ -332,7 +332,7 @@ export default function ChecklistTab({ saved, onSave, onGoToInstallations }: Che
             <button
               type="button"
               onClick={confirmSwitch}
-              className="inline-flex min-h-10 items-center justify-center rounded-lg bg-[#D97706] px-4 text-sm font-semibold text-white transition hover:bg-[#b45309]"
+              className="inline-flex min-h-10 items-center justify-center rounded-lg bg-[#B45309] px-4 text-sm font-semibold text-white transition hover:bg-[#92400E]"
             >
               Switch and clear ticks
             </button>

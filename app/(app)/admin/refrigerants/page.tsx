@@ -110,7 +110,7 @@ export default function AdminRefrigerantsPage() {
           <button
             onClick={handleSyncNow}
             disabled={syncing}
-            className="inline-flex items-center gap-2 bg-[#D97706] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#b45309] disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center gap-2 bg-[#B45309] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#92400E] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
             {syncing ? 'Syncing…' : 'Sync Now'}

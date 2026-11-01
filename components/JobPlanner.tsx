@@ -2,7 +2,7 @@
 
 import { useMemo, useState, type FormEvent } from 'react';
 import {
-    CalendarDays, ChevronRight, Clock3, ClipboardList, MapPin,
+    CalendarDays, ChevronRight, Clock3, MapPin,
     Plus, Search, ShieldAlert, ShieldCheck, Sparkles, User, X,
 } from 'lucide-react';
 import {
@@ -117,7 +117,6 @@ export default function JobPlanner() {
     const sortedDates = useMemo(() => Object.keys(jobsByDate).sort(), [jobsByDate]);
 
     const stats = [
-        { label: 'Total Jobs',  value: jobs.length,                                        icon: ClipboardList, color: 'bg-blue-50 text-blue-600' },
         { label: 'Scheduled',   value: jobs.filter(j => j.status === 'scheduled').length,  icon: CalendarDays,  color: 'bg-indigo-50 text-indigo-600' },
         { label: 'In Progress', value: jobs.filter(j => j.status === 'in-progress').length,icon: Clock3,        color: 'bg-amber-50 text-amber-600' },
         { label: 'Follow-up',   value: jobs.filter(j => j.status === 'follow-up').length,  icon: ShieldAlert,   color: 'bg-rose-50 text-rose-600' },
@@ -184,14 +183,14 @@ export default function JobPlanner() {
             )}
 
             {/* Stats */}
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
                 {stats.map(s => {
                     const Icon = s.icon;
                     return (
                         <div key={s.label} className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
                             <div className="flex items-center justify-between">
                                 <p className="text-sm font-semibold text-gray-500">{s.label}</p>
-                                <span className={`p-2 ${s.color}`}><Icon className="h-4 w-4" /></span>
+                                <span className={`rounded-lg p-2 ${s.color}`}><Icon className="h-4 w-4" /></span>
                             </div>
                             <p className="mt-3 text-3xl font-bold text-gray-900">{s.value}</p>
                         </div>
@@ -225,7 +224,7 @@ export default function JobPlanner() {
                         <option value="cancelled">Cancelled</option>
                     </select>
                     <button onClick={() => setShowModal(true)}
-                        className="rounded-lg flex items-center justify-center gap-2 bg-[#D97706] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#b45309]">
+                        className="rounded-lg flex items-center justify-center gap-2 bg-[#B45309] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#92400E]">
                         <Plus className="h-4 w-4" /> New Job
                     </button>
                 </div>
@@ -260,12 +259,12 @@ export default function JobPlanner() {
             {/* Timeline */}
             <div className="space-y-6">
                 {jobsLoading && (
-                    <div className="border border-gray-200 bg-white p-10 text-center">
+                    <div className="rounded-lg border border-gray-200 bg-white p-10 text-center">
                         <p className="text-sm font-semibold text-gray-400">Loading jobs…</p>
                     </div>
                 )}
                 {!jobsLoading && sortedDates.length === 0 && (
-                    <div className="border border-dashed border-gray-200 bg-white p-10 text-center">
+                    <div className="rounded-lg border border-dashed border-gray-200 bg-white p-10 text-center">
                         <CalendarDays className="mx-auto mb-3 h-8 w-8 text-gray-200" />
                         <p className="text-sm font-semibold text-gray-400">No jobs match the current filters</p>
                     </div>
@@ -295,7 +294,7 @@ export default function JobPlanner() {
                                                 <MapPin className="h-3 w-3 flex-shrink-0" />{job.location}
                                             </p>
                                         </div>
-                                        <span className={`flex-shrink-0 border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${STATUS_STYLES[job.status]}`}>
+                                        <span className={`flex-shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${STATUS_STYLES[job.status]}`}>
                                             {job.status.replace('-', ' ')}
                                         </span>
                                     </div>
@@ -308,7 +307,7 @@ export default function JobPlanner() {
                                         </div>
                                         <div>
                                             <p className="font-semibold uppercase tracking-wide text-gray-400">Ref. Class</p>
-                                            <span className={`mt-1 inline-block px-2 py-0.5 font-semibold ${refStyle(job.refrigerantClass)}`}>
+                                            <span className={`mt-1 inline-block rounded px-2 py-0.5 font-semibold ${refStyle(job.refrigerantClass)}`}>
                                                 {job.refrigerantClass}
                                             </span>
                                         </div>
@@ -328,7 +327,7 @@ export default function JobPlanner() {
                                     )}
 
                                     {(job.refrigerantClass === 'A2L' || job.refrigerantClass === 'A3') && (
-                                        <div className="mt-3 flex items-center gap-2 border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                                        <div className="mt-3 flex items-center gap-2 rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-800">
                                             <ShieldAlert className="h-3.5 w-3.5 flex-shrink-0" />
                                             Safety checklist required
                                         </div>
@@ -482,7 +481,7 @@ export default function JobPlanner() {
                                     Cancel
                                 </button>
                                 <button type="submit" disabled={submitting || (safetyRequired && !formData.preJobChecklistComplete)}
-                                    className="inline-flex items-center justify-center gap-2 bg-[#D97706] px-6 py-2.5 text-sm font-semibold text-white hover:bg-[#b45309] disabled:cursor-not-allowed disabled:opacity-50 transition-colors">
+                                    className="inline-flex items-center justify-center gap-2 bg-[#B45309] px-6 py-2.5 text-sm font-semibold text-white hover:bg-[#92400E] disabled:cursor-not-allowed disabled:opacity-50 transition-colors">
                                     <Sparkles className="h-4 w-4" /> {submitting ? 'Saving…' : 'Save Job'}
                                 </button>
                             </div>

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull } from 'drizzle-orm';
 import { db } from '@/db/client';
-import { examSubmissions, courses } from '@/db/schema/index';
+import { courseEnrollments, examSubmissions, courses } from '@/db/schema/index';
 import { requireRole } from '@/lib/server/auth';
 import type { ExamSubmission } from '@/lib/platformStore';
 import { isFieldWorkerRole } from '@/lib/field-worker';
@@ -21,6 +21,17 @@ function toExamSubmission(row: typeof examSubmissions.$inferSelect): ExamSubmiss
     submittedAt: row.submittedAt.toISOString(),
     gradedAt: row.gradedAt?.toISOString() ?? undefined,
   };
+}
+
+/** Adds when each learner's attempts were last reset, so staff can see who has really run out. */
+async function withAttemptResets(rows: Array<typeof examSubmissions.$inferSelect>): Promise<ExamSubmission[]> {
+  const courseIds = [...new Set(rows.map((row) => row.courseId))];
+  const resets = courseIds.length === 0 ? [] : await db
+    .select({ courseId: courseEnrollments.courseId, userId: courseEnrollments.userId, resetAt: courseEnrollments.examAttemptsResetAt })
+    .from(courseEnrollments)
+    .where(and(inArray(courseEnrollments.courseId, courseIds), isNotNull(courseEnrollments.examAttemptsResetAt)));
+  const byLearner = new Map(resets.map((reset) => [`${reset.courseId}:${reset.userId}`, reset.resetAt]));
+  return rows.map((row) => ({ ...toExamSubmission(row), attemptsResetAt: byLearner.get(`${row.courseId}:${row.studentId}`)?.toISOString() }));
 }
 
 export async function GET(req: Request) {
@@ -50,11 +61,11 @@ export async function GET(req: Request) {
       .select()
       .from(examSubmissions)
       .where(inArray(examSubmissions.courseId, courseIds));
-    return NextResponse.json(rows.map(toExamSubmission));
+    return NextResponse.json(await withAttemptResets(rows));
   }
 
   const rows = await db.select().from(examSubmissions);
-  return NextResponse.json(rows.map(toExamSubmission));
+  return NextResponse.json(await withAttemptResets(rows));
 }
 
 // Exams are taken from the course page (POST /api/courses/[id]/exam), where the questions come from the course

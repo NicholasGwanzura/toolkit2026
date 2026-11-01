@@ -367,7 +367,7 @@ export function VendorReordersPanel({ reorders }: { reorders: ReorderRow[] }) {
       {reorders.length === 0 ? (
         <div className="px-6 py-10 text-center">
           <p className="text-sm text-[#78716C]">No reorders submitted yet.</p>
-          <Link href="/suppliers/reorder" className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#D97706] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#b45309]">
+          <Link href="/suppliers/reorder" className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#B45309] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#92400E]">
             Submit a Reorder <ArrowRight className="h-4 w-4" />
           </Link>
         </div>

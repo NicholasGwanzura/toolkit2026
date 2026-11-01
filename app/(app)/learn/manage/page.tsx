@@ -23,7 +23,7 @@ function ManageCourses() {
     if (!isLoading && !allowed) router.replace('/dashboard');
   }, [isLoading, allowed, router]);
 
-  if (isLoading || !allowed) return <p className="p-4 text-sm text-stone-500">Loading…</p>;
+  if (isLoading || !allowed) return <p className="p-4 text-sm text-gray-500">Loading…</p>;
 
   const mine = new Set((courses ?? []).map((course) => course.id));
   const waiting = (submissions ?? []).filter((item) => item.status === 'pending' && mine.has(item.courseId)).length;
@@ -31,8 +31,8 @@ function ManageCourses() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-stone-900">Course management</h1>
-        <p className="mt-1 text-sm text-stone-600">Build courses, send them for approval, and grade learners&apos; exams.</p>
+        <h1 className="text-2xl font-bold text-gray-900">Course management</h1>
+        <p className="mt-1 text-sm text-gray-600">Build courses, send them for approval, and grade learners&apos; exams.</p>
       </div>
       <Tabs selectedKey={tab} onSelectionChange={(key) => router.replace(`/learn/manage${key === 'grading' ? '?tab=grading' : ''}`, { scroll: false })} className="gap-0">
         <TabList aria-label="Course management">

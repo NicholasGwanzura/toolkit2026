@@ -509,7 +509,7 @@ export default function VendorReportingPanel({
                         </div>
                         <button
                             type="submit"
-                            className="inline-flex items-center gap-2 rounded-xl bg-[#FF6B35] px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+                            className="inline-flex items-center gap-2 rounded-xl bg-[#B45309] px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90"
                         >
                             <ArrowUpRight className="h-4 w-4" />
                             Save Sale Log

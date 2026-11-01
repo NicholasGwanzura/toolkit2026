@@ -47,6 +47,9 @@ export const notificationTemplates = {
       : { kind: 'course_rejected', title: 'Course not approved', body: `"${title}" was not approved.${why}`, link: '/learn/manage' };
   },
 
+  examAttemptsReset(courseTitle: string): NotificationContent {
+    return { kind: 'exam_attempts_reset', title: 'You can retake your exam', body: `You have new attempts at the exam for "${courseTitle}". Review the modules, then try again.`, link: '/learn' };
+  },
   examGraded(courseTitle: string, passed: boolean, score: number): NotificationContent {
     return {
       kind: passed ? 'exam_passed' : 'exam_failed',

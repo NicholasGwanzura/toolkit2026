@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { BellRing, ChevronRight, Plus, Search, TimerReset } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { AddEquipmentDialog } from '@/components/AddEquipmentDialog';
 import { useClientSession } from '@/lib/useClientSession';
 import { ZIMBABWE_PROVINCES } from '@/constants/registry';
 import {
@@ -62,6 +63,7 @@ export default function FieldScheduling() {
     const [selectedRecord, setSelectedRecord] = useState<EquipmentRecord | null>(null);
     const [message, setMessage] = useState('');
     const [schedulingId, setSchedulingId] = useState<string | null>(null);
+    const [adding, setAdding] = useState(false);
     const { data: plannerJobs = [] } = usePlannerJobs();
 
     const filteredRecords = useMemo(() => {
@@ -146,14 +148,15 @@ export default function FieldScheduling() {
 
     return (
         <div className="space-y-6">
+            {adding && <AddEquipmentDialog onClose={() => setAdding(false)} onAdded={(id) => { setAdding(false); setMessage(`${id} added to your register.`); }} />}
             {message && (
-                <div className="border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-medium text-blue-800">
+                <div className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-medium text-blue-800">
                     {message}
                 </div>
             )}
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                {stats.map(stat => (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                {stats.filter(stat => stat.label !== 'Total Equipment').map(stat => (
                     <div key={stat.label} className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
                         <p className="text-sm font-semibold text-gray-500">{stat.label}</p>
                         <p className="mt-3 text-3xl font-bold text-gray-900">{stat.value}</p>
@@ -183,7 +186,7 @@ export default function FieldScheduling() {
                                 <select
                                     value={statusFilter}
                                     onChange={event => setStatusFilter(event.target.value as EquipmentStatus | '')}
-                                    className="w-full border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none transition focus:border-blue-300 focus:bg-white"
+                                    className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none transition focus:border-blue-300 focus:bg-white"
                                 >
                                     <option value="">All status</option>
                                     <option value="normal">Normal</option>
@@ -196,7 +199,7 @@ export default function FieldScheduling() {
                                 <button
                                     type="button"
                                     onClick={() => setScope(prev => (prev === 'own' ? 'fleet' : 'own'))}
-                                    className="flex w-full items-center justify-between border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm font-semibold text-gray-900 transition hover:bg-white"
+                                    className="flex w-full items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm font-semibold text-gray-900 transition hover:bg-white"
                                 >
                                     {scope === 'own' ? 'Own equipment' : 'Fleet view'}
                                     <TimerReset className="h-4 w-4 text-gray-400" />
@@ -210,7 +213,7 @@ export default function FieldScheduling() {
                                 <select
                                     value={provinceFilter}
                                     onChange={event => setProvinceFilter(event.target.value)}
-                                    className="w-full border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none transition focus:border-blue-300 focus:bg-white"
+                                    className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none transition focus:border-blue-300 focus:bg-white"
                                 >
                                     <option value="">All provinces</option>
                                     {ZIMBABWE_PROVINCES.map(province => (
@@ -225,7 +228,7 @@ export default function FieldScheduling() {
                                 <select
                                     value={refrigerantFilter}
                                     onChange={event => setRefrigerantFilter(event.target.value)}
-                                    className="w-full border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none transition focus:border-blue-300 focus:bg-white"
+                                    className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none transition focus:border-blue-300 focus:bg-white"
                                 >
                                     <option value="">All refrigerants</option>
                                     {uniqueRefrigerants.map(refrigerant => (
@@ -239,9 +242,14 @@ export default function FieldScheduling() {
                     </div>
 
                     <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-                        <div className="border-b border-gray-100 px-5 py-4">
-                            <h2 className="text-lg font-bold text-gray-900">Equipment Register</h2>
-                            <p className="text-sm text-gray-500">Maintenance view with predictive actions.</p>
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-5 py-4">
+                            <div>
+                                <h2 className="text-lg font-bold text-gray-900">Equipment Register</h2>
+                                <p className="text-sm text-gray-500">Maintenance view with predictive actions.</p>
+                            </div>
+                            <button type="button" onClick={() => setAdding(true)} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-[#B45309] px-4 text-sm font-semibold text-white transition hover:bg-[#92400E]">
+                                <Plus className="h-4 w-4" aria-hidden="true" /> Add equipment
+                            </button>
                         </div>
 
                         <div className="overflow-x-auto">
@@ -276,7 +284,7 @@ export default function FieldScheduling() {
                                                         type="button"
                                                         onClick={() => handleScheduleService(record)}
                                                         disabled={schedulingId !== null}
-                                                        className="inline-flex items-center gap-2 border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-100"
+                                                        className="inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-100"
                                                     >
                                                         <Plus className="h-3.5 w-3.5" />
                                                         Schedule Service
@@ -284,7 +292,7 @@ export default function FieldScheduling() {
                                                     <button
                                                         type="button"
                                                         onClick={() => handleViewHistory(record)}
-                                                        className="inline-flex items-center gap-2 border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-50"
+                                                        className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-50"
                                                     >
                                                         View History
                                                         <ChevronRight className="h-3.5 w-3.5" />
@@ -304,7 +312,14 @@ export default function FieldScheduling() {
                         )}
                         {!recordsLoading && !filteredRecords.length && (
                             <div className="px-5 py-8 text-center text-sm text-gray-500">
-                                No equipment matches the current filters.
+                                {records.length === 0 ? (
+                                    <>
+                                        <p>No equipment is on your register yet.</p>
+                                        <button type="button" onClick={() => setAdding(true)} className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-800 transition hover:bg-gray-50">
+                                            <Plus className="h-4 w-4" aria-hidden="true" /> Add your first equipment
+                                        </button>
+                                    </>
+                                ) : 'No equipment matches the current filters.'}
                             </div>
                         )}
                     </div>
@@ -320,8 +335,9 @@ export default function FieldScheduling() {
                             </div>
                         </div>
                         <div className="mt-4 space-y-3">
+                            {alerts.length === 0 && <p className="text-sm text-gray-500">Nothing needs attention right now.</p>}
                             {alerts.map(alert => (
-                                <details key={alert.id} className="border border-gray-200 bg-gray-50/80 p-4">
+                                <details key={alert.id} className="rounded-lg border border-gray-200 bg-gray-50/80 p-4">
                                     <summary className="cursor-pointer list-none">
                                         <div className="flex items-start justify-between gap-3">
                                         <div>

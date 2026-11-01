@@ -1,6 +1,7 @@
 // Course exams: the questions a trainer writes, what a learner is allowed to see, and automatic marking.
 // Pure and shared. The answer key (`correctIndex`) is only ever read on the server.
 
+export const MAX_EXAM_ATTEMPTS = 3;
 export const MAX_QUESTIONS = 60;
 export const MAX_QUESTION_TEXT = 500;
 export const MIN_OPTIONS = 2;
@@ -18,6 +19,8 @@ export interface ExamQuestion {
   options?: string[];
   /** Multiple choice only: the position in `options` of the right answer. Never sent to learners. */
   correctIndex?: number;
+  /** The module this question tests, counting from zero. Lets a learner see where to revise. */
+  moduleIndex?: number;
 }
 
 /** A question as a learner sees it: no answer key. */
@@ -55,9 +58,10 @@ export function validateExamQuestions(value: unknown, makeId: () => string = () 
     let id = typeof item.id === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(item.id) ? item.id : makeId();
     if (seen.has(id)) id = makeId();
     seen.add(id);
+    const moduleIndex = Number.isInteger(item.moduleIndex) && (item.moduleIndex as number) >= 0 ? { moduleIndex: item.moduleIndex as number } : {};
 
     if (type === 'written') {
-      questions.push({ id, type, text });
+      questions.push({ id, type, text, ...moduleIndex });
       continue;
     }
 
@@ -71,7 +75,7 @@ export function validateExamQuestions(value: unknown, makeId: () => string = () 
     if (typeof correctIndex !== 'number' || !Number.isInteger(correctIndex) || correctIndex < 0 || correctIndex >= options.length) {
       return { ok: false, error: `Mark which option is correct in question ${n}.` };
     }
-    questions.push({ id, type, text, options, correctIndex });
+    questions.push({ id, type, text, options, correctIndex, ...moduleIndex });
   }
   return { ok: true, questions };
 }
@@ -132,6 +136,14 @@ export interface ExamResult {
   needsTrainer: boolean;
   /** Percentage of ALL questions answered correctly, counting written ones as not yet earned. */
   score: number;
+  /** Multiple-choice results per module, for questions linked to one. Counts only: never which answers were wrong. */
+  byModule: ModuleScore[];
+}
+
+export interface ModuleScore {
+  moduleIndex: number;
+  correct: number;
+  total: number;
 }
 
 /** Marks the multiple-choice answers. The answers must already have passed `checkSubmittedAnswers`. */
@@ -139,15 +151,38 @@ export function markExam(questions: ExamQuestion[], answers: SubmittedAnswer[]):
   const byId = new Map(answers.map((answer) => [answer.questionId, answer]));
   let correct = 0;
   let choiceTotal = 0;
+  const modules = new Map<number, ModuleScore>();
   const marked: MarkedAnswer[] = questions.map((question) => {
     const answer = byId.get(question.id)!;
     if (question.type === 'written') return { question: question.text, answer: answer.text ?? '' };
     choiceTotal++;
     const isCorrect = answer.choice === question.correctIndex;
     if (isCorrect) correct++;
+    if (question.moduleIndex !== undefined) {
+      const row = modules.get(question.moduleIndex) ?? { moduleIndex: question.moduleIndex, correct: 0, total: 0 };
+      row.total++;
+      if (isCorrect) row.correct++;
+      modules.set(question.moduleIndex, row);
+    }
     return { question: question.text, answer: question.options![answer.choice!], correct: isCorrect };
   });
   const needsTrainer = choiceTotal < questions.length;
   const score = questions.length === 0 ? 0 : Math.round((correct / questions.length) * 10000) / 100;
-  return { answers: marked, correct, choiceTotal, needsTrainer, score };
+  const byModule = [...modules.values()].sort((a, b) => a.moduleIndex - b.moduleIndex);
+  return { answers: marked, correct, choiceTotal, needsTrainer, score, byModule };
 }
+
+/** Graded attempts that still count against the limit: those since the learner's attempts were last reset. */
+export function countedAttempts<T extends { status: string; submittedAt: Date | string }>(attempts: T[], resetAt?: Date | string | null): T[] {
+  const after = resetAt ? new Date(resetAt).getTime() : -Infinity;
+  return attempts.filter((attempt) => attempt.status === 'graded' && new Date(attempt.submittedAt).getTime() > after);
+}
+
+/** What a learner is told per module. Not counts: small modules would let answers be worked out across retakes. */
+export interface ModuleFeedback {
+  moduleIndex: number;
+  needsReview: boolean;
+}
+
+export const toModuleFeedback = (scores: ModuleScore[]): ModuleFeedback[] =>
+  scores.map(({ moduleIndex, correct, total }) => ({ moduleIndex, needsReview: correct < total }));

@@ -47,7 +47,7 @@ import type {
   ImageRecord,
 } from '@/types/index';
 import type { TechnicianRewardSummary } from '@/lib/server/rewards';
-import type { LearnerQuestion, SubmittedAnswer } from '@/lib/exam';
+import type { LearnerQuestion, SubmittedAnswer, ModuleFeedback } from '@/lib/exam';
 import type { NameplateAiSuggestion } from '@/lib/nameplate-ai';
 
 /** An error from the API that keeps the HTTP status, so callers can tell "try again later" from "this was refused". */
@@ -253,6 +253,7 @@ export interface CourseExamState {
 
 export interface CourseExamResult {
   submissionId: string;
+  byModule?: ModuleFeedback[];
   status: 'graded' | 'pending';
   score?: number;
   passed?: boolean;
@@ -270,6 +271,11 @@ export async function submitCourseExam(courseId: string, answers: SubmittedAnswe
   await mutate(`/api/courses/${courseId}/exam`);
   await mutate('/api/exam-submissions');
   return result;
+}
+
+export async function resetExamAttempts(courseId: string, studentId: string): Promise<void> {
+  await post(`/api/courses/${courseId}/exam/reset`, { studentId });
+  await mutate('/api/exam-submissions');
 }
 
 export function useExamSubmissions(enabled = true) {
@@ -933,6 +939,12 @@ export async function markJobComplete(id: string): Promise<PlannerJob> {
 // ---------------------------------------------------------------------------
 // Field Scheduling — equipment register (DB-backed, read-only from the client)
 // ---------------------------------------------------------------------------
+
+export async function createEquipmentRecord(body: Record<string, unknown>): Promise<EquipmentRecord> {
+  const result = await post<EquipmentRecord>('/api/equipment-records', body);
+  await mutate('/api/equipment-records');
+  return result;
+}
 
 export function useEquipmentRecords() {
   return useSWR<EquipmentRecord[]>('/api/equipment-records', fetcher);

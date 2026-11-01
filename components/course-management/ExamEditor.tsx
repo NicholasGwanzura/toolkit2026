@@ -9,12 +9,14 @@ interface ExamEditorProps {
   questions: ExamQuestion[];
   readOnly: boolean;
   onChange: (questions: ExamQuestion[]) => void;
+  /** Module titles, so a question can say which one it tests. */
+  modules?: string[];
 }
 
-const field = 'w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-[#D97706] focus:ring-2 focus:ring-[#D97706]/20 disabled:bg-stone-50 disabled:text-stone-500';
+const field = 'w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-[#D97706] focus:ring-2 focus:ring-[#D97706]/20 disabled:bg-gray-50 disabled:text-gray-500';
 const newId = () => crypto.randomUUID();
 
-export function ExamEditor({ questions, readOnly, onChange }: ExamEditorProps) {
+export function ExamEditor({ questions, readOnly, onChange, modules = [] }: ExamEditorProps) {
   const choiceCount = questions.filter((q) => q.type === 'choice').length;
   const writtenCount = questions.length - choiceCount;
 
@@ -48,13 +50,13 @@ export function ExamEditor({ questions, readOnly, onChange }: ExamEditorProps) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border border-stone-200 bg-stone-50 p-4 text-sm text-stone-700">
-        <p>Learners answer these questions after they have started the course. <strong>Multiple choice is marked automatically</strong> when they submit, and the result counts straight away. <strong>Written questions</strong> wait for you to read and grade them.</p>
-        <p className="mt-2 text-stone-600">Learners never see which option is correct. They get three attempts.</p>
+      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+        <p>Learners answer these questions after they have finished every module. <strong>Multiple choice is marked automatically</strong> when they submit, and the result counts straight away. <strong>Written questions</strong> wait for you to read and grade them.</p>
+        <p className="mt-2 text-gray-600">Learners never see which option is correct. They get three attempts.</p>
       </div>
 
       {questions.length > 0 && (
-        <p className="text-sm font-medium text-stone-700" aria-live="polite">
+        <p className="text-sm font-medium text-gray-700" aria-live="polite">
           {questions.length} question{questions.length === 1 ? '' : 's'}: {choiceCount} multiple choice (automatic), {writtenCount} written (you grade).
           {problem && <span className="ml-2 font-semibold text-amber-700">{problem}</span>}
         </p>
@@ -62,14 +64,14 @@ export function ExamEditor({ questions, readOnly, onChange }: ExamEditorProps) {
 
       <ol className="space-y-4">
         {questions.map((question, qIndex) => (
-          <li key={question.id} className="rounded-lg border border-stone-200 bg-white p-4">
+          <li key={question.id} className="rounded-lg border border-gray-200 bg-white p-4">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-bold text-stone-800">Question {qIndex + 1} <span className="ml-2 rounded bg-stone-100 px-2 py-0.5 text-xs font-semibold text-stone-600">{question.type === 'choice' ? 'Multiple choice' : 'Written'}</span></p>
+              <p className="text-sm font-bold text-gray-800">Question {qIndex + 1} <span className="ml-2 rounded bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600">{question.type === 'choice' ? 'Multiple choice' : 'Written'}</span></p>
               {!readOnly && (
                 <div className="flex items-center">
-                  <button type="button" onClick={() => move(qIndex, -1)} disabled={qIndex === 0} aria-label={`Move question ${qIndex + 1} up`} className="rounded p-2 text-stone-500 hover:bg-stone-100 disabled:opacity-30"><ArrowUp className="h-4 w-4" aria-hidden="true" /></button>
-                  <button type="button" onClick={() => move(qIndex, 1)} disabled={qIndex === questions.length - 1} aria-label={`Move question ${qIndex + 1} down`} className="rounded p-2 text-stone-500 hover:bg-stone-100 disabled:opacity-30"><ArrowDown className="h-4 w-4" aria-hidden="true" /></button>
-                  <button type="button" onClick={() => onChange(questions.filter((_, i) => i !== qIndex))} aria-label={`Remove question ${qIndex + 1}`} className="rounded p-2 text-stone-500 hover:bg-rose-50 hover:text-rose-700"><Trash2 className="h-4 w-4" aria-hidden="true" /></button>
+                  <button type="button" onClick={() => move(qIndex, -1)} disabled={qIndex === 0} aria-label={`Move question ${qIndex + 1} up`} className="rounded p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-30"><ArrowUp className="h-4 w-4" aria-hidden="true" /></button>
+                  <button type="button" onClick={() => move(qIndex, 1)} disabled={qIndex === questions.length - 1} aria-label={`Move question ${qIndex + 1} down`} className="rounded p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-30"><ArrowDown className="h-4 w-4" aria-hidden="true" /></button>
+                  <button type="button" onClick={() => onChange(questions.filter((_, i) => i !== qIndex))} aria-label={`Remove question ${qIndex + 1}`} className="rounded p-2 text-gray-500 hover:bg-rose-50 hover:text-rose-700"><Trash2 className="h-4 w-4" aria-hidden="true" /></button>
                 </div>
               )}
             </div>
@@ -77,9 +79,19 @@ export function ExamEditor({ questions, readOnly, onChange }: ExamEditorProps) {
             <label htmlFor={`q-${question.id}`} className="sr-only">Question {qIndex + 1} text</label>
             <textarea id={`q-${question.id}`} rows={2} value={question.text} disabled={readOnly} onChange={(e) => patch(qIndex, { text: e.target.value })} placeholder="Write the question" className={`mt-2 ${field}`} />
 
+            {modules.length > 0 && question.type === 'choice' && (
+              <label className="mt-3 block text-xs font-semibold text-gray-600">
+                Which module does it test? (Optional. Learners see which modules to review.)
+                <select value={question.moduleIndex ?? ''} disabled={readOnly} onChange={(e) => patch(qIndex, { moduleIndex: e.target.value === '' ? undefined : Number(e.target.value) })} className={`mt-1 font-normal ${field}`}>
+                  <option value="">Not linked</option>
+                  {modules.map((title, index) => <option key={index} value={index}>{index + 1}. {title.trim() || 'Untitled module'}</option>)}
+                </select>
+              </label>
+            )}
+
             {question.type === 'choice' && (
               <fieldset className="mt-3 space-y-2">
-                <legend className="text-xs font-semibold text-stone-600">Options. Select the circle beside the correct one.</legend>
+                <legend className="text-xs font-semibold text-gray-600">Options. Select the circle beside the correct one.</legend>
                 {(question.options ?? []).map((option, oIndex) => (
                   <div key={oIndex} className="flex items-center gap-2">
                     <input
@@ -94,21 +106,21 @@ export function ExamEditor({ questions, readOnly, onChange }: ExamEditorProps) {
                     <input value={option} disabled={readOnly} onChange={(e) => setOption(qIndex, oIndex, e.target.value)} placeholder={`Option ${oIndex + 1}`} aria-label={`Question ${qIndex + 1} option ${oIndex + 1}`} className={field} />
                     {question.correctIndex === oIndex && <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" aria-label="Correct answer" />}
                     {!readOnly && (question.options?.length ?? 0) > MIN_OPTIONS && (
-                      <button type="button" onClick={() => removeOption(qIndex, oIndex)} aria-label={`Remove option ${oIndex + 1}`} className="rounded p-2 text-stone-400 hover:bg-stone-100 hover:text-rose-700"><X className="h-4 w-4" aria-hidden="true" /></button>
+                      <button type="button" onClick={() => removeOption(qIndex, oIndex)} aria-label={`Remove option ${oIndex + 1}`} className="rounded p-2 text-gray-400 hover:bg-gray-100 hover:text-rose-700"><X className="h-4 w-4" aria-hidden="true" /></button>
                     )}
                   </div>
                 ))}
                 {!readOnly && (question.options?.length ?? 0) < MAX_OPTIONS && (
-                  <button type="button" onClick={() => addOption(qIndex)} className="text-sm font-semibold text-[#b45309] underline">Add an option</button>
+                  <button type="button" onClick={() => addOption(qIndex)} className="text-sm font-semibold text-[#B45309] underline">Add an option</button>
                 )}
               </fieldset>
             )}
-            {question.type === 'written' && <p className="mt-2 text-xs text-stone-500">The learner writes an answer, and you grade it from the Grading tab.</p>}
+            {question.type === 'written' && <p className="mt-2 text-xs text-gray-500">The learner writes an answer, and you grade it from the Grading tab.</p>}
           </li>
         ))}
       </ol>
 
-      {questions.length === 0 && <p className="rounded-lg border border-dashed border-stone-300 bg-stone-50 px-4 py-8 text-center text-sm text-stone-600">No questions yet. A course needs at least one before it can be submitted.</p>}
+      {questions.length === 0 && <p className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-8 text-center text-sm text-gray-600">No questions yet. A course needs at least one before it can be submitted.</p>}
 
       {!readOnly && (
         <div className="flex flex-wrap gap-2">

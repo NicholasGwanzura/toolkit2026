@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ClipboardCheck, Play, ShieldAlert } from 'lucide-react';
+import { ChevronDown, ClipboardCheck, ListChecks, Play } from 'lucide-react';
 import { updatePlannerJob } from '@/lib/api';
 import { DEFAULT_PLANNER_SAFETY_CHECKLIST } from '@/constants/job-planner';
 import { isFlammableClass, outstandingChecklist } from '@/lib/planner-lifecycle';
@@ -24,6 +24,7 @@ interface JobActionsProps {
 
 export default function JobActions({ job, allJobs, technicians, today }: JobActionsProps) {
     const [panel, setPanel] = useState<Panel>('none');
+    const [more, setMore] = useState(false);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
     const [note, setNote] = useState('');
@@ -85,47 +86,55 @@ export default function JobActions({ job, allJobs, technicians, today }: JobActi
     return (
         <div className="mt-3 space-y-2">
             {!isDone && <div className="flex gap-2">
-                {job.status === 'scheduled' && (
-                    <button type="button" disabled={busy || blocked} onClick={() => run(() => updatePlannerJob(job.id, { status: 'in-progress' }))}
-                        title={blocked ? `Checklist incomplete: ${outstanding.join(', ')}` : undefined}
-                        className={`${button} border-indigo-100 bg-indigo-50 text-indigo-700 hover:bg-indigo-100`}>
+                {job.status === 'scheduled' && (blocked ? (
+                    <button type="button" onClick={() => setPanel(panel === 'checklist' ? 'none' : 'checklist')}
+                        className={`${button} min-h-11 border-indigo-100 bg-indigo-50 text-indigo-700 hover:bg-indigo-100`}>
+                        <ListChecks className="h-3.5 w-3.5" /> Checklist ({outstanding.length} open)
+                    </button>
+                ) : (
+                    <button type="button" disabled={busy} onClick={() => run(() => updatePlannerJob(job.id, { status: 'in-progress' }))}
+                        className={`${button} min-h-11 border-indigo-100 bg-indigo-50 text-indigo-700 hover:bg-indigo-100`}>
                         <Play className="h-3.5 w-3.5" /> Start job
                     </button>
-                )}
+                ))}
                 <button type="button" onClick={() => setPanel(panel === 'complete' ? 'none' : 'complete')}
-                    className={`${button} border-blue-100 bg-blue-50 text-blue-700 hover:bg-blue-100`}>
+                    className={`${button} min-h-11 border-blue-100 bg-blue-50 text-blue-700 hover:bg-blue-100`}>
                     <ClipboardCheck className="h-3.5 w-3.5" /> Complete
                 </button>
+                <button type="button" onClick={() => setMore(open => !open)} aria-expanded={more}
+                    className="inline-flex min-h-11 items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50">
+                    More <ChevronDown className={`h-3.5 w-3.5 transition ${more ? 'rotate-180' : ''}`} aria-hidden="true" />
+                </button>
             </div>}
-            <div className="flex gap-2">
-                {!isDone && <button type="button" onClick={() => setPanel(panel === 'checklist' ? 'none' : 'checklist')}
-                    className={`${button} border-gray-200 bg-white text-gray-700 hover:bg-gray-50`}>
+            {(more || isDone) && <div className="flex flex-wrap gap-2">
+                {!isDone && !(blocked && job.status === 'scheduled') && <button type="button" onClick={() => setPanel(panel === 'checklist' ? 'none' : 'checklist')}
+                    className={`${button} min-h-11 border-gray-200 bg-white text-gray-700 hover:bg-gray-50`}>
                     Checklist {blocked ? `(${outstanding.length} open)` : '✓'}
                 </button>}
                 <button type="button" onClick={() => setPanel(panel === 'follow-up' ? 'none' : 'follow-up')}
-                    className={`${button} border-gray-200 bg-white text-gray-700 hover:bg-gray-50`}>
+                    className={`${button} min-h-11 border-gray-200 bg-white text-gray-700 hover:bg-gray-50`}>
                     Needs follow-up
                 </button>
                 {!isDone && (
                     <button type="button" onClick={() => setPanel(panel === 'edit' ? 'none' : 'edit')}
-                        className={`${button} border-gray-200 bg-white text-gray-700 hover:bg-gray-50`}>
+                        className={`${button} min-h-11 border-gray-200 bg-white text-gray-700 hover:bg-gray-50`}>
                         Edit
                     </button>
                 )}
                 {!isDone && (
                     <button type="button" onClick={() => setPanel(panel === 'cancel' ? 'none' : 'cancel')}
-                        className={`${button} border-rose-100 bg-white text-rose-700 hover:bg-rose-50`}>
+                        className={`${button} min-h-11 border-rose-100 bg-white text-rose-700 hover:bg-rose-50`}>
                         Cancel job
                     </button>
                 )}
-            </div>
+            </div>}
 
             {blocked && job.status === 'scheduled' && !isDone && (
-                <p className="text-xs text-amber-700">Tick every required checklist item before starting.</p>
+                <p className="text-xs text-amber-700">Tick every required checklist item to start this job.</p>
             )}
 
             {(panel === 'checklist' || (panel === 'complete' && blocked && job.status === 'scheduled')) && (
-                <div className="space-y-1.5 border border-gray-200 bg-gray-50 p-3">
+                <div className="space-y-1.5 rounded-lg border border-gray-200 bg-gray-50 p-3">
                     {checklistItems.length === 0 && <p className="text-xs text-gray-500">No checklist recorded for this job.</p>}
                     {checklistItems.map(item => (
                         <label key={item.id} className="flex items-start gap-2 text-xs text-gray-700">
@@ -142,7 +151,7 @@ export default function JobActions({ job, allJobs, technicians, today }: JobActi
             )}
 
             {panel === 'edit' && !isDone && (
-                <div className="space-y-2 border border-gray-200 bg-gray-50 p-3">
+                <div className="space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
                     <label className="block text-xs font-semibold text-gray-600">
                         Date
                         <input type="date" value={editDate} onChange={event => setEditDate(event.target.value)}
@@ -172,14 +181,14 @@ export default function JobActions({ job, allJobs, technicians, today }: JobActi
                         </p>
                     )}
                     <button type="button" disabled={busy || !editDate || !editLocation.trim()} onClick={saveEdit}
-                        className="w-full rounded-lg bg-[#D97706] px-3 py-2 text-xs font-semibold text-white hover:bg-[#b45309] disabled:opacity-60">
+                        className="w-full rounded-lg bg-[#B45309] px-3 py-2 text-xs font-semibold text-white hover:bg-[#92400E] disabled:opacity-60">
                         {busy ? 'Saving…' : 'Save changes'}
                     </button>
                 </div>
             )}
 
             {(panel === 'complete' || panel === 'follow-up' || panel === 'cancel') && (
-                <div className="space-y-2 border border-gray-200 bg-gray-50 p-3">
+                <div className="space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
                     <label className="block text-xs font-semibold text-gray-600">
                         {panel === 'complete' ? 'What was done? (required)' : panel === 'cancel' ? 'Reason for cancelling (required)' : 'What follow-up is needed? (required)'}
                         <textarea value={note} onChange={event => setNote(event.target.value)} rows={3}
@@ -208,7 +217,7 @@ export default function JobActions({ job, allJobs, technicians, today }: JobActi
                         </label>
                     )}
                     <button type="button" disabled={busy || !note.trim() || (panel === 'complete' && newSystemIncomplete)} onClick={() => submitStatus(panel === 'complete' ? 'completed' : panel === 'cancel' ? 'cancelled' : 'follow-up')}
-                        className="w-full rounded-lg bg-[#D97706] px-3 py-2 text-xs font-semibold text-white hover:bg-[#b45309] disabled:opacity-60">
+                        className="w-full rounded-lg bg-[#B45309] px-3 py-2 text-xs font-semibold text-white hover:bg-[#92400E] disabled:opacity-60">
                         {busy ? 'Saving…' : panel === 'complete' ? 'Mark job complete' : panel === 'cancel' ? 'Cancel this job' : 'Save follow-up'}
                     </button>
                 </div>

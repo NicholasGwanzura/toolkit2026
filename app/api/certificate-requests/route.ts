@@ -11,7 +11,7 @@ import { isFieldWorkerRole } from '@/lib/field-worker';
 export async function GET(req: Request) {
   let session;
   try {
-    session = await requireRole(req, ['trainer', 'lecturer', 'org_admin', 'technician', 'contractor']);
+    session = await requireRole(req, ['trainer', 'lecturer', 'org_admin', 'technician', 'contractor', 'student']);
   } catch (e) {
     return e as Response;
   }
@@ -19,7 +19,7 @@ export async function GET(req: Request) {
   let rows;
   if (session.role === 'org_admin') {
     rows = await db.select().from(trainerCertificateRequests).orderBy(desc(trainerCertificateRequests.submittedAt));
-  } else if (isFieldWorkerRole(session.role)) {
+  } else if (isFieldWorkerRole(session.role) || session.role === 'student') {
     const matchingTechnicians = await db.select({ id: technicians.id }).from(technicians).where(eq(technicians.email, session.email));
     const technicianIds = [session.id, ...matchingTechnicians.map((technician) => technician.id)];
     rows = await db
@@ -71,6 +71,12 @@ export async function POST(req: Request) {
   }
   if (technician.status === 'suspended') {
     return NextResponse.json({ error: 'A suspended technician cannot be put forward for a certificate.' }, { status: 409 });
+  }
+
+  // Marks are never assumed: each must be a real score the trainer entered.
+  const isMark = (value: unknown) => typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 100;
+  if (!isMark(request.practicalScore) || (!request.examSubmissionId && !isMark(request.theoryScore))) {
+    return NextResponse.json({ error: 'Enter the scores the learner actually earned, from 0 to 100.' }, { status: 400 });
   }
 
   // Work out what the certificate is based on. A linked request takes its course, date, theory

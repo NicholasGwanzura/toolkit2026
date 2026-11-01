@@ -77,6 +77,8 @@ export interface ExamAnswer {
 }
 
 export interface ExamSubmission {
+    /** Staff only: when this learner's exam attempts were last reset. */
+    attemptsResetAt?: string;
     id: string;
     courseId: string;
     courseTitle: string;

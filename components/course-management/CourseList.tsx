@@ -101,7 +101,7 @@ export function CourseList() {
   };
 
   if (error) return <p role="alert" className="border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">Could not load your courses: {error.message}</p>;
-  if (isLoading || !courses) return <p className="p-4 text-sm text-stone-500">Loading your courses…</p>;
+  if (isLoading || !courses) return <p className="p-4 text-sm text-gray-500">Loading your courses…</p>;
 
   return (
     <div className="space-y-5">
@@ -112,10 +112,10 @@ export function CourseList() {
             type="button"
             onClick={() => { setFilter(status); setPage(1); }}
             aria-pressed={filter === status}
-            className={`rounded-lg border p-4 text-left transition hover:bg-stone-50 ${filter === status ? 'border-[#D97706] bg-amber-50/50' : 'border-stone-200 bg-white'}`}
+            className={`rounded-lg border p-4 text-left transition hover:bg-gray-50 ${filter === status ? 'border-[#D97706] bg-amber-50/50' : 'border-gray-200 bg-white'}`}
           >
-            <p className="text-sm font-medium text-stone-600">{STATUS_META[status].label}</p>
-            <p className="mt-1 text-3xl font-bold text-stone-900">{counts[status]}</p>
+            <p className="text-sm font-medium text-gray-600">{STATUS_META[status].label}</p>
+            <p className="mt-1 text-3xl font-bold text-gray-900">{counts[status]}</p>
           </button>
         ))}
       </div>
@@ -135,8 +135,8 @@ export function CourseList() {
         <div className="flex items-center gap-2">
           <label className="relative block flex-1 lg:w-64">
             <span className="sr-only">Search courses</span>
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" aria-hidden="true" />
-            <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Search courses" className="min-h-10 w-full rounded-lg border border-stone-200 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-[#D97706] focus:ring-2 focus:ring-[#D97706]/20" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
+            <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Search courses" className="min-h-10 w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-[#D97706] focus:ring-2 focus:ring-[#D97706]/20" />
           </label>
           <Button leadingIcon={Plus} onClick={() => setCreating(true)}>New course</Button>
         </div>
@@ -145,14 +145,14 @@ export function CourseList() {
       {deleteError && <p role="alert" className="text-sm font-medium text-rose-700">{deleteError}</p>}
 
       {visible.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-stone-300 bg-stone-50 px-6 py-12 text-center">
-          <BookOpen className="mx-auto h-9 w-9 text-stone-300" aria-hidden="true" />
-          <p className="mt-3 font-semibold text-stone-800">{courses.length === 0 ? 'You have not created a course yet.' : 'No courses match.'}</p>
-          <p className="mt-1 text-sm text-stone-600">{courses.length === 0 ? 'A course is a set of modules learners work through, then an exam you grade.' : 'Change the filter or the search.'}</p>
+        <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-6 py-12 text-center">
+          <BookOpen className="mx-auto h-9 w-9 text-gray-300" aria-hidden="true" />
+          <p className="mt-3 font-semibold text-gray-800">{courses.length === 0 ? 'You have not created a course yet.' : 'No courses match.'}</p>
+          <p className="mt-1 text-sm text-gray-600">{courses.length === 0 ? 'A course is a set of modules learners work through, then an exam.' : 'Change the filter or the search.'}</p>
           {courses.length === 0 && <div className="mt-4"><Button leadingIcon={Plus} onClick={() => setCreating(true)}>Create your first course</Button></div>}
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-stone-200 bg-white">
+        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
           <Table aria-label="Courses" onRowAction={(key) => router.push(`/learn/manage/${String(key)}`)}>
             <TableHeader>
               <TableColumn isRowHeader>Course</TableColumn>
@@ -166,36 +166,36 @@ export function CourseList() {
               {rows.map((course) => {
                 const entry = statsById.get(course.id);
                 return (
-                  <TableRow key={course.id} id={course.id} textValue={course.title} className="cursor-pointer hover:bg-stone-50">
+                  <TableRow key={course.id} id={course.id} textValue={course.title} className="cursor-pointer hover:bg-gray-50">
                     <TableCell>
-                      <p className="max-w-xs truncate font-semibold text-stone-900">{course.title}</p>
-                      <p className="max-w-xs truncate text-xs text-stone-500">{isAdmin ? `${course.lecturerName}. ` : ''}{course.description}</p>
+                      <p className="max-w-xs truncate font-semibold text-gray-900">{course.title}</p>
+                      <p className="max-w-xs truncate text-xs text-gray-500">{isAdmin ? `${course.lecturerName}. ` : ''}{course.description}</p>
                     </TableCell>
                     <TableCell><StatusPill status={course.status} /></TableCell>
                     <TableCell>
-                      <span className="whitespace-nowrap text-sm text-stone-700">{course.modules.length} module{course.modules.length === 1 ? '' : 's'}</span>
-                      <span className="block text-xs text-stone-500">{formatMinutes(totalMinutes(course.modules))}</span>
+                      <span className="whitespace-nowrap text-sm text-gray-700">{course.modules.length} module{course.modules.length === 1 ? '' : 's'}</span>
+                      <span className="block text-xs text-gray-500">{formatMinutes(totalMinutes(course.modules))}</span>
                     </TableCell>
                     <TableCell>
                       {course.status === 'approved' && entry ? (
                         <>
-                          <span className="whitespace-nowrap text-sm text-stone-700">{entry.enrolled} enrolled</span>
-                          <span className="block text-xs text-stone-500">{entry.passRate === null ? 'no graded exams yet' : `${Math.round(entry.passRate)}% pass rate`}{entry.pendingGrading > 0 ? `, ${entry.pendingGrading} to grade` : ''}</span>
+                          <span className="whitespace-nowrap text-sm text-gray-700">{entry.enrolled} enrolled</span>
+                          <span className="block text-xs text-gray-500">{entry.passRate === null ? 'no graded exams yet' : `${Math.round(entry.passRate)}% pass rate`}{entry.pendingGrading > 0 ? `, ${entry.pendingGrading} to grade` : ''}</span>
                         </>
-                      ) : <span className="text-xs text-stone-400">Not live</span>}
+                      ) : <span className="text-xs text-gray-400">Not live</span>}
                     </TableCell>
-                    <TableCell><span className="whitespace-nowrap text-xs text-stone-600">{formatDate(course.updatedAt)}</span></TableCell>
+                    <TableCell><span className="whitespace-nowrap text-xs text-gray-600">{formatDate(course.updatedAt)}</span></TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
-                      <button type="button" aria-label={`${isEditable(course.status) ? 'Edit' : 'Open'} ${course.title}`} onClick={(event) => { event.stopPropagation(); router.push(`/learn/manage/${course.id}`); }} className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-800 transition hover:border-[#D97706] hover:text-[#B45309]">
+                      <button type="button" aria-label={`${isEditable(course.status) ? 'Edit' : 'Open'} ${course.title}`} onClick={(event) => { event.stopPropagation(); router.push(`/learn/manage/${course.id}`); }} className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-800 transition hover:border-[#D97706] hover:text-[#B45309]">
                         <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
                         {isEditable(course.status) ? 'Edit' : 'Open'}
                       </button>
-                      <button type="button" aria-label={`Duplicate ${course.title}`} title="Duplicate" disabled={copyingId !== null} onClick={(event) => { event.stopPropagation(); void duplicate(course); }} className="rounded p-2 text-stone-400 transition hover:bg-stone-100 hover:text-stone-700 disabled:opacity-50">
+                      <button type="button" aria-label={`Duplicate ${course.title}`} title="Duplicate" disabled={copyingId !== null} onClick={(event) => { event.stopPropagation(); void duplicate(course); }} className="rounded p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50">
                         <Copy className="h-4 w-4" aria-hidden="true" />
                       </button>
                       {isEditable(course.status) && (
-                        <button type="button" aria-label={`Delete ${course.title}`} onClick={() => { setDeleteError(''); setToDelete(course); }} className="rounded p-2 text-stone-400 transition hover:bg-rose-50 hover:text-rose-700">
+                        <button type="button" aria-label={`Delete ${course.title}`} onClick={(event) => { event.stopPropagation(); setDeleteError(''); setToDelete(course); }} className="rounded p-2 text-gray-400 transition hover:bg-rose-50 hover:text-rose-700">
                           <Trash2 className="h-4 w-4" aria-hidden="true" />
                         </button>
                       )}
@@ -207,7 +207,7 @@ export function CourseList() {
             </TableBody>
           </Table>
           {pageCount > 1 && (
-            <div className="border-t border-stone-200 p-3">
+            <div className="border-t border-gray-200 p-3">
               <Pagination page={current} totalPages={pageCount} onChange={setPage} aria-label="Courses pages" />
             </div>
           )}

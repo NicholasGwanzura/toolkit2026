@@ -135,7 +135,7 @@ export default function FieldToolkit() {
             >
               <span
                 className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition ${
-                  selected ? 'bg-[#D97706] text-white' : 'bg-[#F5F5F4] text-[#78716C]'
+                  selected ? 'bg-[#B45309] text-white' : 'bg-[#F5F5F4] text-[#78716C]'
                 }`}
               >
                 <Icon className="h-[18px] w-[18px]" aria-hidden="true" />

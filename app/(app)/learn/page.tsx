@@ -34,15 +34,9 @@ export default function LearnPage() {
                 </div>
             </div>
             {managesTraining && session ? (
-                <>
-                    <TrainerLearningHub session={session} />
-                    {isAdmin && <LMS />}
-                </>
+                <TrainerLearningHub session={session} />
             ) : (
-                <>
-                    {isLearner && session && <LearnerDashboard session={session} />}
-                    <LMS />
-                </>
+                isLearner && session ? <LearnerDashboard session={session}><LMS /></LearnerDashboard> : null
             )}
         </div>
     );
