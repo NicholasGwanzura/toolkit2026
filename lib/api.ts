@@ -663,6 +663,20 @@ export interface RecoveryTotals {
   fieldEmissionsAvoidedTonnes: number;
 }
 
+export interface FirstChargeTotals {
+  count: number;
+  kg: number;
+  co2eTonnes: number;
+  last30Days: { count: number; kg: number };
+  byRefrigerant: Array<{ refrigerant: string; kg: number; count: number }>;
+  recent: Array<{ id: string; timestamp: string; technicianName: string; clientName: string; location: string; refrigerantType: string; amount: number }>;
+}
+
+/** First-time charges of new systems, nationally. Administrators only. */
+export function useFirstChargeTotals(enabled = true) {
+  return useSWR<FirstChargeTotals>(enabled ? '/api/admin/first-charges' : null, fetcher);
+}
+
 /** Refrigerant recovered in the field, all time, counted from technicians' logs. */
 export function useRecoveryTotals(enabled = true) {
   return useSWR<RecoveryTotals>(enabled ? '/api/admin/recovery-totals' : null, fetcher);
@@ -930,7 +944,7 @@ export async function updatePlannerJob(
   // Completing a service job moves its equipment on.
   await mutate('/api/equipment-records');
   // Completing a new system adds its charge to the gas records.
-  await mutate((key) => typeof key === 'string' && (key.startsWith('/api/gas-logs') || key.startsWith('/api/jobs/gas-usage')));
+  await mutate((key) => typeof key === 'string' && (key.startsWith('/api/gas-logs') || key.startsWith('/api/jobs/gas-usage') || key === '/api/admin/first-charges'));
   return result;
 }
 
@@ -1241,12 +1255,18 @@ export async function reviewCocRequest(id: string, action: 'approve' | 'reject',
 // Installations (DB-backed)
 // ---------------------------------------------------------------------------
 
+/** Set on records saved offline: the device's reference and the time the work was saved. */
+export interface OfflineRef {
+  clientRef?: string;
+  recordedAt?: string;
+}
+
 export function useFieldImageRecords(limit = 5, enabled = true) {
   return useSWR<ImageRecord[]>(enabled ? `/api/field-images?limit=${limit}` : null, fetcher);
 }
 
 export async function createFieldImageRecord(
-  body: Omit<ImageRecord, 'id' | 'createdAt'>,
+  body: Omit<ImageRecord, 'id' | 'createdAt'> & OfflineRef,
 ): Promise<ImageRecord> {
   const result = await post<ImageRecord>('/api/field-images', body);
   await mutate(key => typeof key === 'string' && key.startsWith('/api/field-images'));
@@ -1258,7 +1278,7 @@ export function useInstallations() {
 }
 
 export async function createInstallation(
-  body: Omit<Installation, 'id' | 'technicianId' | 'technicianName' | 'installationDate' | 'status' | 'cocRequested' | 'cocApproved' | 'cocRequestId' | 'cocApprovalDate'>,
+  body: Omit<Installation, 'id' | 'technicianId' | 'technicianName' | 'installationDate' | 'status' | 'cocRequested' | 'cocApproved' | 'cocRequestId' | 'cocApprovalDate'> & OfflineRef,
 ): Promise<Installation> {
   const result = await post<Installation>('/api/installations', body);
   await mutate('/api/installations');

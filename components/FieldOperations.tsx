@@ -11,7 +11,7 @@ import {
     ShieldCheck,
     Wrench,
 } from 'lucide-react';
-import { useClientSession } from '@/lib/useClientSession';
+import { useAuth } from '@/lib/auth';
 import { useEquipmentRecords, useGasLogs, useInstallations, usePlannerJobs } from '@/lib/api';
 import FieldScheduling from '@/components/FieldScheduling';
 import JobActions from '@/components/JobActions';
@@ -87,7 +87,7 @@ function StatusPill({ status }: { status: string }) {
 
 function JobsAndLogsPanel() {
     const router = useRouter();
-    const session = useClientSession();
+    const { user: session } = useAuth();
     const { data: plannerJobs = [] } = usePlannerJobs();
     const { data: installationsData } = useInstallations();
     const { data: gasLogsData } = useGasLogs(undefined, undefined, 200);
@@ -147,7 +147,7 @@ function JobsAndLogsPanel() {
                 date: log.timestamp.slice(0, 10),
                 status: log.actionType,
                 technicianName: log.technicianName,
-                detail: `${log.refrigerantType} · ${log.amount} kg · ${log.supplierVerified ? 'Verified supplier' : 'Unverified supplier'}`,
+                detail: `${log.firstCharge ? 'First-time charge · ' : ''}${log.refrigerantType} · ${log.amount} kg · ${log.supplierVerified ? 'Verified supplier' : 'Unverified supplier'}`,
                 job: null as PlannerJob | null,
             }));
 
@@ -246,11 +246,13 @@ function SummaryCard({ label, value, onClick }: { label: string; value: number; 
 export default function FieldOperations() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const session = useClientSession();
+    const { user: session, isLoading: sessionLoading } = useAuth();
     const activeTab = getTab(searchParams.get('tab'));
     const { data: equipment = [] } = useEquipmentRecords();
     const { data: jobs = [] } = usePlannerJobs();
     const openJobs = jobs.filter(job => job.status !== 'completed' && job.status !== 'cancelled').length;
+
+    if (sessionLoading) return <p className="p-4 text-sm text-gray-500">Loading…</p>;
 
     if (!session || !['technician', 'contractor', 'org_admin'].includes(session.role)) {
         return (

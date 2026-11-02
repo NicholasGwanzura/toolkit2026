@@ -32,12 +32,17 @@ export async function recordNewSystemCharge(tx: Tx, job: PlannerJobRow, now: Dat
     .orderBy(desc(gasUsageLogs.timestamp));
   const byHand = candidates.filter((log) => log.clientLogId !== logId);
 
-  if (byHand.some((log) => log.plannerJobId === job.id)) return 'linked';
+  const linked = byHand.find((log) => log.plannerJobId === job.id);
+  if (linked) {
+    // A new system's charge is its first-time charge, however it was logged.
+    if (!linked.firstCharge) await tx.update(gasUsageLogs).set({ firstCharge: true }).where(eq(gasUsageLogs.id, linked.id));
+    return 'linked';
+  }
 
   const facts = { clientName: job.clientName, refrigerantType, amount, timestamp: now };
   const identical = byHand.find((log) => isSameCharge(log, facts));
   if (identical) {
-    await tx.update(gasUsageLogs).set({ plannerJobId: job.id }).where(eq(gasUsageLogs.id, identical.id));
+    await tx.update(gasUsageLogs).set({ plannerJobId: job.id, firstCharge: true }).where(eq(gasUsageLogs.id, identical.id));
     return 'adopted';
   }
 
@@ -52,6 +57,7 @@ export async function recordNewSystemCharge(tx: Tx, job: PlannerJobRow, now: Dat
     odp: numericReference(refrigerant?.odp),
     gwp: numericReference(refrigerant?.gwp),
     ashraeSafetyClass: refrigerant?.ashraeSafetyGroup ?? null,
+    firstCharge: true,
   };
   await tx
     .insert(gasUsageLogs)

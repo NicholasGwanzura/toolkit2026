@@ -37,7 +37,7 @@ function kg(value: number): string {
 export function technicianCards(input: {
   jobs: Array<{ scheduledDate: string; status: string }>;
   cocRequests: Array<{ status: string; expiryDate?: string }>;
-  gasLogs: Array<{ timestamp: string; actionType: string; amount: number }>;
+  gasLogs: Array<{ timestamp: string; actionType: string; amount: number; firstCharge?: boolean }>;
   range: SimpleDateRange;
   now: number;
 }): StatCard[] {
@@ -46,6 +46,8 @@ export function technicianCards(input: {
   const recovered = input.gasLogs
     .filter((log) => log.actionType === 'Recovery' && inPeriod(log.timestamp, range, now))
     .reduce((sum, log) => sum + (Number.isFinite(log.amount) ? log.amount : 0), 0);
+  const firstCharges = input.gasLogs.filter((log) => log.actionType === 'Charge' && log.firstCharge === true && inPeriod(log.timestamp, range, now));
+  const firstChargeKg = firstCharges.reduce((sum, log) => sum + (Number.isFinite(log.amount) ? log.amount : 0), 0);
   const pending = input.cocRequests.filter((coc) => coc.status === 'submitted').length;
   const approved = input.cocRequests.filter((coc) => coc.status === 'approved');
   const expiringSoon = approved.filter((coc) => {
@@ -71,6 +73,12 @@ export function technicianCards(input: {
       value: kg(recovered),
       note: periodLabel(range),
       definition: 'Total of your recovery entries in the refrigerant log whose time falls in the selected period.',
+    },
+    {
+      label: 'First-Time Charges',
+      value: kg(firstChargeKg),
+      note: `${firstCharges.length} new system${firstCharges.length === 1 ? '' : 's'} ${periodLabel(range)}`,
+      definition: 'Refrigerant you charged into newly installed systems in the selected period, kept apart from top-ups and repairs.',
     },
     {
       label: 'COCs on Record',

@@ -59,7 +59,7 @@ describe('technicianCards', () => {
 
   it('handles empty data without producing NaN', () => {
     const cards = technicianCards({ jobs: [], cocRequests: [], gasLogs: [], range: 'week', now: NOW });
-    expect(cards.map((c) => c.value)).toEqual(['0', '0', '0 kg', '0']);
+    expect(cards.map((c) => c.value)).toEqual(['0', '0', '0 kg', '0 kg', '0']);
     expect(cards.some((c) => c.value.includes('NaN'))).toBe(false);
   });
 
@@ -214,5 +214,26 @@ describe('maskCards and combineStates', () => {
     expect(combineStates([{ isLoading: true, error: undefined }, { isLoading: false, error: undefined }])).toBe('loading');
     expect(combineStates([{ isLoading: true, error: undefined }, { isLoading: false, error: new Error('x') }])).toBe('error');
     expect(combineStates([])).toBe('ready');
+  });
+});
+
+describe('first-time charges on the technician dashboard', () => {
+  const now = Date.parse('2026-11-02T12:00:00Z');
+  const cards = technicianCards({
+    jobs: [],
+    cocRequests: [],
+    gasLogs: [
+      { timestamp: '2026-11-02T08:00:00Z', actionType: 'Charge', amount: 4.5, firstCharge: true },
+      { timestamp: '2026-11-02T09:00:00Z', actionType: 'Charge', amount: 2 },
+      { timestamp: '2026-11-02T10:00:00Z', actionType: 'Recovery', amount: 3, firstCharge: true },
+      { timestamp: '2026-09-01T10:00:00Z', actionType: 'Charge', amount: 9, firstCharge: true },
+    ],
+    range: 'today',
+    now,
+  });
+  const card = cards.find((c) => c.label === 'First-Time Charges')!;
+  it('counts only first-time charges in the period, never top-ups or recoveries', () => {
+    expect(card.value).toContain('4.5');
+    expect(card.note).toMatch(/^1 new system /);
   });
 });

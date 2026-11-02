@@ -58,6 +58,7 @@ import {            ClipboardCheck,
     ShieldCheck,
     Receipt,
     Factory,
+    Sparkles,
 } from 'lucide-react';
 import Link from 'next/link';
 import { CertificateRecord, JobTypeLabels, RefrigerantLog } from '@/types/index';
@@ -96,6 +97,7 @@ const STAT_STYLE: Record<string, { icon: typeof Users; color: string }> = {
     'Jobs Completed': { icon: ClipboardCheck, color: 'blue' },
     'Pending COCs': { icon: Clock, color: 'amber' },
     'Refrigerant Recovered': { icon: Droplets, color: 'emerald' },
+    'First-Time Charges': { icon: Sparkles, color: 'blue' },
     'COCs on Record': { icon: Award, color: 'purple' },
     'Pending Reorders': { icon: Package, color: 'amber' },
     'Approved Volume': { icon: Droplets, color: 'blue' },
@@ -563,7 +565,7 @@ export default function DashboardPage() {
 
             {isAdmin && <ActionQueuePanel items={queueQ.data?.items} total={queueQ.data?.total} loading={queueQ.isLoading} failed={Boolean(queueQ.error)} />}
 
-            <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 ${isAdmin ? 'xl:grid-cols-5' : 'lg:grid-cols-4'}`}>
+            <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 ${isAdmin || isTechnician ? 'xl:grid-cols-5' : 'lg:grid-cols-4'}`}>
                 {statCards.map((stat) => {
                     const style = STAT_STYLE[stat.label] ?? { icon: TrendingUp, color: 'blue' };
                     const Icon = style.icon;
@@ -980,6 +982,7 @@ export default function DashboardPage() {
                                                         <span className={`inline-flex px-2 py-0.5 text-xs font-semibold ${actionStyles[log.actionType] ?? 'bg-gray-50 text-gray-600'}`}>
                                                             {log.actionType}
                                                         </span>
+                                                        {log.firstCharge && <span className="ml-1.5 inline-flex rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">First-time charge</span>}
                                                     </td>
                                                     <td className="px-6 py-3 text-sm text-[#44403C]">{log.amount} kg</td>
                                                     <td className="px-6 py-3 text-xs text-[#78716C]">{new Date(log.timestamp).toLocaleDateString('en-ZW')}</td>

@@ -3,6 +3,7 @@
 import TrainerLearningHub from '@/components/TrainerLearningHub';
 import LMS from '@/components/LMS';
 import LearnerDashboard from '@/components/LearnerDashboard';
+import { AdminCourseLibrary } from '@/components/learn/AdminCourseLibrary';
 import { useAuth } from '@/lib/auth';
 import { isFieldWorkerRole } from '@/lib/field-worker';
 
@@ -34,7 +35,10 @@ export default function LearnPage() {
                 </div>
             </div>
             {managesTraining && session ? (
-                <TrainerLearningHub session={session} />
+                <>
+                    {isAdmin && <AdminCourseLibrary />}
+                    <TrainerLearningHub session={session} />
+                </>
             ) : (
                 isLearner && session ? <LearnerDashboard session={session}><LMS /></LearnerDashboard> : null
             )}

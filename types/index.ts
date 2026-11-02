@@ -746,6 +746,8 @@ export interface RefrigerantLog {
   refrigerantClass?: RefrigerantSafetyClass;
   amount: number;
   actionType: 'Charge' | 'Recovery' | 'Leak Repair';
+  /** A Charge that is a new system's first-time charge, not a top-up. */
+  firstCharge?: boolean;
   timestamp: string;
   approvedSupplierId?: string;
   approvedSupplierName?: string;

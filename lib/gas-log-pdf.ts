@@ -40,7 +40,7 @@ export async function downloadGasLogPdf(log: RefrigerantLog) {
       x: 20,
       maxWidth: 92,
     },
-    { label: 'ACTION', value: log.actionType, detail: log.refrigerantType, x: 120 },
+    { label: 'ACTION', value: log.firstCharge ? 'First charge' : log.actionType, detail: log.refrigerantType, x: 120 },
     { label: 'QUANTITY', value: `${log.amount} kg`, x: 158 },
   ]);
 
@@ -55,7 +55,7 @@ export async function downloadGasLogPdf(log: RefrigerantLog) {
   ]);
 
   y = drawKeyTable(doc, autoTable, y, 'Refrigerant and supplier', [
-    ['Action performed', log.actionType],
+    ['Action performed', log.firstCharge ? 'Charge: first-time charge of a new system' : log.actionType],
     ['Refrigerant', log.refrigerantType],
     ['Quantity recorded', `${log.amount} kg`],
     ['Approved supplier', log.approvedSupplierName || 'Unverified / not selected'],

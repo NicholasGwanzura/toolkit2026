@@ -13,7 +13,7 @@ import {
 } from '@/types/index';
 import { DEFAULT_PLANNER_SAFETY_CHECKLIST } from '@/constants/job-planner';
 import { useTechnicians, usePlannerJobs, createPlannerJob } from '@/lib/api';
-import { useClientSession } from '@/lib/useClientSession';
+import { useAuth } from '@/lib/auth';
 import { findConflicts, isPastDate } from '@/lib/planner-conflicts';
 import JobActions from '@/components/JobActions';
 import { RefrigerantAutocomplete, refrigerantLabel } from '@/components/RefrigerantAutocomplete';
@@ -73,7 +73,7 @@ function daysFromToday(days: number) {
 }
 
 export default function JobPlanner() {
-    const session = useClientSession();
+    const { user: session } = useAuth();
     const todayIso = isoDate(new Date());
     const canAssign = session?.role === 'org_admin';
     const { data: techniciansData } = useTechnicians(undefined, canAssign);

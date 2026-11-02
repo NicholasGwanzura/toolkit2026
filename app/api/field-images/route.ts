@@ -5,6 +5,7 @@ import { db } from '@/db/client';
 import { fieldImageRecords } from '@/db/schema/index';
 import { requireRole } from '@/lib/server/auth';
 import { isFieldWorkerRole } from '@/lib/field-worker';
+import { recordedTime, validClientRef } from '@/lib/offline-record';
 
 const imageRecordSchema = z.object({
   jobId: z.string().trim().min(1).max(200),
@@ -17,6 +18,8 @@ const imageRecordSchema = z.object({
   })).max(100),
   gpsTag: z.string().trim().max(120).optional(),
   imageDataUrl: z.string().max(1_200_000).regex(/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/),
+  clientRef: z.string().optional(),
+  recordedAt: z.string().optional(),
 });
 
 export async function GET(req: Request) {
@@ -64,7 +67,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const [row] = await db.insert(fieldImageRecords).values({
+  // Sent again after a dropped connection: return what was already stored.
+  const clientRef = validClientRef(body.clientRef);
+  let [row] = clientRef ? await db.select().from(fieldImageRecords).where(eq(fieldImageRecords.clientRef, clientRef)).limit(1) : [];
+  if (row && row.technicianId !== session.id) return NextResponse.json({ error: 'That record reference is already in use.' }, { status: 409 });
+  const created = !row;
+  if (!row) [row] = await db.insert(fieldImageRecords).values({
+    clientRef,
+    createdAt: recordedTime(body.recordedAt, new Date()),
     technicianId: session.id,
     jobId: body.jobId,
     beforeAfter: body.beforeAfter,
@@ -81,5 +91,5 @@ export async function POST(req: Request) {
     gpsTag: row.gpsTag ?? undefined,
     imageDataUrl: row.imageDataUrl,
     createdAt: row.createdAt.toISOString(),
-  }, { status: 201, headers: { 'Cache-Control': 'private, no-store' } });
+  }, { status: created ? 201 : 200, headers: { 'Cache-Control': 'private, no-store' } });
 }

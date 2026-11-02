@@ -34,6 +34,8 @@ export const installations = pgTable('installations', {
   cocRequestId: uuid('coc_request_id'),
   cocApprovalDate: timestamp('coc_approval_date', { withTimezone: true }),
   notes: text('notes'),
+  // Device reference for records saved offline, so a retried send is stored once.
+  clientRef: text('client_ref').unique('installations_client_ref_idx'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [

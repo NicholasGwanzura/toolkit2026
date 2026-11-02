@@ -3,6 +3,9 @@
 import { useMemo, useRef, useState } from 'react';
 import { ImagePlus, MapPin, Save } from 'lucide-react';
 import { createFieldImageRecord, useFieldImageRecords } from '@/lib/api';
+import { useAuth } from '@/lib/auth';
+import { useOfflineQueue } from '@/lib/offline-queue';
+import { WaitingToSync } from '@/components/field-toolkit/WaitingToSync';
 import type { ImageRecord } from '@/types/index';
 
 type DraftAnnotation = {
@@ -22,6 +25,9 @@ export function ImageAnnotationWorkbench() {
     const [annotations, setAnnotations] = useState<DraftAnnotation[]>([]);
     const [notice, setNotice] = useState('');
     const { data: savedRecords = [], error: savedRecordsError } = useFieldImageRecords(5);
+    const { user } = useAuth();
+    const offline = useOfflineQueue<Omit<ImageRecord, 'id' | 'createdAt'>>('field-images', user?.id, (item) =>
+        createFieldImageRecord({ ...item.payload, clientRef: item.ref, recordedAt: item.savedAt }));
 
     const markerLabel = useMemo(() => `Issue ${annotations.length + 1}`, [annotations.length]);
 
@@ -95,22 +101,19 @@ export function ImageAnnotationWorkbench() {
             return;
         }
 
-        setIsSaving(true);
-        setNotice('Saving evidence to your account…');
-        try {
-            await createFieldImageRecord({
-                jobId: jobId.trim(),
-                beforeAfter,
-                annotationsJson: annotations,
-                gpsTag: gpsTag.trim() || undefined,
-                imageDataUrl,
-            });
-            setNotice(`Saved ${annotations.length} annotations for ${jobId.trim()}.`);
-        } catch (error) {
-            setNotice(error instanceof Error ? `Could not save evidence: ${error.message}` : 'Could not save evidence. Check your connection and try again.');
-        } finally {
-            setIsSaving(false);
-        }
+        // Saved on this device first, so a dropped signal never loses the photo. It sends when online.
+        offline.submit({
+            jobId: jobId.trim(),
+            beforeAfter,
+            annotationsJson: annotations,
+            gpsTag: gpsTag.trim() || undefined,
+            imageDataUrl,
+        });
+        setNotice(navigator.onLine
+            ? `Saved ${annotations.length} annotations for ${jobId.trim()}.`
+            : `Saved on this device for ${jobId.trim()}. It will sync when you are back online.`);
+        setImageDataUrl('');
+        setAnnotations([]);
     };
 
     return (
@@ -227,6 +230,18 @@ export function ImageAnnotationWorkbench() {
                         </div>
                     )}
                 </div>
+            </div>
+            <div className="mt-6">
+                <WaitingToSync
+                    label="Photos"
+                    items={offline.items.map((item) => ({ ref: item.ref, title: item.payload.jobId, detail: `${item.payload.beforeAfter}, ${item.payload.annotationsJson.length} markers`, savedAt: item.savedAt, problem: offline.failed[item.ref] }))}
+                    isOnline={offline.isOnline}
+                    syncing={offline.syncing}
+                    storageProblem={offline.storageProblem}
+                    onRetry={offline.retry}
+                    onRetryItem={offline.retryFailed}
+                    onDiscard={offline.discard}
+                />
             </div>
             <div className="mt-6 border-t border-gray-200 pt-5">
                 <h3 className="text-sm font-semibold text-gray-800">Recently saved evidence</h3>

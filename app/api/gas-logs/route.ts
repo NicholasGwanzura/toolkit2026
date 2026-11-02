@@ -19,6 +19,7 @@ const gasLogSchema = z.object({
   refrigerantType: z.string().trim().min(1).max(120),
   amount: z.number().finite().positive().max(10000),
   actionType: z.enum(['Charge', 'Recovery', 'Leak Repair']),
+  firstCharge: z.boolean().optional(),
   timestamp: z.iso.datetime().transform((value) => new Date(value)),
   approvedSupplierId: z.uuid().optional(),
 });
@@ -47,6 +48,7 @@ function toRefrigerantLog(row: typeof gasUsageLogs.$inferSelect): RefrigerantLog
     co2EqEmissions: row.co2EqEmissions ? Number(row.co2EqEmissions) : undefined,
     ashraeSafetyClass: (row.ashraeSafetyClass ?? undefined) as RefrigerantLog['ashraeSafetyClass'],
     supplierId: row.supplierId ?? undefined,
+    firstCharge: row.firstCharge,
   };
 }
 
@@ -139,6 +141,8 @@ export async function POST(req: Request) {
           co2EqEmissions: null,
           ashraeSafetyClass: log.refrigerantId ? refrigerantById.get(log.refrigerantId)?.ashraeSafetyGroup ?? null : null,
           supplierId: log.approvedSupplierId ?? null,
+          // Only a charge can be a first-time charge.
+          firstCharge: log.actionType === 'Charge' && log.firstCharge === true,
         }))
       )
       .onConflictDoNothing({ target: gasUsageLogs.clientLogId })

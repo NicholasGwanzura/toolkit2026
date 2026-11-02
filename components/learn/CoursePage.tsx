@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, Circle, Clock, Download, FileText } from 'lucide-react';
 import { Button } from '@/components/base/buttons/button';
 import { ExamPanel } from '@/components/ExamPanel';
+import { StatusPill } from '@/components/course-management/status';
 import { RichText } from '@/components/learn/RichText';
 import { CourseStepper } from '@/components/learn/CourseStepper';
 import { useCourseLearning } from '@/components/learn/useCourseLearning';
@@ -16,10 +17,10 @@ import { progressPercent } from '@/lib/course-progress';
 
 const fileSize = (bytes: number) => (bytes < 1024 ? `${bytes} B` : bytes < 1048576 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / 1048576).toFixed(1)} MB`);
 
-export function CoursePage({ courseId }: { courseId: string }) {
+export function CoursePage({ courseId, preview = false }: { courseId: string; preview?: boolean }) {
   const { data: course, error, isLoading } = useCourse(courseId);
-  const { data: progress, isLoading: progressLoading } = useCourseProgress();
-  const { data: enrollments, isLoading: enrollmentsLoading } = useEnrollments();
+  const { data: progress, isLoading: progressLoading } = useCourseProgress(!preview);
+  const { data: enrollments, isLoading: enrollmentsLoading } = useEnrollments(!preview);
 
   if (error) {
     return (
@@ -36,11 +37,12 @@ export function CoursePage({ courseId }: { courseId: string }) {
       course={course}
       saved={progress?.find((entry) => entry.courseId === course.id)}
       enrolled={(enrollments ?? []).some((entry) => entry.courseId === course.id)}
+      preview={preview}
     />
   );
 }
 
-function CourseContent({ course, saved, enrolled }: { course: ManagedCourse; saved: Parameters<typeof useCourseLearning>[1]; enrolled: boolean }) {
+function CourseContent({ course, saved, enrolled, preview }: { course: ManagedCourse; saved: Parameters<typeof useCourseLearning>[1]; enrolled: boolean; preview: boolean }) {
   const learning = useCourseLearning(course, saved, enrolled);
   const { data: exam } = useCourseExam(course.id, enrolled);
   const [moduleIndex, setModuleIndex] = useState(() => nextModuleIndex(learning.completed, course.modules.length));
@@ -93,13 +95,20 @@ function CourseContent({ course, saved, enrolled }: { course: ManagedCourse; sav
             <h1 className="text-2xl font-bold text-gray-900">{course.title}</h1>
             <p className="mt-1 text-sm text-gray-600">By {course.lecturerName}. {moduleCount} module{moduleCount === 1 ? '' : 's'}, {formatMinutes(totalMinutes(course.modules))}, pass mark {course.passMark}%{course.cpdCredits > 0 ? `, ${course.cpdCredits} CPD credits` : ''}.</p>
           </div>
-          <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${stageMeta.className}`}>{stageMeta.label}</span>
+          {preview ? <StatusPill status={course.status} className="shrink-0" /> : <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${stageMeta.className}`}>{stageMeta.label}</span>}
         </div>
       </div>
 
-      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"><CourseStepper stage={stage} /></div>
+      {preview ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-100 bg-blue-50 p-4">
+          <p className="max-w-2xl text-sm text-blue-950">You are previewing this course as an administrator. Nothing here counts as learner progress.</p>
+          <Link href={`/learn/manage/${course.id}`} className="inline-flex min-h-11 items-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-800 hover:bg-gray-50">Manage course</Link>
+        </div>
+      ) : (
+        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"><CourseStepper stage={stage} /></div>
+      )}
 
-      {!enrolled && (
+      {!enrolled && !preview && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
           <p className="max-w-2xl text-sm text-amber-950">{course.description}</p>
           <Button onClick={() => void start()} disabled={busy} className="min-h-11 bg-[#B45309] text-white hover:bg-[#92400E]">{busy ? 'Starting…' : 'Start course'}</Button>
@@ -145,9 +154,9 @@ function CourseContent({ course, saved, enrolled }: { course: ManagedCourse; sav
               {(mod.attachments ?? []).length > 0 && (
                 <div className="mt-6 space-y-2 border-t border-gray-100 pt-5">
                   <h3 className="text-sm font-semibold text-gray-900">Materials</h3>
-                  {!enrolled && <p className="text-xs text-gray-600">Start the course to download these.</p>}
+                  {!enrolled && !preview && <p className="text-xs text-gray-600">Start the course to download these.</p>}
                   {(mod.attachments ?? []).map((attachment) => (
-                    <button key={attachment.id} type="button" disabled={!enrolled} onClick={() => void download(attachment.r2Key)} className="flex min-h-11 w-full items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-left text-sm text-gray-700 transition hover:border-blue-300 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-60">
+                    <button key={attachment.id} type="button" disabled={!enrolled && !preview} onClick={() => void download(attachment.r2Key)} className="flex min-h-11 w-full items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-left text-sm text-gray-700 transition hover:border-blue-300 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-60">
                       <span className="flex min-w-0 items-center gap-2"><FileText className="h-4 w-4 shrink-0 text-gray-400" aria-hidden="true" /><span className="truncate">{attachment.fileName}</span></span>
                       <span className="flex shrink-0 items-center gap-1.5 text-xs text-gray-500">{fileSize(attachment.sizeBytes)}<Download className="h-4 w-4" aria-hidden="true" /></span>
                     </button>
@@ -156,6 +165,12 @@ function CourseContent({ course, saved, enrolled }: { course: ManagedCourse; sav
                 </div>
               )}
 
+              {preview && (
+                <div className="mt-6 flex flex-wrap justify-between gap-2 border-t border-gray-100 pt-5">
+                  <button type="button" disabled={moduleIndex === 0} onClick={() => goTo(moduleIndex - 1)} className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 text-sm font-semibold text-gray-800 hover:bg-gray-50 disabled:opacity-40"><ArrowLeft className="h-4 w-4" aria-hidden="true" /> Previous</button>
+                  <button type="button" disabled={isLast} onClick={() => goTo(moduleIndex + 1)} className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 text-sm font-semibold text-gray-800 hover:bg-gray-50 disabled:opacity-40">Next <ArrowRight className="h-4 w-4" aria-hidden="true" /></button>
+                </div>
+              )}
               {enrolled && (
                 <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-5">
                   <div className="flex flex-wrap items-center gap-2">

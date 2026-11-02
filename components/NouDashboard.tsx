@@ -23,6 +23,7 @@ import {
 import { useAuth } from '@/lib/auth';
 import { useToast } from '@/components/ui/Toast';
 import { Drilldown } from '@/components/ui/Drilldown';
+import { FirstChargePanel } from '@/components/dashboard/FirstChargePanel';
 import { REFRIGERANT_REFERENCE } from '@/constants/refrigerants';
 import { useCourses, useReorders, useVerifications, useSupplierApplications, useSupplierLedger, useSupplierComplianceApplications, useTechnicians, useGasLogs, useRecoveryTotals, useAdminDashboardSummary, setSupplierImportQuota } from '@/lib/api';
 import { quotaUsage, type QuotaStatus } from '@/lib/supplier-quota';
@@ -806,6 +807,8 @@ export default function NouDashboard() {
           </div>
         </article>
       </section>
+
+      <FirstChargePanel />
 
       {/* Refrigerant volumes approved YTD by gas type */}
       {approvedReordersByGas.length > 0 && (

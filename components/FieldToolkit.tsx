@@ -13,6 +13,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import type { InstallationChecklistSnapshot } from '@/types/index';
+import { useAuth } from '@/lib/auth';
 import { OcrNameplateScanner } from '@/components/OcrNameplateScanner';
 import { ImageAnnotationWorkbench } from '@/components/ImageAnnotationWorkbench';
 import ChecklistTab from '@/components/field-toolkit/ChecklistTab';
@@ -48,7 +49,29 @@ export default function FieldToolkit() {
   });
 
   // Work that has to travel between tabs lives here: the saved checklist and the scanned refrigerant.
-  const [checklist, setChecklist] = useState<InstallationChecklistSnapshot | null>(null);
+  const { user } = useAuth();
+  const checklistKey = user ? `coolpro_saved_checklist:${user.id}` : null;
+  const [checklist, setChecklistState] = useState<InstallationChecklistSnapshot | null>(null);
+  // The saved checklist survives a reload or a phone restart with no signal, until an installation uses it.
+  useEffect(() => {
+    if (!checklistKey) return;
+    try {
+      const stored = window.localStorage.getItem(checklistKey);
+      setChecklistState(stored ? (JSON.parse(stored) as InstallationChecklistSnapshot) : null);
+    } catch {
+      setChecklistState(null);
+    }
+  }, [checklistKey]);
+  const setChecklist = useCallback((next: InstallationChecklistSnapshot | null) => {
+    setChecklistState(next);
+    if (!checklistKey) return;
+    try {
+      if (next) window.localStorage.setItem(checklistKey, JSON.stringify(next));
+      else window.localStorage.removeItem(checklistKey);
+    } catch {
+      // Kept for this visit only.
+    }
+  }, [checklistKey]);
   const [scanned, setScanned] = useState<{ code: string; amountKg?: number } | undefined>();
 
   // A voice command opens the register with details in the address. They are read once, checked, and cleared.
@@ -186,7 +209,7 @@ export default function FieldToolkit() {
             <div className="flex items-start gap-3 rounded-xl border border-[#E7E5E4] bg-[#FAFAF9] p-4">
               <Camera className="mt-0.5 h-5 w-5 shrink-0 text-[#78716C]" aria-hidden="true" />
               <p className="text-sm leading-6 text-[#57534E]">
-                Saved field evidence is linked to your account and available when you sign in on another device.
+                Saved field evidence is linked to your account and available when you sign in on another device. With no signal, it is kept on this device and sent when you are back online.
                 Annotate nameplates, leak sites or commissioning shots before filing them.
               </p>
             </div>

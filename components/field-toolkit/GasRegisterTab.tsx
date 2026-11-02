@@ -37,6 +37,7 @@ const EMPTY_FORM = {
   refrigerantType: '',
   amount: '',
   actionType: 'Charge' as Action,
+  firstCharge: false,
   approvedSupplierId: '',
   plannerJobId: '',
 };
@@ -218,6 +219,7 @@ export default function GasRegisterTab({ prefill, onPrefillConsumed }: GasRegist
       refrigerantType: form.refrigerantType,
       amount: Number(form.amount),
       actionType: form.actionType,
+      firstCharge: form.actionType === 'Charge' && form.firstCharge ? true : undefined,
       approvedSupplierId: supplier?.id,
       approvedSupplierName: supplier?.name,
       supplierVerified: Boolean(supplier),
@@ -366,6 +368,7 @@ export default function GasRegisterTab({ prefill, onPrefillConsumed }: GasRegist
                   <div className="min-w-0 space-y-1.5 pl-2">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${actionStyle.chip}`}>{log.actionType}</span>
+                      {log.firstCharge && <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-blue-700">First-time charge</span>}
                       <SyncChip state={state} />
                       <span className="text-xs text-[#A8A29E]">
                         {new Date(log.timestamp).toLocaleDateString('en-ZW')} {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -427,7 +430,7 @@ export default function GasRegisterTab({ prefill, onPrefillConsumed }: GasRegist
                 <button
                   key={action}
                   type="button"
-                  onClick={() => setForm({ ...form, actionType: action })}
+                  onClick={() => setForm({ ...form, actionType: action, firstCharge: action === 'Charge' && form.firstCharge })}
                   aria-pressed={form.actionType === action}
                   className={`min-h-12 rounded-xl border px-2 py-2 text-sm font-semibold transition ${
                     form.actionType === action
@@ -439,6 +442,15 @@ export default function GasRegisterTab({ prefill, onPrefillConsumed }: GasRegist
                 </button>
               ))}
             </div>
+            {form.actionType === 'Charge' && (
+              <label className="mt-3 flex min-h-11 cursor-pointer items-start gap-3 rounded-xl border border-[#E7E5E4] bg-[#FAFAF9] px-3 py-2.5 text-sm text-[#44403C]">
+                <input type="checkbox" checked={form.firstCharge} onChange={e => setForm({ ...form, firstCharge: e.target.checked })} className="mt-0.5 h-4 w-4 accent-[#B45309]" />
+                <span>
+                  <span className="block font-semibold text-[#1C1917]">This is the first-time charge of a new system</span>
+                  <span className="block text-xs text-[#78716C]">Tick for a system&apos;s initial fill, not a top-up. It is reported separately to the National Ozone Unit.</span>
+                </span>
+              </label>
+            )}
           </fieldset>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

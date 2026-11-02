@@ -14,6 +14,8 @@ export const gasUsageLogs = pgTable('gas_usage_logs', {
   refrigerantClass: text('refrigerant_class'),
   amount: numeric('amount', { precision: 10, scale: 3 }).notNull(),
   actionType: text('action_type').notNull(),
+  // The refrigerant charged into a newly installed system, reported apart from top-ups.
+  firstCharge: boolean('first_charge').notNull().default(false),
   timestamp: timestamp('timestamp', { withTimezone: true }).notNull(),
   approvedSupplierId: text('approved_supplier_id'),
   approvedSupplierName: text('approved_supplier_name'),

@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { createCocRequest, createInstallation, useCocRequests, useInstallations } from '@/lib/api';
+import { useOfflineQueue, type QueuedItem } from '@/lib/offline-queue';
+import { WaitingToSync } from './WaitingToSync';
 import { CocPdfButton } from '@/components/CocPdfButton';
 import { Modal } from '@/components/ui/Modal';
 import { JobTypeLabels, type CocRequest, type Installation, type InstallationChecklistSnapshot, type JobType } from '@/types/index';
@@ -34,6 +36,8 @@ const inputClass = 'min-h-11 w-full rounded-lg border border-[#E7E5E4] bg-white 
 
 type StatusFilter = 'all' | Installation['status'] | 'coc_pending' | 'coc_ready';
 type SortOrder = 'newest' | 'oldest' | 'client';
+
+type NewInstallation = Parameters<typeof createInstallation>[0];
 
 const EMPTY_FORM = { clientName: '', location: '', jobDetails: '', floorSpace: '', jobType: 'COLD_ROOM' as JobType };
 
@@ -114,38 +118,40 @@ export default function InstallationsTab({ checklist, onChecklistUsed, onGoToChe
     }
   };
 
+  const offline = useOfflineQueue<NewInstallation>('installations', user?.id, (item: QueuedItem<NewInstallation>) =>
+    createInstallation({ ...item.payload, clientRef: item.ref, recordedAt: item.savedAt }));
+
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
     setNotice(null);
     if (!form.clientName.trim() || !form.location.trim() || !form.jobDetails.trim()) {
       return setNotice({ kind: 'error', text: 'Client name, site location and job details are required.' });
     }
-    setSaving(true);
-    try {
-      await createInstallation({
-        clientName: form.clientName.trim(),
-        location: form.location.trim(),
-        jobDetails: form.jobDetails.trim(),
-        floorSpace: form.floorSpace.trim(),
-        jobType: form.jobType,
-        images: formPhotos,
-        checklistSnapshot: checklist,
-      });
-      await mutate();
-      setForm(EMPTY_FORM);
-      setFormPhotos([]);
-      onChecklistUsed();
-      setFormOpen(false);
-      setNotice({ kind: 'ok', text: 'Installation saved. Request a COC from its card once the checklist is complete.' });
-    } catch (err) {
-      setNotice({ kind: 'error', text: err instanceof Error ? err.message : 'Failed to save the installation.' });
-    } finally {
-      setSaving(false);
-    }
+    // Saved on this device first, so a dropped signal never loses the work. It sends when online.
+    offline.submit({
+      clientName: form.clientName.trim(),
+      location: form.location.trim(),
+      jobDetails: form.jobDetails.trim(),
+      floorSpace: form.floorSpace.trim(),
+      jobType: form.jobType,
+      images: formPhotos,
+      checklistSnapshot: checklist,
+    });
+    setForm(EMPTY_FORM);
+    setFormPhotos([]);
+    onChecklistUsed();
+    setFormOpen(false);
+    setNotice({
+      kind: 'ok',
+      text: navigator.onLine
+        ? 'Installation saved. Request a COC from its card once it has synced and the checklist is complete.'
+        : 'Installation saved on this device. It will sync when you are back online.',
+    });
   };
 
   const requestCoc = async (installation: Installation) => {
     setNotice(null);
+    if (!navigator.onLine) return setNotice({ kind: 'error', text: 'A COC request goes straight to an administrator, so it needs a connection. Try again when you are online.' });
     const snapshot = installation.checklistSnapshot;
     if (!snapshot || snapshot.completedItems !== snapshot.totalItems || snapshot.items.some(item => !item.checked)) {
       return setNotice({ kind: 'error', text: 'Complete every checklist item and save the checklist before requesting a COC.' });
@@ -171,6 +177,16 @@ export default function InstallationsTab({ checklist, onChecklistUsed, onGoToChe
 
   return (
     <div className="space-y-6">
+      <WaitingToSync
+        label="Installations"
+        items={offline.items.map((item) => ({ ref: item.ref, title: item.payload.clientName, detail: `${item.payload.location}, ${item.payload.images.length} photo${item.payload.images.length === 1 ? '' : 's'}`, savedAt: item.savedAt, problem: offline.failed[item.ref] }))}
+        isOnline={offline.isOnline}
+        syncing={offline.syncing}
+        storageProblem={offline.storageProblem}
+        onRetry={offline.retry}
+        onRetryItem={offline.retryFailed}
+        onDiscard={offline.discard}
+      />
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="text-xl font-bold tracking-tight text-[#1C1917]">Installation records</h2>

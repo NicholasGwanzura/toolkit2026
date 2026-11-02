@@ -5,7 +5,7 @@ import { Archive, BellRing, ChevronRight, Pencil, Plus, Search, TimerReset, X } 
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { useRouter } from 'next/navigation';
 import { AddEquipmentDialog } from '@/components/AddEquipmentDialog';
-import { useClientSession } from '@/lib/useClientSession';
+import { useAuth } from '@/lib/auth';
 import { ZIMBABWE_PROVINCES } from '@/constants/registry';
 import {
     type EquipmentRecord,
@@ -54,7 +54,7 @@ async function seedPlannerJob(record: EquipmentRecord) {
 
 export default function FieldScheduling() {
     const router = useRouter();
-    const session = useClientSession();
+    const { user: session } = useAuth();
     const [scope, setScope] = useState<ViewScope>(() => (session?.role === 'org_admin' ? 'fleet' : 'own'));
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<EquipmentStatus | ''>('');

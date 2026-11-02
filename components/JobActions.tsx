@@ -198,11 +198,12 @@ export default function JobActions({ job, allJobs, technicians, today }: JobActi
                         <>
                             <div className="text-xs font-semibold text-gray-600">
                                 <p className="mb-1">Gas used (required)</p>
+                                <p className="mb-2 text-xs font-normal text-gray-500">This is recorded as the system&apos;s first-time charge and reported to the National Ozone Unit.</p>
                                 <RefrigerantAutocomplete value={gas} onSelect={setGas}
                                     placeholder={job.refrigerantType ? `Planned: ${job.refrigerantType}. Search to change` : 'Search gas, e.g. R290, R-32'} />
                             </div>
                             <label className="block text-xs font-semibold text-gray-600">
-                                Charge, kg (required)
+                                First-time charge, kg (required)
                                 <input type="number" min="0" step="0.001" value={amount} onChange={event => setAmount(event.target.value)}
                                     placeholder={job.amount ? `Estimated ${job.amount} kg` : 'e.g. 4.5'}
                                     className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-normal outline-none focus:border-blue-300" />

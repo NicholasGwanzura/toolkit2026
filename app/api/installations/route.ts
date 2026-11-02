@@ -4,6 +4,7 @@ import { desc, eq } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { installations } from '@/db/schema/index';
 import { requireRole } from '@/lib/server/auth';
+import { recordedTime, validClientRef } from '@/lib/offline-record';
 import type { Installation } from '@/types/index';
 import { checklistSchema } from '@/lib/server/installation-checklist';
 import { getTableColumns, sql } from 'drizzle-orm';
@@ -68,7 +69,8 @@ export async function POST(req: Request) {
     return e as Response;
   }
 
-  const body = await req.json().catch(() => ({})) as Partial<Installation>;
+  const body = await req.json().catch(() => ({})) as Partial<Installation> & { clientRef?: unknown; recordedAt?: unknown };
+  const clientRef = validClientRef(body.clientRef);
 
   if (!body.clientName?.trim() || !body.location?.trim() || !body.jobDetails?.trim()) {
     return NextResponse.json({ error: 'clientName, location, and jobDetails are required' }, { status: 400 });
@@ -90,9 +92,19 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Installation review fields cannot be set on create' }, { status: 400 });
   }
 
+  // Sent again after a dropped connection: return what was already stored.
+  if (clientRef) {
+    const [existing] = await db.select().from(installations).where(eq(installations.clientRef, clientRef)).limit(1);
+    if (existing) {
+      if (existing.technicianId !== session.id) return NextResponse.json({ error: 'That record reference is already in use.' }, { status: 409 });
+      return NextResponse.json(toInstallation(existing));
+    }
+  }
+
   const [inserted] = await db
     .insert(installations)
     .values({
+      clientRef,
       technicianId: session.id,
       technicianName: session.name,
       clientName: body.clientName.trim(),
@@ -100,7 +112,7 @@ export async function POST(req: Request) {
       jobDetails: body.jobDetails.trim(),
       floorSpace: body.floorSpace ?? null,
       jobType: body.jobType ?? 'COLD_ROOM',
-      installationDate: new Date(),
+      installationDate: recordedTime(body.recordedAt, new Date()),
       status: 'pending',
       images,
       checklistSnapshot: checklistResult.data ?? null,

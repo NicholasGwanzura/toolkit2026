@@ -281,6 +281,20 @@
       "when": 1793900000000,
       "tag": "0039_equipment_owner_and_archive",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1794000000000,
+      "tag": "0040_gas_log_first_charge",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1794100000000,
+      "tag": "0041_offline_client_refs",
+      "breakpoints": true
     }
   ]
 }
