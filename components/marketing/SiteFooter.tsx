@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { ArrowRight } from 'lucide-react';
 
 export function SiteFooter() {
@@ -19,15 +20,19 @@ export function SiteFooter() {
           {/* Brand */}
           <div className="sm:col-span-2 lg:col-span-1">
             <Link href="/" className="inline-flex items-center gap-2.5 group">
-              <img
+              <Image
                 src="/logos/ministry-of-environment.jpeg"
                 alt="Ministry of Environment, Climate and Wildlife"
+                width={36}
+                height={36}
                 className="h-9 w-9 rounded-full object-cover"
               />
               <span className="h-7 w-px bg-white/20" />
-              <img
+              <Image
                 src="/logos/hevacraz-logo.jpeg"
                 alt="HEVACRAZ"
+                width={36}
+                height={36}
                 className="h-9 w-9 rounded-full object-cover transition-transform duration-300 group-hover:-rotate-6"
               />
             </Link>

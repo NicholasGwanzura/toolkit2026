@@ -2,6 +2,7 @@
 
 import React, { Suspense, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '../../../lib/auth';
 import { Lock, Mail, ArrowRight, Building2, PackageSearch } from 'lucide-react';
@@ -64,10 +65,13 @@ function LoginPageContent() {
     <div className="min-h-screen bg-white lg:grid lg:grid-cols-2">
       {/* Hero */}
       <div className="relative h-56 overflow-hidden sm:h-72 lg:sticky lg:top-0 lg:h-screen">
-        <img
-          src="/images/hero/zimbabwe-hvac-rooftop.png"
+        <Image
+          src="/images/hero/zimbabwe-hvac-rooftop.webp"
           alt="A technician servicing rooftop air-conditioning units in Harare"
-          className="absolute inset-0 h-full w-full object-cover"
+          fill
+          priority
+          sizes="(min-width: 1024px) 50vw, 100vw"
+          className="object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/10" aria-hidden="true" />
         <div className="absolute inset-x-0 bottom-0 p-6 sm:p-10">
@@ -83,15 +87,19 @@ function LoginPageContent() {
         <div className="w-full max-w-md">
           <div className="mb-8 text-center">
             <div className="mb-4 inline-flex items-center gap-2.5" aria-label="HEVACRAZ and Ministry of Environment">
-              <img
+              <Image
                 src="/logos/ministry-of-environment.jpeg"
                 alt="Ministry of Environment, Climate and Wildlife"
+                width={56}
+                height={56}
                 className="h-14 w-14 rounded-full object-cover"
               />
               <span className="h-9 w-px bg-[#D6D3D1]" aria-hidden="true" />
-              <img
+              <Image
                 src="/logos/hevacraz-logo.jpeg"
                 alt="HEVACRAZ"
+                width={56}
+                height={56}
                 className="h-14 w-14 rounded-full object-cover"
               />
             </div>

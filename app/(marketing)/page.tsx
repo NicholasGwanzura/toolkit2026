@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   ArrowRight,
   CheckCircle,
@@ -31,17 +32,17 @@ const HERO_TAGS = [
 
 const HERO_SLIDES = [
   {
-    src: '/images/hero/zimbabwe-hvac-rooftop.png',
+    src: '/images/hero/zimbabwe-hvac-rooftop.webp',
     alt: 'Zimbabwean HVAC technician inspecting rooftop units in Harare',
     label: 'Harare rooftop',
   },
   {
-    src: '/images/hero/zimbabwe-cold-chain-market.png',
+    src: '/images/hero/zimbabwe-cold-chain-market.webp',
     alt: 'Zimbabwean refrigeration technician checking a market cold room',
     label: 'Cold chain',
   },
   {
-    src: '/images/hero/zimbabwe-hvac-training.png',
+    src: '/images/hero/zimbabwe-hvac-training.webp',
     alt: 'Zimbabwean HVAC-R trainees reviewing an air conditioning training rig',
     label: 'Skills training',
   },
@@ -153,10 +154,16 @@ const INSTITUTIONAL_LINKS: {
 
 export default function HomePage() {
   const [activeHeroSlide, setActiveHeroSlide] = useState(0);
+  // How far the carousel has got: slides up to the next one are loaded, and stay loaded so they can fade out.
+  const [loadedSlides, setLoadedSlides] = useState(2);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      setActiveHeroSlide((current) => (current + 1) % HERO_SLIDES.length);
+      setActiveHeroSlide((current) => {
+        const next = (current + 1) % HERO_SLIDES.length;
+        setLoadedSlides((loaded) => Math.max(loaded, next + 2));
+        return next;
+      });
     }, 5500);
 
     return () => window.clearInterval(timer);
@@ -168,14 +175,20 @@ export default function HomePage() {
       <section className="relative min-h-[88vh] sm:min-h-screen flex items-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           {HERO_SLIDES.map((slide, index) => (
-            <img
-              key={slide.src}
-              src={slide.src}
-              alt={slide.alt}
-              className={`absolute inset-0 h-full w-full object-cover object-center scale-105 motion-safe:animate-[slowZoom_24s_ease-out_infinite_alternate] transition-opacity duration-1000 ${
+            // A slide is fetched once the carousel is about to show it, so the page does not download every photo up front.
+            index < loadedSlides ? (
+              <Image
+                key={slide.src}
+                src={slide.src}
+                alt={slide.alt}
+                fill
+                priority={index === 0}
+                sizes="100vw"
+                className={`object-cover object-center scale-105 motion-safe:animate-[slowZoom_24s_ease-out_infinite_alternate] transition-opacity duration-1000 ${
                 activeHeroSlide === index ? 'opacity-100' : 'opacity-0'
               }`}
-            />
+              />
+            ) : null
           ))}
           <div className="absolute inset-0 bg-black/65" />
           <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/45 to-transparent" />
@@ -215,18 +228,18 @@ export default function HomePage() {
 
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <Link
-                href="/verify-technician"
-                className="group inline-flex items-center justify-center gap-2 font-semibold py-4 px-8 text-base text-white shadow-lg shadow-black/20 hover:shadow-xl hover:shadow-black/30 hover:brightness-110 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-                style={{ backgroundColor: '#D97706' }}
+                href="/join"
+                className="group inline-flex min-h-12 items-center justify-center gap-2 font-semibold py-4 px-8 text-base text-white shadow-lg shadow-black/20 hover:shadow-xl hover:shadow-black/30 hover:brightness-110 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                style={{ backgroundColor: '#B45309' }}
               >
-                Verify a Technician
+                Join Now
                 <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
               </Link>
               <Link
-                href="/about"
-                className="inline-flex items-center justify-center gap-2 border border-white/40 hover:border-white hover:bg-white/10 text-white font-medium py-4 px-8 text-base transition-colors duration-200 backdrop-blur-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                href="/login"
+                className="inline-flex min-h-12 items-center justify-center gap-2 border border-white/40 hover:border-white hover:bg-white/10 text-white font-medium py-4 px-8 text-base transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black"
               >
-                About the Platform
+                Sign in
               </Link>
             </div>
 
@@ -483,7 +496,7 @@ export default function HomePage() {
                   style={{ backgroundColor: '#FAFAF9', color: '#5A7D5A' }}
                 >
                   {p.logo ? (
-                    <img src={p.logo} alt={p.name} className="h-5 w-5 rounded-full object-cover" />
+                    <Image src={p.logo} alt={p.name} width={20} height={20} className="h-5 w-5 rounded-full object-cover" />
                   ) : (
                     <span className="transition-colors group-hover:text-[#D97706]">{p.icon}</span>
                   )}

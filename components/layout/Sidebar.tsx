@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { ComponentType, SVGProps, useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -169,15 +170,19 @@ export function Sidebar({ className, onClose }: SidebarProps & { className?: str
                 <div className="flex items-center justify-between w-full">
                     <Link href="/dashboard" className="flex items-center gap-2.5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1C1917]" aria-label="Go to dashboard">
                         <div className="flex items-center gap-2 flex-shrink-0">
-                            <img
+                            <Image
                                 src="/logos/ministry-of-environment.jpeg"
                                 alt="Ministry of Environment, Climate and Wildlife"
+                                width={28}
+                                height={28}
                                 className="h-7 w-7 rounded-full object-cover"
                             />
                             <span className="h-6 w-px bg-white/20" />
-                            <img
+                            <Image
                                 src="/logos/hevacraz-logo.jpeg"
                                 alt="HEVACRAZ"
+                                width={28}
+                                height={28}
                                 className="h-7 w-7 rounded-full object-cover"
                             />
                         </div>

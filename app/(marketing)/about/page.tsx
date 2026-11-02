@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   Globe,
   UserCheck,
@@ -227,9 +228,11 @@ export default function AboutPage() {
               className="flex items-center gap-4 px-5 py-5 border"
               style={{ borderColor: 'rgba(255,255,255,0.12)', backgroundColor: 'rgba(255,255,255,0.03)' }}
             >
-              <img
+              <Image
                 src="/logos/hevacraz-logo.jpeg"
                 alt="HEVACRAZ"
+                width={48}
+                height={48}
                 className="shrink-0 w-12 h-12 rounded-full object-cover border"
                 style={{ borderColor: 'rgba(255,255,255,0.25)' }}
               />
@@ -636,7 +639,7 @@ export default function AboutPage() {
                   style={{ backgroundColor: '#FAFAF9', color: '#5A7D5A' }}
                 >
                   {p.logo ? (
-                    <img src={p.logo} alt={p.name} className="h-6 w-6 rounded-full object-cover" />
+                    <Image src={p.logo} alt={p.name} width={24} height={24} className="h-6 w-6 rounded-full object-cover" />
                   ) : (
                     <span className="transition-colors group-hover:text-[#D97706]">{p.icon}</span>
                   )}

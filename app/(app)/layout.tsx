@@ -1,12 +1,26 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Topbar } from '@/components/layout/Topbar';
 import { FloatingVoiceButton } from '@/components/FloatingVoiceButton';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
     const [sidebarOpen, setSidebarOpen] = useState(false);
+
+    // Once per visit while online, save Emergency Mode and the Field Toolkit for use without signal.
+    useEffect(() => {
+        if (!('serviceWorker' in navigator) || !navigator.onLine) return;
+        try {
+            if (sessionStorage.getItem('coolpro_offline_warmed')) return;
+            sessionStorage.setItem('coolpro_offline_warmed', '1');
+        } catch {
+            // Storage blocked: warm anyway.
+        }
+        navigator.serviceWorker.ready
+            .then((registration) => registration.active?.postMessage({ type: 'warm-offline-pages' }))
+            .catch(() => {});
+    }, []);
 
     return (
         <div className="min-h-screen bg-white">

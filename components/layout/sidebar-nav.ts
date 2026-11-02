@@ -31,6 +31,7 @@ import {
     PackagePlus,
     RefreshCcw,
     Send,
+    Siren,
     ShieldCheck,
     Stamp,
     UserCheck,
@@ -70,29 +71,27 @@ export interface NavSection {
 /** Everyone except administrators, who have their own menu below. */
 export const NAV_SECTIONS: NavSection[] = [
     {
+        // Always open: the same tools, in the same order, as the toolkit page.
         items: [
             { name: 'Commercial Refrigeration Digital Technical Toolkit', href: '/dashboard', icon: LayoutDashboard, roles: ['technician', 'contractor'] },
             { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['trainer', 'lecturer', 'vendor', 'student'] },
-        ],
-    },
-    {
-        label: 'Operations',
-        items: [
-            { name: 'Learning Hub', href: '/learn', icon: BookOpen, roles: ['technician', 'contractor', 'trainer', 'lecturer', 'student'] },
-            { name: 'Manage Courses', href: '/learn/manage', icon: BookMarked, roles: ['trainer', 'lecturer'] },
-            { name: 'Events Calendar', href: '/events', icon: CalendarDays, roles: ['technician', 'contractor', 'trainer', 'lecturer', 'vendor', 'student'] },
             { name: 'Field Job Planner', href: '/field-operations', icon: Wrench, roles: ['technician', 'contractor'] },
             { name: 'Field Toolkit', href: '/field-toolkit', icon: Briefcase, roles: ['technician', 'contractor'] },
+            { name: 'Refrigerant Catalogue', href: '/refrigerants', icon: Database, roles: ['technician', 'contractor', 'trainer', 'lecturer', 'vendor', 'student'] },
+            { name: 'Commercial Refrigeration Sizing Tool', href: '/sizing-tool', icon: Calculator, roles: ['technician', 'contractor'] },
+            { name: 'Learning Hub', href: '/learn', icon: BookOpen, roles: ['technician', 'contractor', 'trainer', 'lecturer', 'student'] },
+            { name: 'Events Calendar', href: '/events', icon: CalendarDays, roles: ['technician', 'contractor', 'trainer', 'lecturer', 'vendor', 'student'] },
             { name: 'Safety Center', href: '/safety-center', icon: LifeBuoy, roles: ['technician', 'contractor', 'trainer', 'lecturer', 'student'] },
+            { name: 'Emergency Mode', href: '/emergency-mode', icon: Siren, roles: ['technician', 'contractor', 'trainer', 'lecturer', 'student'] },
+            { name: 'WhatGas + Risk Engine', href: '/whatgas', icon: FlaskConical, roles: ['technician', 'contractor', 'trainer', 'lecturer', 'student'] },
             { name: 'Resources', href: '/resources', icon: Library, roles: ['technician', 'contractor', 'trainer', 'lecturer'] },
         ],
     },
     {
-        label: 'Tools',
+        label: 'Teaching',
         items: [
-            { name: 'WhatGas + Risk Engine', href: '/whatgas', icon: FlaskConical, roles: ['technician', 'contractor', 'trainer', 'lecturer', 'student'] },
-            { name: 'Commercial Refrigeration Sizing Tool', href: '/sizing-tool', icon: Calculator, roles: ['technician', 'contractor'] },
-            { name: 'Refrigerant Catalogue', href: '/refrigerants', icon: Database, roles: ['technician', 'contractor', 'trainer', 'lecturer', 'vendor', 'student'] },
+            { name: 'Manage Courses', href: '/learn/manage', icon: BookMarked, roles: ['trainer', 'lecturer'] },
+            { name: 'Technician Registry', href: '/technician-registry', icon: Users, roles: ['trainer', 'lecturer'] },
         ],
     },
     {
@@ -101,7 +100,6 @@ export const NAV_SECTIONS: NavSection[] = [
             { name: 'Certifications', href: '/certifications', icon: Award, roles: ['technician', 'contractor', 'trainer', 'lecturer', 'student'] },
             { name: 'Certificate Verification', href: '/certificate-verification', icon: BadgeCheck, roles: ['technician', 'contractor', 'trainer', 'lecturer', 'vendor', 'student'] },
             { name: 'Rewards', href: '/rewards', icon: Gift, roles: ['technician', 'contractor', 'vendor'] },
-            { name: 'Technician Registry', href: '/technician-registry', icon: Users, roles: ['trainer', 'lecturer'] },
         ],
     },
     {
@@ -132,22 +130,17 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
         ],
     },
     {
-        label: 'Operations',
+        label: 'Operations & Tools',
         items: [
+            { name: 'Field Job Planner', href: '/field-operations', icon: Wrench, roles: ['org_admin'] },
+            { name: 'Field Toolkit', href: '/field-toolkit', icon: Briefcase, roles: ['org_admin'] },
+            { name: 'Refrigerant Catalogue', href: '/refrigerants', icon: Database, roles: ['org_admin'] },
+            { name: 'Commercial Refrigeration Sizing Tool', href: '/sizing-tool', icon: Calculator, roles: ['org_admin'] },
             { name: 'Learning Hub', href: '/learn', icon: BookOpen, roles: ['org_admin'] },
             { name: 'Manage Courses', href: '/learn/manage', icon: BookMarked, roles: ['org_admin'] },
             { name: 'Events Calendar', href: '/events', icon: CalendarDays, roles: ['org_admin'] },
-            { name: 'Field Job Planner', href: '/field-operations', icon: Wrench, roles: ['org_admin'] },
-            { name: 'Field Toolkit', href: '/field-toolkit', icon: Briefcase, roles: ['org_admin'] },
             { name: 'Safety Center', href: '/safety-center', icon: LifeBuoy, roles: ['org_admin'] },
-        ],
-    },
-    {
-        label: 'Tools',
-        items: [
             { name: 'WhatGas + Risk Engine', href: '/whatgas', icon: FlaskConical, roles: ['org_admin'] },
-            { name: 'Commercial Refrigeration Sizing Tool', href: '/sizing-tool', icon: Calculator, roles: ['org_admin'] },
-            { name: 'Refrigerant Catalogue', href: '/refrigerants', icon: Database, roles: ['org_admin'] },
         ],
     },
     {

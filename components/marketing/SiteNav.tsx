@@ -111,8 +111,19 @@ export function SiteNav() {
 
             </div>
 
-            {/* Right CTAs (desktop) */}
+            {/* Right CTAs (desktop). The homepage hero carries Join and Sign in, so its header offers verification. */}
             <div className="hidden lg:flex items-center gap-2">
+              {pathname === '/' ? (
+              <Link
+                href="/verify-technician"
+                className="group inline-flex items-center gap-1.5 font-semibold py-2.5 px-5 text-sm text-white transition-all duration-200 shadow-sm hover:shadow-md hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2"
+                style={{ backgroundColor: '#B45309' }}
+              >
+                Verify a Technician
+                <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+              </Link>
+              ) : (
+              <>
               <Link
                 href="/login"
                 className="font-medium text-sm px-3 py-2 rounded-sm transition-colors text-[#1C1917]/90 hover:text-[#1C1917] hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2"
@@ -127,6 +138,8 @@ export function SiteNav() {
                 Join Now
                 <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
               </Link>
+              </>
+              )}
             </div>
 
             {/* Mobile hamburger */}
@@ -179,6 +192,16 @@ export function SiteNav() {
                     </li>
                   );
                 })}
+                <li>
+                  <Link
+                    href="/verify-technician"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center justify-between py-4 font-medium text-base text-[#1C1917]"
+                  >
+                    <span>Verify a Technician</span>
+                    <ArrowRight className="h-4 w-4 text-gray-300" />
+                  </Link>
+                </li>
                 <li>
                   <Link
                     href="/login"
