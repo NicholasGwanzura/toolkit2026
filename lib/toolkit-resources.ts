@@ -1,7 +1,7 @@
-// One list of every reference the toolkit relies on. The Sizing Tool report, the Field Toolkit
+// One list of every reference the toolkit relies on. The Commercial Refrigeration Sizing Tool report, the Field Toolkit
 // checklists and the Resources page all read from here so a link is fixed in one place.
 
-export type ToolkitTool = 'Sizing Tool' | 'Field Toolkit' | 'WhatGas' | 'Safety Center';
+export type ToolkitTool = 'Commercial Refrigeration Sizing Tool' | 'Field Toolkit' | 'WhatGas' | 'Safety Center';
 
 export type ResourceCategory = 'Load and sizing' | 'Equipment selection' | 'Standards and regulation' | 'Refrigerant data';
 
@@ -23,7 +23,7 @@ export const TOOLKIT_RESOURCES: ToolkitResource[] = [
     description: 'Load categories and calculation guidance for transmission, product, infiltration, internal and equipment loads.',
     url: 'https://handbook.ashrae.org/Handbooks/R26/IP/R26_Ch24/r26_ch24_ip.aspx',
     category: 'Load and sizing',
-    usedIn: ['Sizing Tool'],
+    usedIn: ['Commercial Refrigeration Sizing Tool'],
   },
   {
     id: 'ashrae-ch19',
@@ -31,7 +31,7 @@ export const TOOLKIT_RESOURCES: ToolkitResource[] = [
     description: 'Food-specific thermal properties; values vary with composition and temperature.',
     url: 'https://handbook.ashrae.org/Handbooks/R26/IP/R26_Ch19/R26_ch19_ip.aspx',
     category: 'Load and sizing',
-    usedIn: ['Sizing Tool'],
+    usedIn: ['Commercial Refrigeration Sizing Tool'],
   },
   {
     id: 'ashrae-ch20',
@@ -39,7 +39,7 @@ export const TOOLKIT_RESOURCES: ToolkitResource[] = [
     description: 'Cooling and freezing-time methods and their dependence on product geometry, properties and heat transfer.',
     url: 'https://handbook.ashrae.org/Handbooks/R26/IP/R26_Ch20/r26_ch20_ip.aspx',
     category: 'Load and sizing',
-    usedIn: ['Sizing Tool'],
+    usedIn: ['Commercial Refrigeration Sizing Tool'],
   },
   {
     id: 'ashrae-handbook',
@@ -47,7 +47,7 @@ export const TOOLKIT_RESOURCES: ToolkitResource[] = [
     description: 'Background for the indicative equipment and line sizes: system practices, line sizing velocities and oil return. Open the current edition and the chapter for your refrigerant.',
     url: 'https://handbook.ashrae.org/',
     category: 'Equipment selection',
-    usedIn: ['Sizing Tool'],
+    usedIn: ['Commercial Refrigeration Sizing Tool'],
   },
   {
     id: 'danfoss-coolselector',
@@ -55,7 +55,7 @@ export const TOOLKIT_RESOURCES: ToolkitResource[] = [
     description: 'Manufacturer component-selection and operating-condition cross-check; not a substitute for a room-load calculation.',
     url: 'https://www.danfoss.com/en/service-and-support/downloads/dcs/coolselector-2/',
     category: 'Equipment selection',
-    usedIn: ['Sizing Tool'],
+    usedIn: ['Commercial Refrigeration Sizing Tool'],
   },
   {
     id: 'copeland-selection',
@@ -63,7 +63,7 @@ export const TOOLKIT_RESOURCES: ToolkitResource[] = [
     description: 'Manufacturer compressor and system performance and application-envelope cross-check.',
     url: 'https://www.copeland.com/en-us/tools-resources/product-selection-software',
     category: 'Equipment selection',
-    usedIn: ['Sizing Tool'],
+    usedIn: ['Commercial Refrigeration Sizing Tool'],
   },
   {
     id: 'ashrae-15-34',
@@ -71,7 +71,7 @@ export const TOOLKIT_RESOURCES: ToolkitResource[] = [
     description: 'Refrigeration-system safety and refrigerant designation and classification; check current editions and applicable local rules.',
     url: 'https://www.ashrae.org/technical-resources/bookstore/ashrae-refrigeration-resources',
     category: 'Standards and regulation',
-    usedIn: ['Sizing Tool', 'Safety Center'],
+    usedIn: ['Commercial Refrigeration Sizing Tool', 'Safety Center'],
   },
   {
     id: 'sans-sabs',
@@ -95,7 +95,7 @@ export const TOOLKIT_RESOURCES: ToolkitResource[] = [
     description: 'Local regulatory context for controlled substances and related equipment; not a refrigeration sizing standard.',
     url: 'https://ozone.unep.org/sites/default/files/additional-reported-information/Licensing/Zimbabwe-S.I.%2049%20of%202023.pdf',
     category: 'Standards and regulation',
-    usedIn: ['Sizing Tool', 'Field Toolkit'],
+    usedIn: ['Commercial Refrigeration Sizing Tool', 'Field Toolkit'],
   },
   {
     id: 'zim-environment',
@@ -119,7 +119,7 @@ export const TOOLKIT_RESOURCES: ToolkitResource[] = [
     description: 'Reference thermodynamic and transport-property data for refrigerants and mixtures; software may require a license. The toolkit\'s own property estimates are approximate; use this for exact values.',
     url: 'https://www.nist.gov/programs-projects/reference-fluid-thermodynamic-and-transport-properties-database-refprop',
     category: 'Refrigerant data',
-    usedIn: ['Sizing Tool'],
+    usedIn: ['Commercial Refrigeration Sizing Tool'],
   },
   {
     id: 'ozonaction',
@@ -149,4 +149,4 @@ export function filterResources(resources: ToolkitResource[], filter: ResourceFi
 }
 
 /** The references the Sizing Tool report lists. */
-export const SIZING_RESOURCES = TOOLKIT_RESOURCES.filter((r) => r.usedIn.includes('Sizing Tool'));
+export const SIZING_RESOURCES = TOOLKIT_RESOURCES.filter((r) => r.usedIn.includes('Commercial Refrigeration Sizing Tool'));

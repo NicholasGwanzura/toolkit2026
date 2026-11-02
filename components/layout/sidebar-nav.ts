@@ -71,7 +71,8 @@ export interface NavSection {
 export const NAV_SECTIONS: NavSection[] = [
     {
         items: [
-            { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['technician', 'trainer', 'lecturer', 'vendor', 'student', 'contractor'] },
+            { name: 'Commercial Refrigeration Digital Technical Toolkit', href: '/dashboard', icon: LayoutDashboard, roles: ['technician', 'contractor'] },
+            { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['trainer', 'lecturer', 'vendor', 'student'] },
         ],
     },
     {
@@ -80,7 +81,7 @@ export const NAV_SECTIONS: NavSection[] = [
             { name: 'Learning Hub', href: '/learn', icon: BookOpen, roles: ['technician', 'contractor', 'trainer', 'lecturer', 'student'] },
             { name: 'Manage Courses', href: '/learn/manage', icon: BookMarked, roles: ['trainer', 'lecturer'] },
             { name: 'Events Calendar', href: '/events', icon: CalendarDays, roles: ['technician', 'contractor', 'trainer', 'lecturer', 'vendor', 'student'] },
-            { name: 'Field Operations', href: '/field-operations', icon: Wrench, roles: ['technician', 'contractor'] },
+            { name: 'Field Job Planner', href: '/field-operations', icon: Wrench, roles: ['technician', 'contractor'] },
             { name: 'Field Toolkit', href: '/field-toolkit', icon: Briefcase, roles: ['technician', 'contractor'] },
             { name: 'Safety Center', href: '/safety-center', icon: LifeBuoy, roles: ['technician', 'contractor', 'trainer', 'lecturer', 'student'] },
             { name: 'Resources', href: '/resources', icon: Library, roles: ['technician', 'contractor', 'trainer', 'lecturer'] },
@@ -90,7 +91,7 @@ export const NAV_SECTIONS: NavSection[] = [
         label: 'Tools',
         items: [
             { name: 'WhatGas + Risk Engine', href: '/whatgas', icon: FlaskConical, roles: ['technician', 'contractor', 'trainer', 'lecturer', 'student'] },
-            { name: 'Sizing Tool', href: '/sizing-tool', icon: Calculator, roles: ['technician', 'contractor'] },
+            { name: 'Commercial Refrigeration Sizing Tool', href: '/sizing-tool', icon: Calculator, roles: ['technician', 'contractor'] },
             { name: 'Refrigerant Catalogue', href: '/refrigerants', icon: Database, roles: ['technician', 'contractor', 'trainer', 'lecturer', 'vendor', 'student'] },
         ],
     },
@@ -136,7 +137,7 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
             { name: 'Learning Hub', href: '/learn', icon: BookOpen, roles: ['org_admin'] },
             { name: 'Manage Courses', href: '/learn/manage', icon: BookMarked, roles: ['org_admin'] },
             { name: 'Events Calendar', href: '/events', icon: CalendarDays, roles: ['org_admin'] },
-            { name: 'Field Operations', href: '/field-operations', icon: Wrench, roles: ['org_admin'] },
+            { name: 'Field Job Planner', href: '/field-operations', icon: Wrench, roles: ['org_admin'] },
             { name: 'Field Toolkit', href: '/field-toolkit', icon: Briefcase, roles: ['org_admin'] },
             { name: 'Safety Center', href: '/safety-center', icon: LifeBuoy, roles: ['org_admin'] },
         ],
@@ -145,7 +146,7 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
         label: 'Tools',
         items: [
             { name: 'WhatGas + Risk Engine', href: '/whatgas', icon: FlaskConical, roles: ['org_admin'] },
-            { name: 'Sizing Tool', href: '/sizing-tool', icon: Calculator, roles: ['org_admin'] },
+            { name: 'Commercial Refrigeration Sizing Tool', href: '/sizing-tool', icon: Calculator, roles: ['org_admin'] },
             { name: 'Refrigerant Catalogue', href: '/refrigerants', icon: Database, roles: ['org_admin'] },
         ],
     },

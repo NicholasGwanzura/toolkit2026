@@ -59,6 +59,8 @@ interface AuthContextType {
     login: (email: string, password?: string) => Promise<void>;
     logout: () => void;
     isLoading: boolean;
+    /** Replaces the signed-in user's details after they edit their profile. */
+    updateUser: (user: UserSession) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -110,13 +112,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session);
     };
 
+    const updateUser = (next: UserSession) => {
+        setUser(next);
+        localStorage.setItem('coolpro_user', JSON.stringify(next));
+    };
+
     const handleLogout = async () => {
         await logout();
         setUser(null);
     };
 
     return (
-        <AuthContext.Provider value={{ user, login: handleLogin, logout: handleLogout, isLoading }}>
+        <AuthContext.Provider value={{ user, login: handleLogin, logout: handleLogout, isLoading, updateUser }}>
             {children}
         </AuthContext.Provider>
     );

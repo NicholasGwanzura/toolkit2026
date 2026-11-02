@@ -507,7 +507,7 @@ export default function AboutPage() {
           </div>
 
           <p className="mt-10 sm:mt-12 text-center text-sm text-white/50 max-w-2xl mx-auto leading-relaxed">
-            Delivered through four modules: Commercial Refrigeration System Sizing Tool,
+            Delivered through four modules: Commercial Refrigeration Sizing Tool,
             Refrigerant Charge and Recovery Tracking Register, RAC Technician Learning Hub, and the
             National RAC Technician Verification and Competency Registry.
           </p>

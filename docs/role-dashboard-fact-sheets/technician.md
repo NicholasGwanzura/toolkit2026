@@ -24,16 +24,16 @@ Registered refrigeration and air-conditioning technicians working in the field.
 - **Refrigerant Activity.** A table of your recent gas-log entries (client, action, amount), linking to the Field Toolkit.
 
 ## Quick actions
-Field Operations, Field Toolkit, Jobs & Logs, Certifications.
+Field Job Planner, Field Toolkit, Jobs & Logs, Certifications.
 
 ## Menu items available
-Dashboard, Learning Hub, Safety Center, Field Operations, Field Toolkit, WhatGas + Risk Engine, Sizing Tool, Refrigerant Catalogue, Certification, Rewards, plus an Emergency Mode button in the sidebar.
+Dashboard, Learning Hub, Safety Center, Field Job Planner, Field Toolkit, WhatGas + Risk Engine, Commercial Refrigeration Sizing Tool, Refrigerant Catalogue, Certification, Rewards, plus an Emergency Mode button in the sidebar.
 
 ## Key tools
-- **Field Operations:** three tabs: Schedule, Planner, Jobs & Logs.
+- **Field Job Planner:** three tabs: Schedule, Planner, Jobs & Logs.
 - **Job Planner** and **Request COC** (`/jobs/request-coc`).
 - **Certification documents.** On the Certification page you can upload a copy of your national ID and any trade, training or assessor certificates (PDF, JPG or PNG, up to 5 MB each, six files at most). Your trainer and HEVACRAZ administrators can open them from your registry profile when assessing certification, and you can remove a file to make room for another.
-- **Sizing Tool:** cooling-load calculator for freezers and cold rooms.
+- **Commercial Refrigeration Sizing Tool:** cooling-load calculator for freezers and cold rooms.
 - **WhatGas + Risk Engine:** refrigerant lookup and risk checks.
 
 ## Notifications

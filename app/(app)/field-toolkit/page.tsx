@@ -23,7 +23,7 @@ export default function FieldToolkitPage() {
                             <Wrench className="h-7 w-7" aria-hidden="true" />
                         </span>
                         <div>
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#b45309]">Field operations</p>
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#b45309]">Commercial Refrigeration Digital Technical Toolkit</p>
                             <h1 className="mt-1 text-2xl font-bold tracking-tight text-[#1C1917]">Field Toolkit</h1>
                             <p className="mt-1 max-w-2xl text-sm leading-6 text-[#78716C]">
                                 Scan nameplates, work through compliance checklists, record installations and log refrigerant.

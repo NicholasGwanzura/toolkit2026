@@ -10,7 +10,7 @@ import {
   type ToolkitTool,
 } from '@/lib/toolkit-resources';
 
-const TOOLS: ToolkitTool[] = ['Sizing Tool', 'Field Toolkit', 'WhatGas', 'Safety Center'];
+const TOOLS: ToolkitTool[] = ['Commercial Refrigeration Sizing Tool', 'Field Toolkit', 'WhatGas', 'Safety Center'];
 const field = 'mt-1 h-11 w-full border border-gray-200 bg-white px-3 text-base text-gray-900 sm:text-sm';
 
 export default function ResourcesPage() {
@@ -26,7 +26,7 @@ export default function ResourcesPage() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Resources</h1>
         <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-600">
-          The standards, handbooks and tools behind the Sizing Tool, Field Toolkit and WhatGas. Links open the publisher&apos;s own site, and some standards must be bought.
+          The standards, handbooks and tools behind the Commercial Refrigeration Sizing Tool, Field Toolkit and WhatGas. Links open the publisher&apos;s own site, and some standards must be bought.
           Always check you are using the current edition.
         </p>
       </div>

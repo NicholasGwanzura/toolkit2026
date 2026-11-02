@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { UserSession } from '@/lib/auth';
-import { X, UserCircle, Mail, MapPin, ShieldCheck, KeyRound, Save, LogOut } from 'lucide-react';
+import { UserSession, useAuth } from '@/lib/auth';
+import { ZIMBABWE_PROVINCES } from '@/constants/registry';
+import { X, UserCircle, Mail, MapPin, ShieldCheck, KeyRound, Save, LogOut, Pencil } from 'lucide-react';
 
 interface UserProfileModalProps {
   user: UserSession | null;
@@ -15,6 +16,38 @@ export function UserProfileModal({ user, onClose, onLogout }: UserProfileModalPr
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error'>('success');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { updateUser } = useAuth();
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(user?.name ?? '');
+  const [region, setRegion] = useState(user?.region ?? '');
+  const [profileBusy, setProfileBusy] = useState(false);
+  const [profileMessage, setProfileMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
+
+  const saveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setProfileBusy(true);
+    setProfileMessage(null);
+    try {
+      const res = await fetch('/api/me/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, region }),
+        credentials: 'include',
+      });
+      const data = await res.json().catch(() => ({})) as { error?: string; user?: UserSession };
+      if (!res.ok || !data.user) {
+        setProfileMessage({ kind: 'error', text: data.error ?? 'Your profile was not saved.' });
+        return;
+      }
+      updateUser(data.user);
+      setEditing(false);
+      setProfileMessage({ kind: 'ok', text: 'Profile updated.' });
+    } catch {
+      setProfileMessage({ kind: 'error', text: 'Network error. Please try again.' });
+    } finally {
+      setProfileBusy(false);
+    }
+  };
 
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,6 +112,28 @@ export function UserProfileModal({ user, onClose, onLogout }: UserProfileModalPr
             </div>
           </div>
 
+          {editing ? (
+            <form onSubmit={saveProfile} className="mb-8 space-y-4 rounded-md border border-gray-200 bg-gray-50 p-4">
+              <h3 className="text-sm font-bold text-gray-900">Edit your profile</h3>
+              <label className="block text-xs font-semibold uppercase text-gray-500">
+                Full name
+                <input value={name} onChange={(e) => setName(e.target.value)} required autoComplete="name" className="mt-1 min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-normal normal-case text-gray-900 outline-none focus:border-[#B45309]" />
+              </label>
+              <label className="block text-xs font-semibold uppercase text-gray-500">
+                Region / Province
+                <select value={region} onChange={(e) => setRegion(e.target.value)} required className="mt-1 min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-normal normal-case text-gray-900 outline-none focus:border-[#B45309]">
+                  <option value="">Choose your province</option>
+                  {ZIMBABWE_PROVINCES.map((province) => <option key={province.id} value={province.name}>{province.name}</option>)}
+                </select>
+              </label>
+              <p className="text-xs text-gray-500">To change your email address or role, contact HEVACRAZ.</p>
+              {profileMessage?.kind === 'error' && <p role="alert" className="text-xs font-semibold text-red-600">{profileMessage.text}</p>}
+              <div className="flex justify-end gap-2">
+                <button type="button" onClick={() => { setEditing(false); setName(user?.name ?? ''); setRegion(user?.region ?? ''); setProfileMessage(null); }} className="min-h-11 rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-800">Cancel</button>
+                <button type="submit" disabled={profileBusy} className="min-h-11 rounded-lg bg-[#B45309] px-4 text-sm font-semibold text-white hover:bg-[#92400E] disabled:opacity-60">{profileBusy ? 'Saving…' : 'Save profile'}</button>
+              </div>
+            </form>
+          ) : (
           <div className="space-y-4 mb-8">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 flex items-center justify-center bg-blue-50 rounded text-blue-600">
@@ -107,7 +162,12 @@ export function UserProfileModal({ user, onClose, onLogout }: UserProfileModalPr
                 <p className="text-sm font-medium text-emerald-700">Active & Verified</p>
               </div>
             </div>
+            {profileMessage?.kind === 'ok' && <p role="status" className="text-xs font-semibold text-green-600">{profileMessage.text}</p>}
+            <button type="button" onClick={() => { setEditing(true); setProfileMessage(null); }} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-800 hover:bg-gray-50">
+              <Pencil className="h-4 w-4" aria-hidden="true" /> Edit profile
+            </button>
           </div>
+          )}
 
           <form onSubmit={handlePasswordReset} className="space-y-4 p-4 bg-gray-50 border border-gray-200 rounded-md">
             <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">

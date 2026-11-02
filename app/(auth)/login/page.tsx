@@ -6,22 +6,24 @@ import { useSearchParams } from 'next/navigation';
 import { useAuth } from '../../../lib/auth';
 import { Lock, Mail, ArrowRight, Building2, PackageSearch } from 'lucide-react';
 
-const inputCls = 'block w-full px-3 py-2.5 rounded-lg bg-white border border-[#E7E5E4] text-[#1C1917] placeholder:text-[#A8A29E] focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-colors text-sm';
+const inputCls = 'block w-full min-h-11 px-3 py-2.5 rounded-lg bg-white border border-[#E7E5E4] text-[#1C1917] placeholder:text-[#A8A29E] focus:outline-none focus:border-[#B45309] focus:ring-2 focus:ring-[#B45309]/20 text-sm transition-colors';
+
+type Mode = 'technician' | 'supplier';
 
 function LoginPageContent() {
   const searchParams = useSearchParams();
   const { login } = useAuth();
-  const [manualMode, setManualMode] = useState<'signin' | 'supplier' | null>(null);
+  const [manualMode, setManualMode] = useState<Mode | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const isSupplierFlow = searchParams.get('flow') === 'supplier';
-  const activeMode = manualMode ?? (isSupplierFlow ? 'supplier' : 'signin');
+  const activeMode: Mode = manualMode ?? (isSupplierFlow ? 'supplier' : 'technician');
   const requestedNextPath = searchParams.get('next');
   const nextPath = (() => {
-    const fallback = isSupplierFlow ? '/suppliers' : '/dashboard';
+    const fallback = activeMode === 'supplier' ? '/suppliers' : '/dashboard';
     if (!requestedNextPath || !requestedNextPath.startsWith('/') || requestedNextPath.startsWith('//') || requestedNextPath.includes('\\')) {
       return fallback;
     }
@@ -53,70 +55,84 @@ function LoginPageContent() {
     }
   };
 
-  const tabs: { id: typeof activeMode; label: string }[] = [
-    { id: 'signin',   label: 'Sign In' },
-    { id: 'supplier', label: 'Supplier' },
+  const modes: { id: Mode; label: string }[] = [
+    { id: 'technician', label: 'Sign in as a Technician' },
+    { id: 'supplier', label: 'Sign in as a Supplier' },
   ];
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-4 sm:p-6 lg:p-8">
-      <div className="w-full max-w-lg">
-
-        {/* Brand */}
-        <div className="text-center mb-8">
-          <div className="mb-4 inline-flex items-center gap-2.5" aria-label="HEVACRAZ and Ministry of Environment">
-            <img
-              src="/logos/ministry-of-environment.jpeg"
-              alt="Ministry of Environment, Climate and Wildlife"
-              className="h-12 w-12 rounded-full object-cover"
-            />
-            <span className="h-8 w-px bg-[#D6D3D1]" aria-hidden="true" />
-            <img
-              src="/logos/hevacraz-logo.jpeg"
-              alt="HEVACRAZ"
-              className="h-12 w-12 rounded-full object-cover"
-            />
-          </div>
-          <h1 className="text-2xl font-semibold tracking-tight text-[#1C1917]">HEVACRAZ</h1>
-          <p className="mt-1 text-sm text-[#78716C]">HVAC-R Professionals Zimbabwe Member Portal</p>
+    <div className="min-h-screen bg-white lg:grid lg:grid-cols-2">
+      {/* Hero */}
+      <div className="relative h-56 overflow-hidden sm:h-72 lg:sticky lg:top-0 lg:h-screen">
+        <img
+          src="/images/hero/zimbabwe-hvac-rooftop.png"
+          alt="A technician servicing rooftop air-conditioning units in Harare"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/10" aria-hidden="true" />
+        <div className="absolute inset-x-0 bottom-0 p-6 sm:p-10">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f5b66b]">National Ozone Unit platform</p>
+          <p className="mt-2 max-w-md text-lg font-semibold leading-snug text-white sm:text-2xl">
+            Operated by the National Ozone Unit. Supported by HEVACRAZ.
+          </p>
         </div>
+      </div>
 
-        {/* Card */}
-        <div className="rounded-lg bg-white border border-[#E7E5E4] shadow-sm">
-
-          {/* Tabs */}
-          <div className="flex border-b border-[#E7E5E4]">
-            {tabs.map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setManualMode(tab.id as 'signin' | 'supplier')}
-                className={`flex-1 py-3 text-sm font-medium transition-colors border-b-2 -mb-px ${
-                  activeMode === tab.id
-                    ? 'border-[#D97706] text-[#1C1917]'
-                    : 'border-transparent text-[#78716C] hover:text-[#1C1917]'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+      {/* Sign in */}
+      <div className="flex items-center justify-center p-4 py-10 sm:p-8 lg:p-12">
+        <div className="w-full max-w-md">
+          <div className="mb-8 text-center">
+            <div className="mb-4 inline-flex items-center gap-2.5" aria-label="HEVACRAZ and Ministry of Environment">
+              <img
+                src="/logos/ministry-of-environment.jpeg"
+                alt="Ministry of Environment, Climate and Wildlife"
+                className="h-14 w-14 rounded-full object-cover"
+              />
+              <span className="h-9 w-px bg-[#D6D3D1]" aria-hidden="true" />
+              <img
+                src="/logos/hevacraz-logo.jpeg"
+                alt="HEVACRAZ"
+                className="h-14 w-14 rounded-full object-cover"
+              />
+            </div>
+            <p className="text-sm font-semibold text-[#57534E]">Zimbabwe&rsquo;s Digital HVAC-R Registration System</p>
+            <h1 className="mt-3 text-3xl font-bold tracking-tight text-[#1C1917]">Sign In</h1>
           </div>
 
-          <div className="p-6 space-y-5">
-            {activeMode === 'signin' && (
-              <div className="space-y-5">
-                {fieldErrors.form && (
-                  <div className="border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
-                    {fieldErrors.form}
-                  </div>
-                )}
+          <div className="rounded-xl border border-[#E7E5E4] bg-white shadow-sm">
+            <div className="grid grid-cols-2 gap-1 border-b border-[#E7E5E4] p-1.5" role="tablist" aria-label="Who is signing in">
+              {modes.map(mode => (
+                <button
+                  key={mode.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeMode === mode.id}
+                  onClick={() => { setManualMode(mode.id); setFieldErrors({}); }}
+                  className={`min-h-11 rounded-lg px-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B45309] ${
+                    activeMode === mode.id ? 'bg-[#1C1917] text-white' : 'text-[#57534E] hover:bg-[#FAFAF9] hover:text-[#1C1917]'
+                  }`}
+                >
+                  {mode.label}
+                </button>
+              ))}
+            </div>
 
-                <form onSubmit={handleNormalLogin} className="space-y-4">
+            <div className="space-y-5 p-6">
+              {fieldErrors.form && (
+                <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
+                  {fieldErrors.form}
+                </div>
+              )}
+
+              <form onSubmit={handleNormalLogin} className="space-y-4" noValidate>
                 <div className="space-y-1.5">
-                  <label htmlFor="email" className="block text-xs font-semibold uppercase tracking-wide text-[#78716C]">Work Email</label>
+                  <label htmlFor="email" className="block text-xs font-semibold uppercase tracking-wide text-[#78716C]">
+                    {activeMode === 'supplier' ? 'Company Email' : 'Work Email'}
+                  </label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#A8A29E]" />
+                    <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#A8A29E]" aria-hidden="true" />
                     <input
-                      id="email" type="email" required value={email}
+                      id="email" type="email" autoComplete="email" required value={email}
                       onChange={e => { setEmail(e.target.value); setFieldErrors(p => ({ ...p, email: '' })); }}
                       placeholder="name@company.com"
                       className={`${inputCls} pl-9 ${fieldErrors.email ? 'border-red-400' : ''}`}
@@ -128,12 +144,12 @@ function LoginPageContent() {
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
                     <label htmlFor="password" className="block text-xs font-semibold uppercase tracking-wide text-[#78716C]">Password</label>
-                    <Link href="/forgot-password" className="text-xs font-medium text-[#D97706] hover:text-[#b45309]">Forgot?</Link>
+                    <Link href="/forgot-password" className="text-xs font-medium text-[#B45309] hover:text-[#92400E]">Forgot?</Link>
                   </div>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#A8A29E]" />
+                    <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#A8A29E]" aria-hidden="true" />
                     <input
-                      id="password" type="password" required value={password}
+                      id="password" type="password" autoComplete="current-password" required value={password}
                       onChange={e => { setPassword(e.target.value); setFieldErrors(p => ({ ...p, password: '' })); }}
                       placeholder="••••••••"
                       className={`${inputCls} pl-9 ${fieldErrors.password ? 'border-red-400' : ''}`}
@@ -144,57 +160,45 @@ function LoginPageContent() {
 
                 <button
                   type="submit" disabled={isLoading}
-                  className="w-full flex items-center justify-center gap-2 bg-[#D97706] text-white text-sm font-semibold py-2.5 px-4 hover:bg-[#b45309] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#B45309] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#92400E] disabled:opacity-50"
                 >
                   {isLoading
-                    ? <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    : <><span>Sign In</span><ArrowRight className="h-4 w-4" /></>
+                    ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                    : <><span>{activeMode === 'supplier' ? 'Sign in as a Supplier' : 'Sign in as a Technician'}</span><ArrowRight className="h-4 w-4" aria-hidden="true" /></>
                   }
                 </button>
-                </form>
+              </form>
 
-                <p className="border-t border-[#E7E5E4] pt-4 text-center text-xs leading-5 text-[#78716C]">
-                  On the technician registry but never signed in?{' '}
-                  <Link href="/activate-account" className="font-semibold text-[#D97706] hover:text-[#b45309]">Activate your account</Link>
-                </p>
-              </div>
-            )}
-
-            {activeMode === 'supplier' && (
-              <div className="space-y-4">
-                <div className="border border-[#E7E5E4] bg-[#FAFAF9] p-3 flex items-start gap-3 text-sm text-[#44403C]">
-                  <Building2 className="h-4 w-4 text-[#D97706] mt-0.5 flex-shrink-0" />
-                  <span><strong className="font-semibold text-[#1C1917]">Supplier Onboarding</strong> Supplier access is issued by secure invitation for NOU traceability.</span>
+              {activeMode === 'technician' ? (
+                <div className="space-y-2 border-t border-[#E7E5E4] pt-4 text-center text-xs leading-5 text-[#78716C]">
+                  <p>
+                    On the technician registry but never signed in?{' '}
+                    <Link href="/activate-account" className="font-semibold text-[#B45309] hover:text-[#92400E]">Activate your account</Link>
+                  </p>
+                  <p>Students, trainers and administrators also sign in here.</p>
                 </div>
-                <p className="text-sm text-[#78716C] leading-relaxed">
-                  Ask HEVACRAZ or your organisation administrator for an invitation. The secure link lets
-                  you create your account and complete the supplier questionnaire.
-                </p>
-                <Link
-                  href="/contact"
-                  className="w-full inline-flex items-center justify-center gap-2 bg-[#D97706] text-white text-sm font-semibold py-2.5 px-4 hover:bg-[#b45309] transition-colors"
-                >
-                  <span>Request supplier onboarding</span>
-                  <PackageSearch className="h-4 w-4" />
-                </Link>
-                <p className="text-center text-sm text-[#78716C]">
-                  Already an approved supplier?{' '}
-                  <button
-                    type="button"
-                    onClick={() => setManualMode('signin')}
-                    className="font-semibold text-[#D97706] hover:underline"
+              ) : (
+                <div className="space-y-3 border-t border-[#E7E5E4] pt-4">
+                  <div className="flex items-start gap-3 rounded-lg border border-[#E7E5E4] bg-[#FAFAF9] p-3 text-sm text-[#44403C]">
+                    <Building2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#B45309]" aria-hidden="true" />
+                    <span>New supplier? Supplier access is issued by secure invitation, for National Ozone Unit traceability.</span>
+                  </div>
+                  <Link
+                    href="/contact"
+                    className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-[#D6D3D1] bg-white px-4 py-2.5 text-sm font-semibold text-[#1C1917] transition-colors hover:bg-[#FAFAF9]"
                   >
-                    Sign in instead
-                  </button>
-                </p>
-              </div>
-            )}
+                    <span>Request supplier onboarding</span>
+                    <PackageSearch className="h-4 w-4" aria-hidden="true" />
+                  </Link>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
 
-        <p className="text-center text-xs text-[#A8A29E] mt-6">
-          HEVACRAZ Compliance Platform · v1.4
-        </p>
+          <p className="mt-6 text-center text-xs text-[#A8A29E]">
+            HEVACRAZ Compliance Platform · v1.4
+          </p>
+        </div>
       </div>
     </div>
   );

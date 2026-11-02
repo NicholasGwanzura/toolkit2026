@@ -61,7 +61,7 @@ function NavLink({
                     isActive ? 'text-[#F59E0B]' : 'text-[#A8A29E] group-hover:text-white'
                 )}
             />
-            <span className="truncate">{item.name}</span>
+            <span className="line-clamp-2 leading-tight">{item.name}</span>
             {badgeCount > 0 && (
                 <span
                     className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#F59E0B] px-1.5 text-[11px] font-bold text-[#1C1917]"

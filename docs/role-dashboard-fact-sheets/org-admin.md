@@ -74,8 +74,8 @@ These figures are counted in the database, so the page stays fast as the registr
 
 ## Menu (grouped)
 - **Home:** Dashboard, Compliance Report
-- **Operations:** Learning Hub, Events Calendar, Manage Courses, Field Operations, Field Toolkit, Safety Center
-- **Tools:** WhatGas + Risk Engine, Sizing Tool
+- **Operations:** Learning Hub, Events Calendar, Manage Courses, Field Job Planner, Field Toolkit, Safety Center
+- **Tools:** WhatGas + Risk Engine, Commercial Refrigeration Sizing Tool
 - **Refrigerants:** Catalogue
 - **Suppliers:** Supplier Management, Invite Supplier, Supplier Compliance, Gas Reorders, Verify Buyer, Supplier Approvals
 - **Registry and People:** Technician Registry, Student Directory, Certificate Verification, Certifications, Rewards, System Users, Applications, Applicants, Memberships, Email Log, Contractors, Invites

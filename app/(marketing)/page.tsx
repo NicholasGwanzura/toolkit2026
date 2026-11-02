@@ -203,9 +203,9 @@ export default function HomePage() {
             </div>
 
             <h1 className="text-[2.5rem] leading-[1.08] sm:text-6xl md:text-7xl font-bold text-white mb-5 sm:mb-6 tracking-tight">
-              Zimbabwe’s National Platform for{' '}
+              Zimbabwe’s Digital{' '}
               <span className="bg-gradient-to-r from-white via-white to-[#f5b66b] bg-clip-text text-transparent">
-                Refrigerant Compliance
+                HVAC-R Registration System
               </span>
             </h1>
             <p className="text-white/80 text-base sm:text-lg md:text-xl mb-8 sm:mb-10 leading-relaxed max-w-2xl">

@@ -262,7 +262,7 @@ export default function FieldOperations() {
                         <ShieldCheck className="h-6 w-6" />
                     </div>
                     <div className="space-y-2">
-                        <h1 className="text-2xl font-bold text-gray-900">Field Operations Access Required</h1>
+                        <h1 className="text-2xl font-bold text-gray-900">Field Job Planner Access Required</h1>
                         <p className="text-sm text-gray-600">
                             This workspace is available to technicians and organisation admins only.
                         </p>
@@ -281,7 +281,7 @@ export default function FieldOperations() {
                             <Wrench className="h-3.5 w-3.5" />
                             Unified tool
                         </div>
-                        <h1 className="text-3xl font-bold text-gray-900">Field Operations</h1>
+                        <h1 className="text-3xl font-bold text-gray-900">Field Job Planner</h1>
                         <p className="text-sm leading-6 text-gray-600">
                             Schedule service from equipment alerts, plan field jobs, and review jobs/logs from one workspace.
                         </p>

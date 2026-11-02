@@ -66,6 +66,7 @@ import { BRAND as colors } from '@/constants/colors';
 import { rangeMsFor, type SimpleDateRange } from '@/lib/dateRange';
 import { Drilldown } from '@/components/ui/Drilldown';
 import DashboardEventsCalendar from '@/components/dashboard/DashboardEventsCalendar';
+import { DigitalToolkitLauncher } from '@/components/dashboard/DigitalToolkitLauncher';
 import { isFieldWorkerRole } from '@/lib/field-worker';
 import { gettingStartedChecklist } from '@/lib/membership-status';
 import { monthlyComplianceStatus } from '@/lib/dashboard-stats';
@@ -307,7 +308,7 @@ export default function DashboardPage() {
     const technicianQuickActions: QuickAction[] = [
         {
             href: '/field-operations',
-            title: 'Field Operations',
+            title: 'Field Job Planner',
             detail: 'Schedule, plan, and review field work',
             icon: CalendarDays,
             iconClassName: 'bg-teal-100 text-teal-600',
@@ -517,7 +518,7 @@ export default function DashboardPage() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                     <h1 className="text-xl font-semibold text-[#1C1917]">
-                        {isAdmin ? 'Admin Dashboard' : 'My Dashboard'}
+                        {isAdmin ? 'Admin Dashboard' : isTechnician ? 'Commercial Refrigeration Digital Technical Toolkit' : 'My Dashboard'}
                     </h1>
                     <p className="text-sm text-[#78716C] mt-0.5">Welcome back, {session.name}</p>
                 </div>
@@ -554,6 +555,15 @@ export default function DashboardPage() {
                     )}
                 </div>
             </div>
+
+            {/* Technicians and contractors land on their tools first. */}
+            {isTechnician && (
+                <>
+                    <h2 className="text-lg font-semibold text-[#1C1917]">Main Resources for Commercial Refrigeration</h2>
+                    <DigitalToolkitLauncher />
+                    <h2 className="pt-2 text-lg font-semibold text-[#1C1917]">Your activity</h2>
+                </>
+            )}
 
             {/* KPI Cards */}
             {failedSources.length > 0 && (
@@ -599,8 +609,8 @@ export default function DashboardPage() {
 
             <DashboardEventsCalendar />
 
-            {/* Quick Actions - Role-based */}
-            <div className="rounded-lg bg-white border border-[#E7E5E4] p-6">
+            {/* Quick Actions - Role-based. Technicians have the toolkit at the top instead. */}
+            {!isTechnician && <div className="rounded-lg bg-white border border-[#E7E5E4] p-6">
                 <h2 className="text-lg font-semibold mb-4 text-[#1C1917]">
                     {isAdmin ? 'Admin Quick Actions' : 'Quick Actions'}
                 </h2>
@@ -629,7 +639,7 @@ export default function DashboardPage() {
                         );
                     })}
                 </div>
-            </div>
+            </div>}
 
             {/* ── Vendor-only sections ── */}
             {isVendor && (
@@ -829,7 +839,7 @@ export default function DashboardPage() {
                                         <CalendarDays className="h-8 w-8 text-[#D1C5C0] mx-auto mb-2" />
                                         <p className="text-sm text-[#78716C]">No upcoming jobs scheduled.</p>
                                         <Link href="/field-operations?tab=planner" className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-[#D97706]">
-                                            Open Field Operations <ArrowRight className="h-3 w-3" />
+                                            Open Field Job Planner <ArrowRight className="h-3 w-3" />
                                         </Link>
                                     </div>
                                 ) : (
