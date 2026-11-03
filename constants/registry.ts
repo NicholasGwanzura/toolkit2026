@@ -59,15 +59,15 @@ export const TECHNICIAN_SPECIALIZATIONS = [
   'Refrigeration & Air Conditioning',
   'HVAC',
   'Cold Room Installation',
-  'Commercial Refrigeration',
+  'Commercial Refrigeration Service Sector',
+  'Commercial Refrigeration Assembly and Installation',
   'Domestic Refrigeration',
   'Air Conditioning',
   'Split System Installation',
   'Central Air Conditioning',
   'Refrigerant Handling',
   'Heat Pump Systems',
-  'Chiller Systems',
-  'Industrial Commercial Refrigeration'
+  'Chiller Systems'
 ];
 
 // Issuing Bodies for Certifications

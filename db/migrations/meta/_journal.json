@@ -309,6 +309,20 @@
       "when": 1794300000000,
       "tag": "0043_technician_skills",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1794400000000,
+      "tag": "0044_commercial_refrigeration_assembly_installation",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1794500000000,
+      "tag": "0045_industrial_to_commercial_refrigeration",
+      "breakpoints": true
     }
   ]
 }

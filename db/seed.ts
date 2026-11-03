@@ -133,7 +133,7 @@ const seedTechnicians: (typeof schema.technicians.$inferInsert)[] = [
     district: 'Harare Central',
     contactNumber: '+263771000001',
     email: 'tendai.moyo@coolpro.demo',
-    specialization: 'Commercial Refrigeration',
+    specialization: 'Commercial Refrigeration Assembly and Installation',
     certifications: [
       {
         id: 'cert-001',
