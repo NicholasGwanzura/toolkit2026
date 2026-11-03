@@ -103,7 +103,7 @@ function LoginPageContent() {
                 className="h-14 w-14 rounded-full object-cover"
               />
             </div>
-            <p className="text-sm font-semibold text-[#57534E]">Zimbabwe&rsquo;s Digital HVAC-R Registration System</p>
+            <p className="text-sm font-semibold text-[#57534E]">Zimbabwe&rsquo;s Digital <span className="whitespace-nowrap">HVAC-R</span> Registration System</p>
             <h1 className="mt-3 text-3xl font-bold tracking-tight text-[#1C1917]">Sign In</h1>
           </div>
 

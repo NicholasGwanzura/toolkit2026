@@ -37,7 +37,7 @@ Learners enrol before sitting the exam and get three attempts. If the exam is no
 Manage Courses, Technician Registry, Certificate Requests, WhatGas Registry.
 
 ## Menu items available
-Dashboard, Learning Hub, Manage Courses, Safety Center, WhatGas + Risk Engine, Refrigerant Catalogue, Certification, Technician Registry, Certificate Verification, plus the Emergency Mode button.
+Dashboard, Learning Hub, Manage Courses, Safety Center, WhatGas + Risk Engine, Refrigerant Catalogue, Certification, Technician Registry, Technician Verification, plus the Emergency Mode button.
 
 ## Certificate requests
 You can base a certificate request on a graded, passed exam. The course, date and theory score then come from the exam, and the learner's login email must match the technician's registry email. A request without a linked exam, such as an in-person practical, is allowed and is shown to administrators as a manual entry.

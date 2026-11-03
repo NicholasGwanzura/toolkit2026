@@ -78,7 +78,7 @@ These figures are counted in the database, so the page stays fast as the registr
 - **Tools:** WhatGas + Risk Engine, Commercial Refrigeration Sizing Tool
 - **Refrigerants:** Catalogue
 - **Suppliers:** Supplier Management, Invite Supplier, Supplier Compliance, Gas Reorders, Verify Buyer, Supplier Approvals
-- **Registry and People:** Technician Registry, Student Directory, Certificate Verification, Certifications, Rewards, System Users, Applications, Applicants, Memberships, Email Log, Contractors, Invites
+- **Registry and People:** Technician Registry, Student Directory, Technician Verification, Certifications, Rewards, System Users, Applications, Applicants, Memberships, Email Log, Contractors, Invites
 - **Reviews and Data:** NOU Dashboard, Course Approvals, COC Requests, Accidents, Reporting, Refrigerant Analytics, Refrigerant Sync
 
 ## Notes for the fact sheet

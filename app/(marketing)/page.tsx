@@ -197,7 +197,7 @@ export default function HomePage() {
         </div>
 
         <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-28 sm:py-36 md:py-40">
-          <div className="max-w-4xl">
+          <div className="max-w-5xl">
             <div className="flex flex-wrap items-center gap-3 mb-5 sm:mb-6">
               <p className="inline-flex items-center gap-3 text-[#D97706] text-xs sm:text-sm font-semibold tracking-[0.18em] sm:tracking-[0.22em] uppercase">
                 <span className="inline-block w-6 h-px bg-[#D97706]" />
@@ -215,10 +215,10 @@ export default function HomePage() {
               </span>
             </div>
 
-            <h1 className="text-[2.5rem] leading-[1.08] sm:text-6xl md:text-7xl font-bold text-white mb-5 sm:mb-6 tracking-tight">
+            <h1 className="text-[2.5rem] leading-[1.08] sm:text-6xl md:text-7xl font-bold text-white mb-5 sm:mb-6 tracking-tight text-balance">
               Zimbabwe’s Digital{' '}
               <span className="bg-gradient-to-r from-white via-white to-[#f5b66b] bg-clip-text text-transparent">
-                HVAC-R Registration System
+                <span className="whitespace-nowrap">HVAC-R</span> <span className="whitespace-nowrap">Registration System</span>
               </span>
             </h1>
             <p className="text-white/80 text-base sm:text-lg md:text-xl mb-8 sm:mb-10 leading-relaxed max-w-2xl">

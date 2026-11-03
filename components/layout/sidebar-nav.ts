@@ -98,7 +98,7 @@ export const NAV_SECTIONS: NavSection[] = [
         label: 'Compliance',
         items: [
             { name: 'Certifications', href: '/certifications', icon: Award, roles: ['technician', 'contractor', 'trainer', 'lecturer', 'student'] },
-            { name: 'Certificate Verification', href: '/certificate-verification', icon: BadgeCheck, roles: ['technician', 'contractor', 'trainer', 'lecturer', 'vendor', 'student'] },
+            { name: 'Technician Verification', href: '/certificate-verification', icon: BadgeCheck, roles: ['technician', 'contractor', 'trainer', 'lecturer', 'vendor', 'student'] },
             { name: 'Rewards', href: '/rewards', icon: Gift, roles: ['technician', 'contractor', 'vendor'] },
         ],
     },
@@ -170,7 +170,7 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
         items: [
             { name: 'Technician Registry', href: '/technician-registry', icon: Users, roles: ['org_admin'] },
             { name: 'Certifications', href: '/certifications', icon: Award, roles: ['org_admin'], badge: 'certificateRequests' },
-            { name: 'Certificate Verification', href: '/certificate-verification', icon: BadgeCheck, roles: ['org_admin'] },
+            { name: 'Technician Verification', href: '/certificate-verification', icon: BadgeCheck, roles: ['org_admin'] },
             { name: 'Memberships', href: '/admin/memberships', icon: Contact, roles: ['org_admin'] },
             { name: 'Rewards', href: '/rewards', icon: Gift, roles: ['org_admin'], badge: 'rewardRequests' },
         ],

@@ -183,8 +183,8 @@ export default function JoinPage() {
               <Sparkles className="h-3.5 w-3.5 text-[#F5B66B]" />
               Join HEVACRAZ
             </div>
-            <h1 className="text-4xl font-bold leading-[1.04] tracking-tight sm:text-5xl lg:text-6xl">
-              Zimbabwe&rsquo;s Digital HVAC-R Registration System
+            <h1 className="text-4xl font-bold leading-[1.04] tracking-tight sm:text-5xl lg:text-6xl text-balance">
+              Zimbabwe&rsquo;s Digital <span className="whitespace-nowrap">HVAC-R</span> Registration System
             </h1>
             <p className="mt-5 max-w-xl text-base leading-7 text-white/72">
               Every role has its own verification path. Pick the one that matches you, confirm your email, and an administrator will review your application and email you the decision.

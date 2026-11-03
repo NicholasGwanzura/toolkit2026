@@ -67,7 +67,7 @@ export const TECHNICIAN_SPECIALIZATIONS = [
   'Refrigerant Handling',
   'Heat Pump Systems',
   'Chiller Systems',
-  'Industrial Refrigeration'
+  'Industrial Commercial Refrigeration'
 ];
 
 // Issuing Bodies for Certifications

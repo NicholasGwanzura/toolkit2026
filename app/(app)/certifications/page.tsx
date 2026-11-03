@@ -126,7 +126,7 @@ export default function CertificationsPage() {
     try {
       const updated = await reviewCertificateRequest(requestId, action);
       if (action === 'issue' && updated.certificateNumber) {
-        setNotice(`Certificate ${updated.certificateNumber} is now live on the Public Certificate Verification Portal.`);
+        setNotice(`Certificate ${updated.certificateNumber} can now be checked on the Public Technician Verification Portal.`);
       }
     } catch (err) {
       setNotice(err instanceof Error ? err.message : 'Failed to update this request.');
@@ -460,7 +460,7 @@ export default function CertificationsPage() {
                   <div className="mt-4 space-y-3">
                     <CertificateQRCode
                       value={request.verificationUrl}
-                      title="Public Certificate Verification Portal"
+                      title="Public Technician Verification Portal"
                     />
                     <a
                       href={request.verificationUrl}
