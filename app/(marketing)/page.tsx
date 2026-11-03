@@ -247,24 +247,6 @@ export default function HomePage() {
               Aligned with the Kigali Amendment · Montreal Protocol · SI 49 of 2023
             </p>
 
-            <div className="mt-7 flex flex-wrap items-center gap-3">
-              {HERO_SLIDES.map((slide, index) => (
-                <button
-                  key={slide.label}
-                  type="button"
-                  onClick={() => setActiveHeroSlide(index)}
-                  className={`inline-flex items-center gap-2 border px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition-colors ${
-                    activeHeroSlide === index
-                      ? 'border-[#D97706] bg-[#D97706] text-white'
-                      : 'border-white/25 bg-white/5 text-white/70 hover:border-white/50 hover:text-white'
-                  }`}
-                  aria-label={`Show ${slide.label} hero image`}
-                >
-                  <span className="text-white/60">0{index + 1}</span>
-                  {slide.label}
-                </button>
-              ))}
-            </div>
           </div>
         </div>
 

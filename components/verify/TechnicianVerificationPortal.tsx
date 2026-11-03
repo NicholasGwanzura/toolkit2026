@@ -120,7 +120,7 @@ interface TechnicianVerificationPortalProps {
 
 export default function TechnicianVerificationPortal({
   variant = 'public',
-  heading = 'Public Technician Verification Portal',
+  heading = 'Public Verification Portal',
   description = 'Check that a technician is registered, by registration number or name. A HEVACRAZ / CertifyZim training certificate can also be checked by its number or QR share link.',
 }: TechnicianVerificationPortalProps) {
   const router = useRouter();
@@ -248,7 +248,7 @@ export default function TechnicianVerificationPortal({
               />
               <div className="ml-3">
                 <span className="text-xl font-bold text-slate-900">HEVACRAZ</span>
-                <p className="text-xs text-slate-500">Public Technician Verification Portal</p>
+                <p className="text-xs text-slate-500">Public Verification Portal</p>
               </div>
             </div>
             <div className="flex items-center gap-4">

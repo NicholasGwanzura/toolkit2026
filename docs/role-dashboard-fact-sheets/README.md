@@ -39,4 +39,4 @@ Technicians, students, suppliers, trainers, lecturers and contractors register t
 | Refrigerant Catalogue | Yes | Yes | Yes | Yes | Yes | Yes |
 | Certification | Yes | Yes | | Yes | Yes | Yes |
 | Rewards | Yes | | Yes | Yes | | Yes |
-| Technician Verification | | Yes | Yes | Yes | | Yes |
+| Public Verification Portal | | Yes | Yes | Yes | | Yes |
