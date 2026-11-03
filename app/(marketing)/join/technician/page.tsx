@@ -12,7 +12,7 @@ import {
   Wrench,
 } from 'lucide-react';
 import { ZIMBABWE_PROVINCES, TECHNICIAN_SPECIALIZATIONS } from '@/constants/registry';
-import { TECHNICIAN_SKILLS } from '@/lib/technician-skills';
+import { SHOW_TECHNICIAN_SKILLS, TECHNICIAN_SKILLS } from '@/lib/technician-skills';
 import { createTechnicianApplication } from '@/lib/api';
 import { SELF_SIGNUP_OPEN } from '@/lib/signup-config';
 import { ApplicationSubmittedNotice } from '@/components/marketing/ApplicationSubmittedNotice';
@@ -312,20 +312,22 @@ function JoinTechnicianForm() {
                         ))}
                       </Select>
                     </Field>
-                    <Field label="Technician Skills" required>
-                      <Select
-                        value={form.technicianSkills}
-                        onChange={(v) => update('technicianSkills', v)}
-                        required
-                      >
-                        <option value="">Select...</option>
-                        {TECHNICIAN_SKILLS.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </Select>
-                    </Field>
+                    {SHOW_TECHNICIAN_SKILLS && (
+                      <Field label="Technician Skills" required>
+                        <Select
+                          value={form.technicianSkills}
+                          onChange={(v) => update('technicianSkills', v)}
+                          required
+                        >
+                          <option value="">Select...</option>
+                          {TECHNICIAN_SKILLS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </Select>
+                      </Field>
+                    )}
                     <Field label="Employment status" required>
                       <Select
                         value={form.employmentStatus}

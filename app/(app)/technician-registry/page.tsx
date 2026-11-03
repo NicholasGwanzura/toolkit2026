@@ -10,7 +10,7 @@ import { useAuth } from '@/lib/auth';
 import { useTechnicians } from '@/lib/api';
 import { RegistryLoginsPanel } from '@/components/admin/RegistryLoginsPanel';
 import { TECHNICIAN_SPECIALIZATIONS, ZIMBABWE_PROVINCES } from '@/constants/registry';
-import { TECHNICIAN_SKILLS, technicianSkillsLabel } from '@/lib/technician-skills';
+import { SHOW_TECHNICIAN_SKILLS, TECHNICIAN_SKILLS, technicianSkillsLabel } from '@/lib/technician-skills';
 
 type CertificationFilter = '' | 'valid' | 'expired' | 'pending';
 
@@ -244,12 +244,14 @@ function TechnicianRegistryContent() {
             onChange={setSelectedSpecialization}
             options={TECHNICIAN_SPECIALIZATIONS}
           />
-          <FilterSelect
-            label="Technician Skills"
-            value={selectedSkills}
-            onChange={setSelectedSkills}
-            options={TECHNICIAN_SKILLS.map((option) => option.label)}
-          />
+          {SHOW_TECHNICIAN_SKILLS && (
+            <FilterSelect
+              label="Technician Skills"
+              value={selectedSkills}
+              onChange={setSelectedSkills}
+              options={TECHNICIAN_SKILLS.map((option) => option.label)}
+            />
+          )}
           <FilterSelect
             label="Registration Status"
             value={selectedStatus}

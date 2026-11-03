@@ -1,4 +1,4 @@
-import { isTechnicianSkills } from '@/lib/technician-skills';
+import { isTechnicianSkills, SHOW_TECHNICIAN_SKILLS } from '@/lib/technician-skills';
 import { ACCOUNT_EXISTS_MESSAGE, accountExistsFor } from '@/lib/server/applicant-lookup';
 import { NextResponse } from 'next/server';
 import { and, desc, eq, or } from 'drizzle-orm';
@@ -120,7 +120,8 @@ export async function POST(req: Request) {
     );
   }
 
-  if (!isTechnicianSkills(body.technicianSkills)) {
+  // Required only while the question is shown on the sign-up form.
+  if (SHOW_TECHNICIAN_SKILLS && !isTechnicianSkills(body.technicianSkills)) {
     return NextResponse.json({ error: 'Choose your technician skills.' }, { status: 400 });
   }
 
@@ -140,7 +141,7 @@ export async function POST(req: Request) {
       district: String(body.district).trim(),
       region: String(body.region ?? body.province).trim(),
       specialization: String(body.specialization).trim(),
-      technicianSkills: body.technicianSkills,
+      technicianSkills: isTechnicianSkills(body.technicianSkills) ? body.technicianSkills : null,
       employmentStatus: (body.employmentStatus ?? 'employed') as 'employed' | 'self-employed' | 'unemployed',
       employer: body.employer ?? null,
       yearsExperience: Number(body.yearsExperience ?? 0),
