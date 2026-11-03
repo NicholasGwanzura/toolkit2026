@@ -54,7 +54,7 @@ export const ZIMBABWE_PROVINCES: Province[] = [
   }
 ];
 
-// Technician Specializations - Refrigeration & Air Conditioning only
+// RAC sub-sectors a technician works in (stored as the technician's specialization)
 export const TECHNICIAN_SPECIALIZATIONS = [
   'Refrigeration & Air Conditioning',
   'HVAC',

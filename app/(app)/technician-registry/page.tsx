@@ -10,6 +10,7 @@ import { useAuth } from '@/lib/auth';
 import { useTechnicians } from '@/lib/api';
 import { RegistryLoginsPanel } from '@/components/admin/RegistryLoginsPanel';
 import { TECHNICIAN_SPECIALIZATIONS, ZIMBABWE_PROVINCES } from '@/constants/registry';
+import { TECHNICIAN_SKILLS, technicianSkillsLabel } from '@/lib/technician-skills';
 
 type CertificationFilter = '' | 'valid' | 'expired' | 'pending';
 
@@ -22,6 +23,7 @@ function TechnicianRegistryContent() {
   const [selectedProvince, setSelectedProvince] = useState(() => searchParams.get('province') ?? '');
   const [selectedDistrict, setSelectedDistrict] = useState(() => searchParams.get('district') ?? '');
   const [selectedSpecialization, setSelectedSpecialization] = useState(() => searchParams.get('specialization') ?? '');
+  const [selectedSkills, setSelectedSkills] = useState('');
   const [selectedStatus, setSelectedStatus] = useState(() => searchParams.get('status') ?? '');
   const [selectedEmploymentStatus, setSelectedEmploymentStatus] = useState('');
   const [selectedCertificationStatus, setSelectedCertificationStatus] = useState<CertificationFilter>('');
@@ -63,6 +65,7 @@ function TechnicianRegistryContent() {
       const matchesProvince = !selectedProvince || tech.province === selectedProvince;
       const matchesDistrict = !selectedDistrict || tech.district === selectedDistrict;
       const matchesSpecialization = !selectedSpecialization || tech.specialization === selectedSpecialization;
+      const matchesSkills = !selectedSkills || technicianSkillsLabel(tech.technicianSkills) === selectedSkills;
       const matchesStatus = !selectedStatus || tech.status === selectedStatus;
       const matchesEmploymentStatus = !selectedEmploymentStatus || tech.employmentStatus === selectedEmploymentStatus;
       const matchesCertificationStatus =
@@ -74,6 +77,7 @@ function TechnicianRegistryContent() {
         matchesProvince &&
         matchesDistrict &&
         matchesSpecialization &&
+        matchesSkills &&
         matchesStatus &&
         matchesEmploymentStatus &&
         matchesCertificationStatus
@@ -84,7 +88,7 @@ function TechnicianRegistryContent() {
     searchTerm,
     selectedProvince,
     selectedDistrict,
-    selectedSpecialization,
+    selectedSpecialization, selectedSkills,
     selectedStatus,
     selectedEmploymentStatus,
     selectedCertificationStatus,
@@ -123,7 +127,8 @@ function TechnicianRegistryContent() {
         'Registration',
         'Province',
         'Town',
-        'Specialization',
+        'RAC Sub-sector',
+        'Technician Skills',
         'Status',
         'Employer',
         'Contact',
@@ -135,6 +140,7 @@ function TechnicianRegistryContent() {
         tech.province,
         tech.district,
         tech.specialization,
+        technicianSkillsLabel(tech.technicianSkills),
         tech.status,
         tech.employer ?? tech.employmentStatus,
         tech.contactNumber,
@@ -233,10 +239,16 @@ function TechnicianRegistryContent() {
             options={availableDistricts}
           />
           <FilterSelect
-            label="Specialization"
+            label="RAC Sub-sectors"
             value={selectedSpecialization}
             onChange={setSelectedSpecialization}
             options={TECHNICIAN_SPECIALIZATIONS}
+          />
+          <FilterSelect
+            label="Technician Skills"
+            value={selectedSkills}
+            onChange={setSelectedSkills}
+            options={TECHNICIAN_SKILLS.map((option) => option.label)}
           />
           <FilterSelect
             label="Registration Status"

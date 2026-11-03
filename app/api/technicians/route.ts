@@ -1,3 +1,4 @@
+import { isTechnicianSkills } from '@/lib/technician-skills';
 import { NextResponse } from 'next/server';
 import { MAX_LIST_ROWS } from '@/lib/server/list-limits';
 import { ilike, or } from 'drizzle-orm';
@@ -18,6 +19,7 @@ function toTechnician(row: typeof technicians.$inferSelect, includeSensitive = f
     contactNumber: includeSensitive ? row.contactNumber : '',
     email: includeSensitive ? row.email ?? undefined : undefined,
     specialization: row.specialization,
+    technicianSkills: row.technicianSkills ?? undefined,
     certifications: row.certifications as Technician['certifications'],
     trainingHistory: row.trainingHistory as Technician['trainingHistory'],
     employmentStatus: row.employmentStatus as Technician['employmentStatus'],
@@ -72,7 +74,7 @@ export async function POST(req: Request) {
   ];
   for (const key of required) {
     if (!body[key]) {
-      return NextResponse.json({ error: `${key} is required` }, { status: 400 });
+      return NextResponse.json({ error: `${key === 'specialization' ? 'RAC sub-sector' : key} is required` }, { status: 400 });
     }
   }
 
@@ -92,6 +94,8 @@ export async function POST(req: Request) {
       contactNumber: String(body.contactNumber).trim(),
       email: body.email ?? null,
       specialization: String(body.specialization).trim(),
+      // Optional when an administrator adds an older paper record.
+      technicianSkills: isTechnicianSkills(body.technicianSkills) ? body.technicianSkills : null,
       certifications: body.certifications ?? [],
       trainingHistory: body.trainingHistory ?? [],
       employmentStatus: (body.employmentStatus ?? 'employed') as 'employed' | 'self-employed' | 'unemployed',

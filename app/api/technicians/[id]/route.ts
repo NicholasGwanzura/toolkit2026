@@ -18,6 +18,7 @@ function toTechnician(row: typeof technicians.$inferSelect, includeSensitive = f
     contactNumber: includeSensitive ? row.contactNumber : '',
     email: includeSensitive ? row.email ?? undefined : undefined,
     specialization: row.specialization,
+    technicianSkills: row.technicianSkills ?? undefined,
     certifications: row.certifications as Technician['certifications'],
     trainingHistory: row.trainingHistory as Technician['trainingHistory'],
     employmentStatus: row.employmentStatus as Technician['employmentStatus'],

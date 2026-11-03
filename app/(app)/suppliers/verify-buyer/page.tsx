@@ -34,7 +34,7 @@ function ResultPanel({ data }: { data: VerifyTechnicianResult }) {
                         <InfoRow label="Registered" value={tech.registrationDate} />
                         <InfoRow label="Expiry" value={tech.expiryDate} />
                         {tech.employer && <InfoRow label="Employer" value={tech.employer} />}
-                        <InfoRow label="Specialization" value={tech.specialization} />
+                        <InfoRow label="RAC Sub-sector" value={tech.specialization} />
                     </div>
 
                     {tech.certifications.length > 0 && (

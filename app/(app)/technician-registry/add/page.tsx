@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Save, Plus, X } from 'lucide-react';
+import { TECHNICIAN_SKILLS } from '@/lib/technician-skills';
 import { ZIMBABWE_PROVINCES, TECHNICIAN_SPECIALIZATIONS } from '@/constants/registry';
 import { useToast } from '@/components/ui/Toast';
 import { createTechnician } from '@/lib/api';
@@ -22,6 +23,7 @@ export default function AddTechnicianPage() {
     contactNumber: '',
     email: '',
     specialization: '',
+    technicianSkills: '',
     employmentStatus: 'employed',
     employer: '',
     certifications: [] as Array<{
@@ -120,7 +122,7 @@ export default function AddTechnicianPage() {
     e.preventDefault();
 
     if (!formData.name || !formData.nationalId || !formData.registrationNumber || !formData.specialization) {
-      error('Please fill in all required fields (Name, National ID, Registration Number, Specialization)');
+      error('Please fill in all required fields (Name, National ID, Registration Number, RAC Sub-sector)');
       return;
     }
     if (!formData.province || !formData.district) {
@@ -144,6 +146,7 @@ export default function AddTechnicianPage() {
         contactNumber: formData.contactNumber,
         email: formData.email || undefined,
         specialization: formData.specialization,
+        technicianSkills: formData.technicianSkills || undefined,
         employmentStatus: formData.employmentStatus as 'employed' | 'self-employed' | 'unemployed',
         employer: formData.employer || undefined,
         certifications: formData.certifications.map((c, i) => ({
@@ -230,7 +233,7 @@ export default function AddTechnicianPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Specialization *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">RAC Sub-sector *</label>
               <select
                 name="specialization"
                 required
@@ -238,9 +241,23 @@ export default function AddTechnicianPage() {
                 value={formData.specialization}
                 onChange={handleInputChange}
               >
-                <option value="">Select specialization</option>
+                <option value="">Select RAC sub-sector</option>
                 {TECHNICIAN_SPECIALIZATIONS.map(spec => (
                   <option key={spec} value={spec}>{spec}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Technician Skills</label>
+              <select
+                name="technicianSkills"
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={formData.technicianSkills}
+                onChange={handleInputChange}
+              >
+                <option value="">Not recorded</option>
+                {TECHNICIAN_SKILLS.map(option => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
                 ))}
               </select>
             </div>

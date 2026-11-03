@@ -1,5 +1,6 @@
 'use client';
 
+import { technicianSkillsLabel } from '@/lib/technician-skills';
 import { useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -39,7 +40,7 @@ const TAB_LABELS: Record<Tab, string> = {
   personal: 'Personal Information',
   contact: 'Contact & Location',
   survey: 'Survey Questions & Answers',
-  skills: 'Skills & Specializations',
+  skills: 'Skills & RAC Sub-sectors',
   documents: 'Uploaded Documents',
   membership: 'Membership Information',
   audit: 'Audit Trail',
@@ -223,7 +224,8 @@ export default function ApplicantDrilldownPage() {
         {activeTab === 'overview' && (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             <Field label="Full name" value={app.name} />
-            <Field label="Specialization" value={app.specialization} />
+            <Field label="RAC Sub-sector" value={app.specialization} />
+            <Field label="Technician Skills" value={technicianSkillsLabel(app.technicianSkills)} />
             <Field label="Registration number" value={app.registrationNumber} />
             <Field label="Employment status" value={app.employmentStatus} />
             <Field label="Years of experience" value={app.yearsExperience} />
@@ -276,7 +278,7 @@ export default function ApplicantDrilldownPage() {
         {activeTab === 'skills' && (
           <div className="space-y-6">
             <div>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Specialization</p>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">RAC Sub-sector</p>
               <span className="inline-flex rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-700">{app.specialization}</span>
             </div>
             <div>

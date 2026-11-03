@@ -541,7 +541,7 @@ export default function VendorReportingPanel({
                                     <p className="mt-2 text-sm font-semibold text-gray-900">{selectedTechnician.province}</p>
                                 </div>
                                 <div className="rounded-xl rounded-lg border border-gray-200 bg-white p-4">
-                                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-400">Specialization</p>
+                                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-400">RAC Sub-sector</p>
                                     <p className="mt-2 text-sm font-semibold text-gray-900">{selectedTechnician.specialization}</p>
                                 </div>
                                 <div className="rounded-xl rounded-lg border border-gray-200 bg-white p-4">

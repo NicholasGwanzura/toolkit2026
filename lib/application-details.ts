@@ -1,3 +1,4 @@
+import { technicianSkillsLabel } from '@/lib/technician-skills';
 // The facts an administrator sees about an applicant in the "new application" email.
 // Pure, so it can be tested without a database.
 
@@ -23,6 +24,7 @@ export function technicianDetails(row: {
   province: string;
   district: string;
   specialization: string;
+  technicianSkills?: string | null;
   employmentStatus: string;
   employer: string | null;
   yearsExperience: number;
@@ -31,7 +33,8 @@ export function technicianDetails(row: {
   return rows([
     ['Phone', row.contactNumber],
     ['Location', [row.district, row.province].filter(Boolean).join(', ')],
-    ['Specialisation', row.specialization],
+    ['RAC Sub-sector', row.specialization],
+    ['Technician Skills', technicianSkillsLabel(row.technicianSkills)],
     ['Employment', row.employer ? `${row.employmentStatus} at ${row.employer}` : row.employmentStatus],
     ['Experience', `${row.yearsExperience} years`],
     ['Registry number', row.registrationNumber],

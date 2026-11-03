@@ -93,6 +93,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       contactNumber: app.contactNumber,
       email: app.email,
       specialization: app.specialization,
+      technicianSkills: app.technicianSkills,
       certifications: app.certifications ?? [],
       trainingHistory: [],
       employmentStatus: app.employmentStatus as 'employed' | 'self-employed' | 'unemployed',

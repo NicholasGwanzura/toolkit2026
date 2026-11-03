@@ -302,6 +302,13 @@
       "when": 1794200000000,
       "tag": "0042_industrial_commercial_refrigeration",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1794300000000,
+      "tag": "0043_technician_skills",
+      "breakpoints": true
     }
   ]
 }

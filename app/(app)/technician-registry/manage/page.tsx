@@ -1,5 +1,6 @@
 'use client';
 
+import { technicianSkillsLabel } from '@/lib/technician-skills';
 import { useState, useMemo } from 'react';
 import { Search, Filter, Plus, Edit2, Trash2, CheckCircle, XCircle, Clock, ChevronRight, UserPlus, Download, Eye, X } from 'lucide-react';
 import { Technician } from '@/types/index';
@@ -200,9 +201,9 @@ export default function ManageTechniciansPage() {
   };
 
   const exportCSV = () => {
-    const headers = ['Name', 'Registration Number', 'National ID', 'Specialization', 'Province', 'District', 'Status', 'Employment Status', 'Employer', 'Contact', 'Email', 'Expiry Date'];
+    const headers = ['Name', 'Registration Number', 'National ID', 'RAC Sub-sector', 'Technician Skills', 'Province', 'District', 'Status', 'Employment Status', 'Employer', 'Contact', 'Email', 'Expiry Date'];
     const rows = filteredTechnicians.map(t => [
-      t.name, t.registrationNumber, t.nationalId, t.specialization,
+      t.name, t.registrationNumber, t.nationalId, t.specialization, technicianSkillsLabel(t.technicianSkills),
       t.province, t.district, t.status, t.employmentStatus,
       t.employer ?? '', t.contactNumber, t.email ?? '', t.expiryDate,
     ]);

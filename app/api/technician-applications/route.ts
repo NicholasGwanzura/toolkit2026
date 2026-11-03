@@ -1,3 +1,4 @@
+import { isTechnicianSkills } from '@/lib/technician-skills';
 import { ACCOUNT_EXISTS_MESSAGE, accountExistsFor } from '@/lib/server/applicant-lookup';
 import { NextResponse } from 'next/server';
 import { and, desc, eq, or } from 'drizzle-orm';
@@ -29,6 +30,7 @@ function toTechnicianApplication(
     district: row.district,
     region: row.region,
     specialization: row.specialization,
+    technicianSkills: row.technicianSkills ?? undefined,
     employmentStatus: row.employmentStatus as TechnicianApplication['employmentStatus'],
     employer: row.employer ?? undefined,
     yearsExperience: row.yearsExperience,
@@ -77,7 +79,7 @@ export async function POST(req: Request) {
   ];
   for (const key of required) {
     if (!body[key]) {
-      return NextResponse.json({ error: `${key} is required` }, { status: 400 });
+      return NextResponse.json({ error: `${key === 'specialization' ? 'RAC sub-sector' : key} is required` }, { status: 400 });
     }
   }
 
@@ -118,6 +120,10 @@ export async function POST(req: Request) {
     );
   }
 
+  if (!isTechnicianSkills(body.technicianSkills)) {
+    return NextResponse.json({ error: 'Choose your technician skills.' }, { status: 400 });
+  }
+
   const passwordHash = await hashPassword(body.password!);
   const registrationNumber = await generateTechnicianRegistrationNumber();
 
@@ -134,6 +140,7 @@ export async function POST(req: Request) {
       district: String(body.district).trim(),
       region: String(body.region ?? body.province).trim(),
       specialization: String(body.specialization).trim(),
+      technicianSkills: body.technicianSkills,
       employmentStatus: (body.employmentStatus ?? 'employed') as 'employed' | 'self-employed' | 'unemployed',
       employer: body.employer ?? null,
       yearsExperience: Number(body.yearsExperience ?? 0),

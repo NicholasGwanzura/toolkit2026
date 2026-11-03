@@ -54,6 +54,8 @@ export const technicianApplications = pgTable('technician_applications', {
   district: text('district').notNull(),
   region: text('region').notNull(),
   specialization: text('specialization').notNull(),
+  // Local assembly and installation, servicing, or both. Empty for records from before it was asked.
+  technicianSkills: text('technician_skills'),
   employmentStatus: text('employment_status').notNull().default('employed'),
   employer: text('employer'),
   yearsExperience: integer('years_experience').notNull().default(0),

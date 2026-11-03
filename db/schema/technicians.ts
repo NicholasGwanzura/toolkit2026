@@ -31,6 +31,8 @@ export const technicians = pgTable('technicians', {
   contactNumber: text('contact_number').notNull(),
   email: text('email'),
   specialization: text('specialization').notNull(),
+  // Local assembly and installation, servicing, or both. Empty for records from before it was asked.
+  technicianSkills: text('technician_skills'),
   // Certification[] stored as JSONB
   certifications: jsonb('certifications').notNull().default([]),
   // TrainingRecord[] stored as JSONB

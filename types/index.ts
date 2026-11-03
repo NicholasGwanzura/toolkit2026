@@ -392,6 +392,7 @@ export interface TechnicianApplication extends EmailConfirmationFlag {
   district: string;
   region: string;
   specialization: string;
+  technicianSkills?: string;
   employmentStatus: 'employed' | 'self-employed' | 'unemployed';
   employer?: string;
   yearsExperience: number;
@@ -687,6 +688,7 @@ export interface Technician {
   contactNumber: string;
   email?: string;
   specialization: string;
+  technicianSkills?: string;
   certifications: Certification[];
   trainingHistory: TrainingRecord[];
   employmentStatus: 'employed' | 'self-employed' | 'unemployed';

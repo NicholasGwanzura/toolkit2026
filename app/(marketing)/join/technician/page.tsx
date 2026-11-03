@@ -12,6 +12,7 @@ import {
   Wrench,
 } from 'lucide-react';
 import { ZIMBABWE_PROVINCES, TECHNICIAN_SPECIALIZATIONS } from '@/constants/registry';
+import { TECHNICIAN_SKILLS } from '@/lib/technician-skills';
 import { createTechnicianApplication } from '@/lib/api';
 import { SELF_SIGNUP_OPEN } from '@/lib/signup-config';
 import { ApplicationSubmittedNotice } from '@/components/marketing/ApplicationSubmittedNotice';
@@ -36,6 +37,7 @@ type FormState = {
   province: string;
   district: string;
   specialization: string;
+  technicianSkills: string;
   employmentStatus: 'employed' | 'self-employed' | 'unemployed';
   employer: string;
   yearsExperience: number;
@@ -55,6 +57,7 @@ const INITIAL: FormState = {
   province: '',
   district: '',
   specialization: '',
+  technicianSkills: '',
   employmentStatus: 'employed',
   employer: '',
   yearsExperience: 0,
@@ -141,6 +144,7 @@ function JoinTechnicianForm() {
         district: form.district,
         region: form.province,
         specialization: form.specialization,
+        technicianSkills: form.technicianSkills,
         employmentStatus: form.employmentStatus,
         employer: form.employmentStatus === 'unemployed' ? undefined : form.employer.trim() || undefined,
         yearsExperience: Number(form.yearsExperience),
@@ -294,7 +298,7 @@ function JoinTechnicianForm() {
                     Practice
                   </legend>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                    <Field label="Specialization" required>
+                    <Field label="RAC Sub-sector" required>
                       <Select
                         value={form.specialization}
                         onChange={(v) => update('specialization', v)}
@@ -304,6 +308,20 @@ function JoinTechnicianForm() {
                         {TECHNICIAN_SPECIALIZATIONS.map((s) => (
                           <option key={s} value={s}>
                             {s}
+                          </option>
+                        ))}
+                      </Select>
+                    </Field>
+                    <Field label="Technician Skills" required>
+                      <Select
+                        value={form.technicianSkills}
+                        onChange={(v) => update('technicianSkills', v)}
+                        required
+                      >
+                        <option value="">Select...</option>
+                        {TECHNICIAN_SKILLS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
                           </option>
                         ))}
                       </Select>

@@ -1,5 +1,6 @@
 'use client';
 
+import { technicianSkillsLabel } from '@/lib/technician-skills';
 import { useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, CheckCircle, AlertTriangle, Clock, MapPin, Phone, Mail, Briefcase, Award, Calendar, FileText, Building2, Loader2, Camera, User, Download } from 'lucide-react';
@@ -334,8 +335,10 @@ export default function TechnicianDetailsPage() {
                 <p className="text-gray-900">{technician.registrationNumber}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-500">Specialization</p>
+                <p className="text-sm font-medium text-gray-500">RAC Sub-sector</p>
                 <p className="text-gray-900">{technician.specialization}</p>
+                <p className="mt-3 text-sm font-medium text-gray-500">Technician Skills</p>
+                <p className="text-gray-900">{technicianSkillsLabel(technician.technicianSkills)}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-500">Contact Number</p>
